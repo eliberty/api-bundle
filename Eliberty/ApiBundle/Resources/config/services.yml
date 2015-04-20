@@ -5,3 +5,36 @@ services:
 #    eliberty_api.example:
 #        class: %eliberty_api.example.class%
 #        arguments: [@service_id, "plain_value", %parameter%]
+
+
+        api.json_ld.normalizer.item:
+            class: Eliberty\ApiBundle\JsonLd\Serializer\Normalizer
+            arguments:
+                - @api.resource_collection
+                - @api.data_provider
+                - @api.router
+                - @api.mapping.class_metadata_factory
+                - @api.json_ld.context_builder
+                - @property_accessor
+                - @api.ressource.transformer_resolver
+                - @api.resource_collection
+            tags:
+                - { name: serializer.normalizer }
+
+        api.ressource.transformer_resolver:
+            class: Eliberty\ApiBundle\Transformer\Listener\TransformerResolver
+            arguments:
+                - @service_container
+
+        webhook.doctrine.entity_listener_resolver:
+            class: Eliberty\ApiBundle\WebHook\Doctrine\Listener\EntityListenerResolver
+            arguments:
+                - @service_container
+
+        webhook.listener:
+            class : Eliberty\ApiBundle\WebHook\Listener\WebHookListener
+            arguments:
+                - @doctrine.orm.default_entity_manager
+                - @logger
+            tags:
+                - { name: kernel.event_subscriber }
