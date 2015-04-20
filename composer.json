@@ -1,0 +1,29 @@
+{
+    "name": "eliberty/api-bundle",
+    "type": "symfony-bundle",
+    "description": "JSON-LD / Hydra REST API with use fractal for Symfony",
+    "keywords": ["api", "jsonld", "eliberty", "rest", "Hydra"],
+    "license": "PROPRIETARY",
+    "minimum-stability": "dev",
+    "authors": [
+        {
+            "name": "philippe vesin",
+            "email": "pvesin@eliberty.fr"
+        }
+    ],
+    "require": {
+        "php": ">=5.3.3",
+        "nelmio/api-doc-bundle": "2.8.0",
+        "league/fractal": "0.12.*@dev",
+        "nelmio/cors-bundle": "~1.4",
+        "dunglas/json-ld-api-bundle": "dev-master"
+    },
+    "extra": {
+        "branch-alias":{
+            "dev-master": "1.0.x-dev"
+        }
+    },
+    "autoload": {
+        "psr-4": { "Eliberty\\Bundle\\ApiBundle\\": "" }
+    }
+}
