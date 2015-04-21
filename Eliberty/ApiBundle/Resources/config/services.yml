@@ -18,6 +18,8 @@ services:
                 - @property_accessor
                 - @api.ressource.transformer_resolver
                 - @api.resource_collection
+                - @request
+            scope: request
             tags:
                 - { name: serializer.normalizer }
 
@@ -25,6 +27,16 @@ services:
             class: Eliberty\ApiBundle\Transformer\Listener\TransformerResolver
             arguments:
                 - @service_container
+
+        api.operation_factory:
+            class: Eliberty\ApiBundle\Api\Operation\OperationFactory
+
+        api.router:
+            class: Eliberty\ApiBundle\Routing\Router
+            arguments:
+                - @router
+                - @api.resource_collection
+                - @property_accessor
 
         webhook.doctrine.entity_listener_resolver:
             class: Eliberty\ApiBundle\WebHook\Doctrine\Listener\EntityListenerResolver

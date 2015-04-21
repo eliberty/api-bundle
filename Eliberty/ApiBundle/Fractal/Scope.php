@@ -14,6 +14,9 @@ namespace Eliberty\ApiBundle\Fractal;
 use Doctrine\Common\Inflector\Inflector;
 use Doctrine\ORM\PersistentCollection;
 use Dunglas\JsonLdApiBundle\Model\PaginatorInterface;
+use Eliberty\ApiBundle\Doctrine\Orm\MappingsFilter;
+use League\Fractal\Pagination\PaginatorInterface as FractalPaginatorInterface;
+use League\Fractal\Pagination\PagerfantaPaginatorAdapter;
 use League\Fractal\Scope as BaseFractalScope;
 use InvalidArgumentException;
 use League\Fractal\Resource\Collection;
@@ -74,6 +77,7 @@ class Scope extends BaseFractalScope
         $this->dunglasResource = $this->getDunglasRessource();
 
         list($rawData, $rawIncludedData) = $this->executeResourceTransformers();
+
         if (count($rawData) === 0) {
             return [];
         }
@@ -81,34 +85,41 @@ class Scope extends BaseFractalScope
         $data['@context'] = $this->getContext($this->dunglasResource);
 
         if(!is_null($this->resource)) {
-            $data['@id'] = $this->manager->getRouter()->generate($this->dunglasResource);
+            foreach($this->dunglasResource->getFilters() as $filter) {
+                if ($filter instanceof MappingsFilter) {
+                    $route = $this->getGenerateRoute($filter->getRouteName(), $filter->getParameters());
+                    break;
+                }
+            }
+            if (empty($route)) {
+                $route = $this->getGenerateRoute($this->dunglasResource);
+            }
+            $data['@id'] = $route;
         }
 
-
         $object = $this->resource->getData();
-        if ($object instanceof PaginatorInterface) {
+
+        if ($this->resource->hasPaginator()) {
+            $object = $this->resource->getPaginator();
+        }
+
+        if ($object instanceof PaginatorInterface || $object instanceof FractalPaginatorInterface) {
             $data['@type'] = self::HYDRA_PAGED_COLLECTION;
 
             $currentPage = $object->getCurrentPage();
-            $lastPage = $object->getLastPage();
+            $lastPage    = $object->getLastPage();
 
             $baseUrl = $data['@id'];
             $paginatedUrl = $baseUrl.'?page=';
 
-            if (1. !== $currentPage) {
-                $previousPage = $currentPage - 1.;
-                $data['@id'] .= $paginatedUrl.$currentPage;
-                $data['hydra:previousPage'] = 1. === $previousPage ? $baseUrl : $paginatedUrl.$previousPage;
-            }
+            $this->getPreviewPage($data, $object,$currentPage,$paginatedUrl,$baseUrl);
+            $this->getNextPage($data, $object,$currentPage, $lastPage,$paginatedUrl);
 
-            if ($currentPage !== $lastPage) {
-                $data['hydra:nextPage'] = $paginatedUrl.($currentPage + 1.);
-            }
-
-            $data['hydra:totalItems'] = $object->getTotalItems();
+            $data['hydra:totalItems'] =  $object->getTotalItems();
             $data['hydra:itemsPerPage'] = $object->getItemsPerPage();
-            $data['hydra:firstPage'] = $baseUrl;
-            $data['hydra:lastPage'] = 1. === $lastPage ? $baseUrl : $paginatedUrl.$lastPage;
+            $this->getFirstPage($data, $object,$currentPage, $lastPage, $baseUrl);
+            $this->getLastPage($data, $object,$currentPage, $lastPage, $paginatedUrl);
+
         } else {
             $data['@type'] = self::HYDRA_COLLECTION;
         }
@@ -198,7 +209,7 @@ class Scope extends BaseFractalScope
         $transformedData = [];
 
         if(!is_null($this->dunglasResource)) {
-            $transformedData['@id'] = $this->manager->getRouter()->generate($data);
+            $transformedData['@id'] = $this->getGenerateRoute($data);
         }
 
         $classMetadata =  $this->manager->getApiClassMetadataFactory()->getMetadataFor(
@@ -226,5 +237,89 @@ class Scope extends BaseFractalScope
         }
 
         return array($transformedData, $includedData);
+    }
+
+    /**
+     * @param $data
+     * @param $object
+     * @param $currentPage
+     * @param $paginatedUrl
+     * @param $baseUrl
+     */
+    protected function getPreviewPage(&$data, $object, $currentPage, $paginatedUrl, $baseUrl)
+    {
+        if (1 !== $currentPage) {
+            $previousPage = $currentPage - 1.;
+            if($object instanceof FractalPaginatorInterface) {
+                $data['hydra:previousPage'] = $object->getUrl($currentPage - 1);
+                return true;
+            }
+            $data['@id'] .= $paginatedUrl.$currentPage;
+            $data['hydra:previousPage'] = 1. === $previousPage ? $baseUrl : $paginatedUrl.$previousPage;
+        }
+    }
+
+    /**
+     * @param $data
+     * @param $object
+     * @param $currentPage
+     * @param $lastPage
+     * @param $paginatedUrl
+     */
+    protected function getNextPage(&$data, $object, $currentPage, $lastPage, $paginatedUrl)
+    {
+        if ($currentPage !== $lastPage) {
+            if($object instanceof FractalPaginatorInterface) {
+                $data['hydra:nextPage'] = $object->getUrl($currentPage + 1);
+                return true;
+            }
+
+            $data['hydra:nextPage'] = $paginatedUrl.($currentPage + 1.);
+        }
+    }
+
+    /**
+     * @param $data
+     * @param $object
+     * @param $currentPage
+     * @param $lastPage
+     * @param $paginatedUrl
+     * @return bool
+     */
+    protected function getLastPage(&$data, $object, $currentPage, $lastPage, $paginatedUrl)
+    {
+        if($object instanceof FractalPaginatorInterface) {
+            $data['hydra:lastPage'] = $object->getUrl($lastPage);
+            return true;
+        }
+
+        $data['hydra:lastPage'] = $paginatedUrl.$lastPage;
+    }
+
+    /**
+     * @param $data
+     * @param $object
+     * @param $currentPage
+     * @param $lastPage
+     * @param $baseUrl
+     * @return bool
+     */
+    protected function getFirstPage(&$data, $object, $currentPage, $lastPage, $baseUrl)
+    {
+        if($object instanceof FractalPaginatorInterface) {
+            $data['hydra:firstPage'] = $object->getUrl(1);
+
+            return true;
+        }
+
+        $data['hydra:firstPage'] = $baseUrl;
+    }
+
+    /**
+     * @param $data
+     * @return mixed
+     */
+    protected function getGenerateRoute($data, $params = []){
+        return $this->manager->getRouter()->generate($data, $params);
     }
 }

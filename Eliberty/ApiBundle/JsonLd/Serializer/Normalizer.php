@@ -23,6 +23,7 @@ use Dunglas\JsonLdApiBundle\Model\DataProviderInterface;
 use League\Fractal\Resource\Collection;
 use League\Fractal\Resource\Item;
 use League\Fractal\TransformerAbstract;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\PropertyAccess\Exception\NoSuchPropertyException;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 use Symfony\Component\Routing\RouterInterface;
@@ -84,6 +85,11 @@ class Normalizer extends AbstractNormalizer implements NormalizerInterface
     private $transformer;
 
     /**
+     * @var Request
+     */
+    private $request;
+
+    /**
      * @var ResourceCollection
      */
     private $resourceCollection;
@@ -97,6 +103,7 @@ class Normalizer extends AbstractNormalizer implements NormalizerInterface
         PropertyAccessorInterface $propertyAccessor,
         TransformerResolver $transformerResolver,
         ResourceCollection $resourceCollection,
+        Request $request,
         NameConverterInterface $nameConverter = null
     ) {
 
@@ -108,6 +115,7 @@ class Normalizer extends AbstractNormalizer implements NormalizerInterface
         $this->propertyAccessor = $propertyAccessor;
         $this->transformerResolver = $transformerResolver;
         $this->resourceCollection = $resourceCollection;
+        $this->setRequest($request);
     }
 
     /**
@@ -131,6 +139,7 @@ class Normalizer extends AbstractNormalizer implements NormalizerInterface
 
         if (empty($this->transformer)) {
             $this->transformer = $this->transformerResolver->resolve($dunglasRessource->getShortName());
+            $this->transformer->setRequest($this->request);
         }
 
         if (empty($this->fractal)) {
@@ -141,7 +150,7 @@ class Normalizer extends AbstractNormalizer implements NormalizerInterface
             $this->fractal->setResourceCollection($this->resourceCollection);
         }
 
-        $this->fractal->parseIncludes($this->transformer->getAvailableIncludes());
+        $this->fractal->parseIncludes($this->getEmbedsWithoutOptions());
 
         if ($object instanceof Paginator) {
             $resource = new Collection($object, $this->transformer);
@@ -153,7 +162,7 @@ class Normalizer extends AbstractNormalizer implements NormalizerInterface
 
         $this->transformer
             ->setCurrentScope($rootScope)
-            ->setInputEmbedParamFetcher('contact');
+            ->setEmbed($dunglasRessource->getShortName());
 
         return $rootScope->toArray();
     }
@@ -189,5 +198,38 @@ class Normalizer extends AbstractNormalizer implements NormalizerInterface
     private function normalizeRelation(ResourceInterface $currentResource, AttributeMetadata $attribute, $relatedObject, $class)
     {
         var_dump('normalizeRelation');exit;
+    }
+
+    /**
+     * @param Request $request
+     *
+     * @return $this
+     */
+    public function setRequest($request)
+    {
+        $this->request = $request;
+
+        return $this;
+    }
+
+    /**
+     * @return array
+     */
+    private function getEmbedsWithoutOptions()
+    {
+        $embeds = $this->request->get('embed', null);
+
+        if (null === $embeds) {
+            $embeds = implode(',', $this->transformer->getAvailableIncludes());
+        }
+
+        $datas        = [];
+        preg_match_all('|{(.*)}|U', $embeds, $datas);
+        $withoutEmbeds = $embeds;
+        foreach ($datas[1] as $data) {
+            $withoutEmbeds = str_replace('{' . $data . '}', "", $embeds);
+        }
+
+        return explode(',', $withoutEmbeds);
     }
 }
