@@ -11,15 +11,16 @@
 
 namespace Eliberty\ApiBundle\JsonLd\Serializer;
 
+use Dunglas\ApiBundle\JsonLd\Serializer\DateTimeNormalizer;
 use Eliberty\ApiBundle\Fractal\Manager;
 use Eliberty\ApiBundle\Transformer\Listener\TransformerResolver;
-use Dunglas\JsonLdApiBundle\Api\ResourceCollectionInterface;
-use Dunglas\JsonLdApiBundle\Api\ResourceInterface;
-use Dunglas\JsonLdApiBundle\Api\ResourceResolver;
-use Dunglas\JsonLdApiBundle\JsonLd\ContextBuilder;
-use Dunglas\JsonLdApiBundle\Mapping\ClassMetadataFactory;
-use Dunglas\JsonLdApiBundle\Mapping\AttributeMetadata;
-use Dunglas\JsonLdApiBundle\Model\DataProviderInterface;
+use Dunglas\ApiBundle\Api\ResourceCollectionInterface;
+use Dunglas\ApiBundle\Api\ResourceInterface;
+use Dunglas\ApiBundle\Api\ResourceResolver;
+use Dunglas\ApiBundle\JsonLd\ContextBuilder;
+use Dunglas\ApiBundle\Mapping\ClassMetadataFactory;
+use Dunglas\ApiBundle\Mapping\AttributeMetadata;
+use Dunglas\ApiBundle\Model\DataProviderInterface;
 use League\Fractal\Resource\Collection;
 use League\Fractal\Resource\Item;
 use League\Fractal\TransformerAbstract;
@@ -31,14 +32,14 @@ use Symfony\Component\Serializer\Exception\CircularReferenceException;
 use Symfony\Component\Serializer\Exception\InvalidArgumentException;
 use Symfony\Component\Serializer\NameConverter\NameConverterInterface;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
-use Dunglas\JsonLdApiBundle\Api\ResourceCollection;
-use Dunglas\JsonLdApiBundle\Doctrine\Orm\Paginator;
+use Dunglas\ApiBundle\Api\ResourceCollection;
+use Dunglas\ApiBundle\Doctrine\Orm\Paginator;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 
 /**
  * Converts between objects and array including JSON-LD and Hydra metadata.
  *
- * @author Kévin Dunglas <dunglas@gmail.com>
+ * @package Eliberty\ApiBundle\JsonLd\Serializer
  */
 class Normalizer extends AbstractNormalizer implements NormalizerInterface
 {
@@ -135,14 +136,14 @@ class Normalizer extends AbstractNormalizer implements NormalizerInterface
     public function normalize($object, $format = null, array $context = [])
     {
 
-        $dunglasRessource = $this->guessResource($object, $context);
+        $dunglasResource = $this->guessResource($object, $context);
 
-        if (empty($this->transformer)) {
-            $this->transformer = $this->transformerResolver->resolve($dunglasRessource->getShortName());
+        if (!$this->transformer) {
+            $this->transformer = $this->transformerResolver->resolve($dunglasResource->getShortName());
             $this->transformer->setRequest($this->request);
         }
 
-        if (empty($this->fractal)) {
+        if (!$this->fractal) {
             $this->fractal = new Manager();
             $this->fractal->setApiClassMetadataFactory($this->apiClassMetadataFactory);
             $this->fractal->setRouter($this->router);
@@ -158,11 +159,11 @@ class Normalizer extends AbstractNormalizer implements NormalizerInterface
             $resource = new Item($object, $this->transformer);
         }
 
-        $rootScope = $this->fractal->createData($resource, $dunglasRessource->getShortName());
+        $rootScope = $this->fractal->createData($resource, $dunglasResource->getShortName());
 
         $this->transformer
             ->setCurrentScope($rootScope)
-            ->setEmbed($dunglasRessource->getShortName());
+            ->setEmbed($dunglasResource->getShortName());
 
         return $rootScope->toArray();
     }
@@ -182,8 +183,90 @@ class Normalizer extends AbstractNormalizer implements NormalizerInterface
      */
     public function denormalize($data, $class, $format = null, array $context = [])
     {
-        var_dump('denormalize');exit;
+//        var_dump($data);exit;
+        $resource = $this->guessResource($data, $context, true);
+        $normalizedData = $this->prepareForDenormalization(json_decode($data));
+//var_dump($normalizedData);exit;
+        $attributesMetadata = $this->getMetadata($resource, $context)->getAttributes();
+
+        $allowedAttributes = [];
+        foreach ($attributesMetadata as $attributeName => $attributeMetatdata) {
+            if ($attributeMetatdata->isReadable()) {
+                $allowedAttributes[] = $attributeName;
+            }
+        }
+
+        $reflectionClass = new \ReflectionClass($class);
+
+        if (isset($data['@id']) && !isset($context['object_to_populate'])) {
+            $context['object_to_populate'] = $this->dataProvider->getItemFromIri($data['@id']);
+
+            // Avoid issues with proxies if we populated the object
+            $overrideClass = true;
+        } else {
+            $overrideClass = false;
+        }
+
+        $object = $this->instantiateObject(
+            $normalizedData,
+            $overrideClass ? get_class($context['object_to_populate']) : $class,
+            $context,
+            $reflectionClass,
+            $allowedAttributes
+        );
+
+        foreach ($normalizedData as $attributeName => $attributeValue) {
+            // Ignore JSON-LD special attributes
+            if ('@' === $attributeName[0]) {
+                continue;
+            }
+
+            if ($this->nameConverter) {
+                $attributeName = $this->nameConverter->denormalize($attributeName);
+            }
+
+            if (!in_array($attributeName, $allowedAttributes) || in_array($attributeName, $this->ignoredAttributes)) {
+                continue;
+            }
+
+            $types = $attributesMetadata[$attributeName]->getTypes();
+            if (isset($types[0])) {
+                $type = $types[0];
+
+                if (
+                    $attributeValue &&
+                    $type->isCollection() &&
+                    ($collectionType = $type->getCollectionType()) &&
+                    ($class = $collectionType->getClass())
+                ) {
+                    $values = [];
+                    foreach ($attributeValue as $obj) {
+                        $values[] = $this->denormalizeRelation($resource, $attributesMetadata[$attributeName], $class, $obj);
+                    }
+
+                    $this->setValue($object, $attributeName, $values);
+
+                    continue;
+                }
+
+                if ($attributeValue && ($class = $type->getClass())) {
+                    $this->setValue(
+                        $object,
+                        $attributeName,
+                        $this->denormalizeRelation($resource, $attributesMetadata[$attributeName], $class, $attributeValue)
+                    );
+
+                    continue;
+                }
+            }
+
+            $this->setValue($object, $attributeName, $attributeValue);
+        }
+
+        return $object;
     }
+
+
 
     /**
      * Normalizes a relation as an URI if is a Link or as a JSON-LD object.
@@ -197,7 +280,13 @@ class Normalizer extends AbstractNormalizer implements NormalizerInterface
      */
     private function normalizeRelation(ResourceInterface $currentResource, AttributeMetadata $attribute, $relatedObject, $class)
     {
-        var_dump('normalizeRelation');exit;
+        if ($attribute->isNormalizationLink()) {
+            return $this->router->generate($relatedObject);
+        } else {
+            $context = $this->contextBuilder->bootstrapRelation($currentResource, $class);
+
+            return $this->serializer->normalize($relatedObject, 'json-ld', $context);
+        }
     }
 
     /**
@@ -231,5 +320,97 @@ class Normalizer extends AbstractNormalizer implements NormalizerInterface
         }
 
         return explode(',', $withoutEmbeds);
+    }
+
+    /**
+     * Gets metadata for the given resource with the current context.
+     *
+     * Fallback to the resource own groups if no context is provided.
+     *
+     * @param ResourceInterface $resource
+     * @param array             $context
+     *
+     * @return ClassMetadata
+     */
+    private function getMetadata(ResourceInterface $resource, array $context)
+    {
+        return $this->apiClassMetadataFactory->getMetadataFor(
+            $resource->getEntityClass(),
+            isset($context['json_ld_normalization_groups']) ? $context['json_ld_normalization_groups'] : $resource->getNormalizationGroups(),
+            isset($context['json_ld_denormalization_groups']) ? $context['json_ld_denormalization_groups'] : $resource->getDenormalizationGroups(),
+            isset($context['json_ld_validation_groups']) ? $context['json_ld_validation_groups'] : $resource->getValidationGroups()
+        );
+    }
+
+    /**
+     * Sets a value of the object using the PropertyAccess component.
+     *
+     * @param object $object
+     * @param string $attributeName
+     * @param mixed  $value
+     */
+    private function setValue($object, $attributeName, $value)
+    {
+        try {
+            $this->propertyAccessor->setValue($object, $attributeName, $value);
+        } catch (NoSuchPropertyException $exception) {
+            // Properties not found are ignored
+        }
+    }
+
+    /**
+     * Denormalizes a relation.
+     *
+     * @param ResourceInterface $currentResource
+     * @param AttributeMetadata $attributeMetadata
+     * @param string            $class
+     * @param mixed             $value
+     *
+     * @return object|null
+     */
+    private function denormalizeRelation(ResourceInterface $currentResource, AttributeMetadata $attributeMetadata, $class, $value)
+    {
+        if ('DateTime' === $class) {
+            $dateTimeNormalizer = new DateTimeNormalizer();
+            return $dateTimeNormalizer->denormalize($value, $class ?: null, self::FORMAT);
+        }
+
+        $attributeName = $attributeMetadata->getName();
+
+        // Always allow IRI to be compliant with the Hydra spec
+        if (is_string($value)) {
+            $item = $this->dataProvider->getItemFromIri($value);
+
+            if (null === $item) {
+                throw new InvalidArgumentException(sprintf(
+                    'IRI  not supported (found "%s" in "%s" of "%s")',
+                    $value,
+                    $attributeName,
+                    $currentResource->getEntityClass()
+                ));
+            }
+
+            return $item;
+        }
+
+        if (!$this->resourceCollection->getResourceForEntity($class)) {
+            throw new InvalidArgumentException(sprintf(
+                'Type not supported (found "%s" in attribute "%s" of "%s")',
+                $class,
+                $attributeName,
+                $currentResource->getEntityClass()
+            ));
+        }
+
+        $context = $this->contextBuilder->bootstrapRelation($currentResource, $class);
+        if (!$attributeMetadata->isDenormalizationLink()) {
+            return $this->denormalize($value, $class, self::FORMAT, $context);
+        }
+
+        throw new InvalidArgumentException(sprintf(
+            'Nested objects for attribute "%s" of "%s" are not enabled. Use serialization groups to change that behavior.',
+            $attributeName,
+            $currentResource->getEntityClass()
+        ));
     }
 }

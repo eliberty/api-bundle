@@ -11,7 +11,7 @@
 
 namespace Eliberty\ApiBundle\Fractal\Serializer;
 
-use Dunglas\JsonLdApiBundle\Routing\Router;
+use Dunglas\ApiBundle\Routing\Router;
 use League\Fractal\Pagination\PaginatorInterface;
 use League\Fractal\Serializer\DataArraySerializer as baseDataArraySerializer;
 

@@ -11,8 +11,8 @@
 
 namespace Eliberty\ApiBundle\Routing;
 
-use Dunglas\JsonLdApiBundle\Api\ResourceCollectionInterface;
-use Dunglas\JsonLdApiBundle\Api\ResourceInterface;
+use Dunglas\ApiBundle\Api\ResourceCollectionInterface;
+use Dunglas\ApiBundle\Api\ResourceInterface;
 use Eliberty\ApiBundle\Doctrine\Orm\MappingsFilter;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;

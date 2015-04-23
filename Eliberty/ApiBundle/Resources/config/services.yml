@@ -6,6 +6,9 @@ services:
 #        class: %eliberty_api.example.class%
 #        arguments: [@service_id, "plain_value", %parameter%]
 
+        api.resource:
+            class: Eliberty\ApiBundle\Api\Resource
+            abstract: true
 
         api.json_ld.normalizer.item:
             class: Eliberty\ApiBundle\JsonLd\Serializer\Normalizer
@@ -38,6 +41,19 @@ services:
                 - @api.resource_collection
                 - @property_accessor
 
+        api.json_ld.context_builder:
+            class: Eliberty\ApiBundle\JsonLd\ContextBuilder
+            arguments:
+                - @api.router
+                - @api.resource_collection
+                - @api.transformer.helper
+
+        api.transformer.helper:
+            class: Eliberty\ApiBundle\Helper\TransformerHelper
+            arguments:
+                - @api.ressource.transformer_resolver
+                - @api.mapping.class_metadata_factory
+
         webhook.doctrine.entity_listener_resolver:
             class: Eliberty\ApiBundle\WebHook\Doctrine\Listener\EntityListenerResolver
             arguments:
@@ -50,3 +66,13 @@ services:
                 - @logger
             tags:
                 - { name: kernel.event_subscriber }
+
+        nelmio_api_doc.extractor.api_doc_extractor:
+            class: Eliberty\ApiBundle\Nelmio\Extractor\ApiDocExtractor
+            arguments:
+                - @service_container
+                - @router
+                - @annotation_reader
+                - @nelmio_api_doc.doc_comment_extractor
+                - []
+                - @api.transformer.helper

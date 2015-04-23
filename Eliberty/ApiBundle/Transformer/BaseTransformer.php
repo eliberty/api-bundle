@@ -15,6 +15,10 @@ use League\Fractal\Resource\Item;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Router;
 
+/**
+ * Class BaseTransformer
+ * @package Eliberty\ApiBundle\Transformer
+ */
 class BaseTransformer extends TransformerAbstract
 {
     /**
@@ -66,6 +70,16 @@ class BaseTransformer extends TransformerAbstract
      * @var string
      */
     protected $requestEmbed;
+
+    /**
+     * @var array
+     */
+    protected $availableIncludes;
+
+    /**
+     * @var string
+     */
+    protected $entityClass;
 
     /**
      * @var array
@@ -196,11 +210,12 @@ class BaseTransformer extends TransformerAbstract
      * include the sub Embed if contact.addresses then include contact.
      *
      * @param $splitEmbedOption
-     *
+     * c'est le mal *****************************************
      * @return array
      */
     protected function getEmbedsWithParentEmbed($splitEmbedOption)
     {
+
         foreach ($splitEmbedOption as $embed => $options) {
             $scopeEmbed = explode('.', $embed);
             if (count($scopeEmbed) === 1) {
@@ -413,4 +428,19 @@ class BaseTransformer extends TransformerAbstract
         return $this->currentResourceKey;
     }
 
+    /**
+     * @return array
+     */
+    public function getAvailableIncludes()
+    {
+        return $this->availableIncludes;
+    }
+
+    /**
+     * @return string
+     */
+    public function getEntityClass()
+    {
+        return $this->entityClass;
+    }
 }

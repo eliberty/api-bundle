@@ -48,7 +48,6 @@ class ApiRouter extends Router implements RequestMatcherInterface
      */
     public function matchRequest(Request $request)
     {
-
         $listOfAcceptHeaders = AcceptHeader::fromString($request->headers->get('Accept'))->all();
         $version = 'v1';
         foreach ($listOfAcceptHeaders as $listOfAcceptHeader) {

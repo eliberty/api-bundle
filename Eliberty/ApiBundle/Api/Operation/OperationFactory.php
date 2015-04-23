@@ -2,10 +2,10 @@
 
 namespace Eliberty\ApiBundle\Api\Operation;
 
-use Dunglas\JsonLdApiBundle\Api\Operation\Operation;
-use Dunglas\JsonLdApiBundle\Api\Operation\OperationInterface;
+use Dunglas\ApiBundle\Api\Operation\Operation;
+use Dunglas\ApiBundle\Api\Operation\OperationInterface;
 use Doctrine\Common\Inflector\Inflector;
-use Dunglas\JsonLdApiBundle\Api\ResourceInterface;
+use Dunglas\ApiBundle\Api\ResourceInterface;
 use Symfony\Component\Routing\Route;
 /**
  * Class OperationFactory

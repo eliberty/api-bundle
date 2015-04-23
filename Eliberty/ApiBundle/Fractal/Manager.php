@@ -3,9 +3,9 @@
 namespace Eliberty\ApiBundle\Fractal;
 
 use Eliberty\ApiBundle\Fractal\Serializer\DataArraySerializer;
-use Dunglas\JsonLdApiBundle\Api\ResourceCollection;
-use Dunglas\JsonLdApiBundle\JsonLd\ContextBuilder;
-use Dunglas\JsonLdApiBundle\Mapping\ClassMetadataFactory;
+use Dunglas\ApiBundle\Api\ResourceCollection;
+use Dunglas\ApiBundle\JsonLd\ContextBuilder;
+use Dunglas\ApiBundle\Mapping\ClassMetadataFactory;
 use League\Fractal\Manager as BaseFractalManager;
 use League\Fractal\Resource\ResourceInterface;
 use Eliberty\ApiBundle\Fractal\Scope;

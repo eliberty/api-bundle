@@ -13,10 +13,9 @@ class TransformerRessourcePass implements CompilerPassInterface
 
         $services = $container->findTaggedServiceIds('api_transformer');
         foreach ($services as $service => $attributes) {
-            $def = $container->getDefinition($service);
             $definition->addMethodCall(
                 'addMapping',
-                array($service, $def->getTags())
+                array($service)
             );
         }
     }

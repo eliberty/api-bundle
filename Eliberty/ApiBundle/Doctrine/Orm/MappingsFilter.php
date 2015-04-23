@@ -11,7 +11,7 @@
 
 namespace Eliberty\ApiBundle\Doctrine\Orm;
 
-use Dunglas\JsonLdApiBundle\Doctrine\Orm\Filter;
+use Dunglas\ApiBundle\Doctrine\Orm\Filter;
 
 /**
  * Class MappingsFilter
