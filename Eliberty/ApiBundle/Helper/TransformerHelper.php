@@ -175,6 +175,42 @@ class TransformerHelper
     }
 
     /**
+     * List of resources possible to embed via this processor.
+     * @param null $shortname
+     * @return array
+     * @throws \Exception
+     */
+    public function getAvailableIncludes($shortname = null)
+    {
+        if (!$this->transformer) {
+            if (null === $shortname) {
+                throw new \Exception('transformer is empty, specify the shortname into the parameter');
+            }
+            $this->getTransformer($shortname);
+        }
+
+        return $this->transformer->getAvailableIncludes();
+    }
+
+    /**
+     * List of resources to automatically include.
+     * @param null $shortname
+     * @return array
+     * @throws \Exception
+     */
+    public function getDefaultIncludes($shortname = null)
+    {
+        if (!$this->transformer) {
+            if (null === $shortname) {
+                throw new \Exception('transformer is empty, specify the shortname into the parameter');
+            }
+            $this->getTransformer($shortname);
+        }
+
+        return $this->transformer->getDefaultIncludes();
+    }
+
+    /**
      * @param AttributeMetadata $attribute
      * @param $entityName
      * @param $type

@@ -75,12 +75,12 @@ services:
             tags:
                 - { name: kernel.event_subscriber }
 
-#        nelmio_api_doc.extractor.api_doc_extractor:
-#            class: Eliberty\ApiBundle\Nelmio\Extractor\ApiDocExtractor
-#            arguments:
-#                - @service_container
-#                - @router
-#                - @annotation_reader
-#                - @nelmio_api_doc.doc_comment_extractor
-#                - []
-#                - @api.transformer.helper
+        nelmio_api_doc.extractor.api_doc_extractor:
+            class: Eliberty\ApiBundle\Nelmio\Extractor\ApiDocExtractor
+            arguments:
+                - @service_container
+                - @router
+                - @annotation_reader
+                - @nelmio_api_doc.doc_comment_extractor
+                - []
+                - @api.transformer.helper

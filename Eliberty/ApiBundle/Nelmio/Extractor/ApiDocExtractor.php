@@ -92,6 +92,10 @@ class ApiDocExtractor extends BaseApiDocExtractor
     {
         // create a new annotation
         $annotation = clone $annotation;
+//var_dump($route->getPath());
+        if('/api/contacts/{id}/{mappings}'===$route->getPath()){
+            var_dump($route);exit;
+        }
 
         $annotation->addTag($this->router->getContext()->getApiVersion(),'#ff0000');
         // doc
@@ -110,6 +114,8 @@ class ApiDocExtractor extends BaseApiDocExtractor
         if ('DELETE' !== $annotation->getMethod()) {
             $entityClass = $this->transformerHelper->getEntityClass($resource);
         }
+
+        $this->addFilters($resource, $annotation);
 
         // input (populates 'parameters' for the formatters)
         if (null !== $input = $entityClass) {
@@ -222,7 +228,10 @@ class ApiDocExtractor extends BaseApiDocExtractor
         return $annotation;
     }
 
-
+    /**
+     * @param array $parameters
+     * @return array|\Nelmio\ApiDocBundle\Parser\ParserInterface[]
+     */
     private function getParsers(array $parameters)
     {
         if (isset($parameters['parsers'])) {
@@ -237,6 +246,51 @@ class ApiDocExtractor extends BaseApiDocExtractor
         }
 
         return $parsers;
+    }
+
+    /**
+     * @param $resource
+     * @param ApiDoc $annotation
+     * @throws \Exception
+     */
+    private function addFilters($resource, ApiDoc $annotation)
+    {
+        //filter embed
+        if ('DELETE' !== $annotation->getMethod()) {
+            $availableIncludes = $this->transformerHelper->getAvailableIncludes($resource);
+            $defaultIncludes   = $this->transformerHelper->getDefaultIncludes($resource);
+            $annotation->addFilter('embed', [
+                'requirement' => '\t',
+                'description' => 'Include resources within other resources.',
+                'available'   => is_array($availableIncludes) ? implode(',', $availableIncludes) : $availableIncludes,
+                'default'     => is_array($defaultIncludes) ? implode(',', $defaultIncludes) : $defaultIncludes
+            ]);
+        }
+
+        $data = $annotation->toArray();
+        if (isset($data['tags']) && false !== array_search('collection', $data['tags'])) {
+            //filter perpage
+            $annotation->addFilter('perpage', [
+                'requirement' => '\d+',
+                'description' => 'How many resource return per page.',
+                'default'     => 30
+            ]);
+
+            //filter perpage
+            $annotation->addFilter('page', [
+                'requirement' => '\d+',
+                'description' => 'How many page start to return.',
+                'default'     => 1
+            ]);
+
+            //filter orderby
+            $annotation->addFilter('orderby', [
+                'requirement' => '\t',
+                'description' => 'Way to sort the rows in the result set.',
+                'default'     => urldecode('{"id":"asc"}')
+            ]);
+        }
+        //return $annotation;
     }
 
 
