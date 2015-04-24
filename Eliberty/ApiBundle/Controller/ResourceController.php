@@ -21,7 +21,7 @@ use Dunglas\ApiBundle\Exception\DeserializationException;
 use Dunglas\ApiBundle\Api\ResourceInterface;
 use Dunglas\ApiBundle\Model\PaginatorInterface;
 use Dunglas\ApiBundle\JsonLd\Response;
-use Eliberty\ApiBundle\Doctrine\Orm\MappingsFilter;
+use Eliberty\ApiBundle\Doctrine\Orm\EmbedFilter;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
@@ -329,19 +329,20 @@ class ResourceController extends FOSRestController
      *
      * @param Request $request
      * @param int     $id
-     * @param string  $mappings
+     * @param string  $embed
      *
      * @return Response
      *
      * @throws NotFoundHttpException
      * @throws \InvalidArgumentException
      */
-    public function cgetMappingsAction(Request $request, $id, $mappings = null)
+    public function cgetEmbedAction(Request $request, $id, $embed = null)
     {
-        $resource         = $this->getResource($request);
-        $mappingShortname = ucwords(Inflector::singularize($mappings));
 
-        $resourceMapping = $this->get('api.resource_collection')->getResourceForShortName($mappingShortname);
+        $resource         = $this->getResource($request);
+        $embedShortname = ucwords(Inflector::singularize($embed));
+
+        $resourceEmbed = $this->get('api.resource_collection')->getResourceForShortName($embedShortname);
 
         $page = (int) $request->get('page', 1);
 
@@ -357,27 +358,27 @@ class ResourceController extends FOSRestController
 
         $filterName = strtolower($resource->getShortName());
 
-        $filter = new MappingsFilter($iriConverter, $propertyAccessor, $filterName);
+        $filter = new EmbedFilter($iriConverter, $propertyAccessor, $filterName);
 
         $filter->setParameters([
-            'mappings' => $mappings,
-            'id'       => $id,
+            'embed' => $embed,
+            'id'    => $id,
         ]);
 
         $filter->setRouteName($request->get('_route'));
 
-        $resourceMapping->addFilter($filter);
+        $resourceEmbed->addFilter($filter);
 
         $data = $dataProvider->getCollection(
-            $resourceMapping,
+            $resourceEmbed,
             [$filterName => $id],
             $order,
             $page,
             $itemsPerPage
         );
 
-        $this->get('event_dispatcher')->dispatch(Events::RETRIEVE_LIST, new ObjectEvent($resourceMapping, $data));
+        $this->get('event_dispatcher')->dispatch(Events::RETRIEVE_LIST, new ObjectEvent($resourceEmbed, $data));
 
-        return $this->getSuccessResponse($resourceMapping, $data);
+        return $this->getSuccessResponse($resourceEmbed, $data);
     }
 }

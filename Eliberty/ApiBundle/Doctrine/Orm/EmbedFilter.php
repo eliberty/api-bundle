@@ -14,10 +14,10 @@ namespace Eliberty\ApiBundle\Doctrine\Orm;
 use Dunglas\ApiBundle\Doctrine\Orm\Filter;
 
 /**
- * Class MappingsFilter
+ * Class EmbedFilter
  * @package Eliberty\ApiBundle\Doctrine\Orm
  */
-class MappingsFilter extends Filter
+class EmbedFilter extends Filter
 {
     /**
      * @var string
@@ -71,9 +71,9 @@ class MappingsFilter extends Filter
     /**
      * @return string
      */
-    public function getMappingsName()
+    public function getEmbedName()
     {
-        return isset($this->parameters['mappings'])?$this->parameters['mappings']:'';
+        return isset($this->parameters['embed'])?$this->parameters['embed']:'';
     }
 
 
