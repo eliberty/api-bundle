@@ -15,7 +15,7 @@ class TransformerRessourcePass implements CompilerPassInterface
         foreach ($services as $service => $attributes) {
             $definition->addMethodCall(
                 'addMapping',
-                array($service)
+                array($service, $container->getDefinition($service)->getClass())
             );
         }
     }

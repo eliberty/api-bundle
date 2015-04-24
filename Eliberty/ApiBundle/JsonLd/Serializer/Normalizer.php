@@ -309,7 +309,7 @@ class Normalizer extends AbstractNormalizer implements NormalizerInterface
         $embeds = $this->request->get('embed', null);
 
         if (null === $embeds) {
-            $embeds = implode(',', $this->transformer->getAvailableIncludes());
+            $embeds = implode(',', $this->transformer->getDefaultIncludes());
         }
 
         $datas        = [];

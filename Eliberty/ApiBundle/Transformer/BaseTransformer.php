@@ -3,8 +3,6 @@
 namespace Eliberty\ApiBundle\Transformer;
 
 use Eliberty\ApiBundle\Fractal\Scope;
-use Eliberty\ApiBundle\Versioning\Router\ApiRouter;
-use Doctrine\Common\Inflector\Inflector;
 use Doctrine\ORM\EntityManager;
 use Eliberty\ApiBundle\Fractal\Pagination\PagerfantaPaginatorAdapter;
 use League\Fractal\TransformerAbstract;
@@ -13,40 +11,50 @@ use Pagerfanta\Pagerfanta;
 use Doctrine\Common\Collections\Collection;
 use League\Fractal\Resource\Item;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\Routing\Router;
 
 /**
- * Class BaseTransformer
- * @package Eliberty\ApiBundle\Transformer
+ * Class BaseTransformer.
  */
 class BaseTransformer extends TransformerAbstract
 {
     /**
+     * Is the name of the current ressource.
+     *
      * @var string
      */
     protected $currentResourceKey;
 
     /**
+     * Is the scope parent embed.
+     *
      * @var string
      */
     public $parentEmbed;
 
     /**
+     * List of the url parameter options for embed.
+     *
      * @var array
      */
     public $paramsByEmbed = [];
 
     /**
+     * Base Uniform Resource Identifier (is the domaine name).
+     *
      * @var string
      */
     protected $baseUri;
 
     /**
+     * Uniform Resource Identifier.
+     *
      * @var string
      */
     protected $uri;
 
     /**
+     * Is the current embed for the scope.
+     *
      * @var string
      */
     protected $currentEmbed;
@@ -67,14 +75,25 @@ class BaseTransformer extends TransformerAbstract
     private $embeds = [];
 
     /**
+     * List of the url parameter for embed.
+     *
      * @var string
      */
     protected $requestEmbed;
 
     /**
+     * List of resources possible to embed via this processor.
+     *
      * @var array
      */
-    protected $availableIncludes;
+    protected $availableIncludes = [];
+
+    /**
+     * List of resources to automatically include.
+     *
+     * @var array
+     */
+    protected $defaultIncludes = [];
 
     /**
      * @var string
@@ -84,18 +103,12 @@ class BaseTransformer extends TransformerAbstract
     /**
      * @var array
      */
-    protected $options = [
-        'viewDoc'         => 0,
-        'viewDocBasePath' => 'http://docs.elib.apiary.io/#reference/order-operations/',
-        'withLink'        => 0,
-        'apiVersion'      => 'v1'
-    ];
-
+    protected $options = [];
 
     /**
      * Constructor.
      *
-     * @param Request $request
+     * @param Request       $request
      * @param EntityManager $em
      *
      * @internal param Kernel $kernel
@@ -114,10 +127,13 @@ class BaseTransformer extends TransformerAbstract
     {
         $this->request = $request;
         $this->setParamRequestEmbed();
+
         if (null !== $request) {
-            $this->baseUri = $request->getScheme() . '://' . $request->getHost();
-            $this->uri     = urldecode(str_replace($this->baseUri,'',$this->request->getUri()));
+            $this->setOptions($request);
+            $this->baseUri = $request->getScheme().'://'.$request->getHost();
+            $this->uri     = urldecode(str_replace($this->baseUri, '', $this->request->getUri()));
         }
+
 
         return $this;
     }
@@ -177,7 +193,7 @@ class BaseTransformer extends TransformerAbstract
             //else get the last carac of the embed because is split with the preg_split Function
             $lastCarac                  = $value[1] - 2;
             $lastCarac                  = str_split($requestEmbed, 1)[$lastCarac];
-            $embedWithOptions[$key - 1] = $explodeEmbeds[$key - 1][0] . $lastCarac;
+            $embedWithOptions[$key - 1] = $explodeEmbeds[$key - 1][0].$lastCarac;
             $embedWithOptions[$key]     = $explodeEmbeds[$key][0];
         }
 
@@ -196,9 +212,9 @@ class BaseTransformer extends TransformerAbstract
         $embedAndOption = [];
         foreach ($embedWithOptions as $key => $value) {
             $tab     = explode('{', $value);
-            $options = count($tab) > 1 ? '{' . array_pop($tab) : null;
+            $options = count($tab) > 1 ? '{'.array_pop($tab) : null;
 
-            $data = $options !== null ? (array)json_decode(str_replace('=', ':', $options)) : null;
+            $data = $options !== null ? (array) json_decode(str_replace('=', ':', $options)) : null;
 
             $embedAndOption[array_shift($tab)] = $data;
         }
@@ -211,11 +227,11 @@ class BaseTransformer extends TransformerAbstract
      *
      * @param $splitEmbedOption
      * c'est le mal *****************************************
+     *
      * @return array
      */
     protected function getEmbedsWithParentEmbed($splitEmbedOption)
     {
-
         foreach ($splitEmbedOption as $embed => $options) {
             $scopeEmbed = explode('.', $embed);
             if (count($scopeEmbed) === 1) {
@@ -223,9 +239,9 @@ class BaseTransformer extends TransformerAbstract
             }
             foreach ($scopeEmbed as $key => $embedName) {
                 $parent = implode('.', array_slice($scopeEmbed, 0, $key));
-                $parent = !empty($parent) ? $parent . '.' : '';
-                if (!isset($splitEmbedOption[$parent . $embedName])) {
-                    $splitEmbedOption[$parent . $embedName] = null;
+                $parent = !empty($parent) ? $parent.'.' : '';
+                if (!isset($splitEmbedOption[$parent.$embedName])) {
+                    $splitEmbedOption[$parent.$embedName] = null;
                 }
             }
         }
@@ -234,7 +250,7 @@ class BaseTransformer extends TransformerAbstract
     }
 
     /**
-     * @param Collection $resource
+     * @param Collection          $resource
      * @param TransformerAbstract $transformer
      *
      * @return Collection|\League\Fractal\Resource\Collection
@@ -266,8 +282,6 @@ class BaseTransformer extends TransformerAbstract
 
         $resource->setPaginator($adapter);
 
-//        var_dump(get_class($resource));
-
         return $resource;
     }
 
@@ -287,43 +301,43 @@ class BaseTransformer extends TransformerAbstract
             $search = $replace = $currentEmbed;
             foreach ($optionEmbed as $property => $value) {
                 if ($i === 0) {
-                    $replace = $replace . '{';
-                    $search  = $search . '{';
+                    $replace = $replace.'{';
+                    $search  = $search.'{';
                 }
                 $i++;
 
                 //find the last carac for build new option
                 $endStr  = (count($optionEmbed) !== $i) ? ',' : '}';
-                $search  = $search . '"' . trim($property) . '"=' . trim($value) . $endStr;
-                $prefixe = $replace . '"' . trim($property) . '"=';
+                $search  = $search.'"'.trim($property).'"='.trim($value).$endStr;
+                $prefixe = $replace.'"'.trim($property).'"=';
 
                 $replace = ($property === 'page') ?
-                    $prefixe . $page . $endStr :
-                    $prefixe . trim($value) . $endStr;
+                    $prefixe.$page.$endStr :
+                    $prefixe.trim($value).$endStr;
             }
 
             if (empty($optionEmbed)) {
-                $search = $search . '{}';
+                $search = $search.'{}';
             }
 
             //check if property page not existing add
             if (!isset($optionEmbed['page'])) {
                 $replace = $replace !== $currentEmbed ?
-                    str_replace('}', ',"page"=' . $page . '}', $replace) :
-                    $replace . '{"page"=' . $page . '}';
+                    str_replace('}', ',"page"='.$page.'}', $replace) :
+                    $replace.'{"page"='.$page.'}';
             }
 
             //delete white space into uri
             $uriBaseTrim = str_replace(' ', '', $baseUri);
             //check if i find data int uri
-            $isFind = preg_match('/[=|,]' . $search . '[,|{|&]/', $uriBaseTrim, $matches);
+            $isFind = preg_match('/[=|,]'.$search.'[,|{|&]/', $uriBaseTrim, $matches);
 
             //if embed is find
-            if ((bool)$isFind && !empty($matches)) {
+            if ((bool) $isFind && !empty($matches)) {
                 $currentMatch   = array_shift($matches);
                 $prefixeReplace = substr($currentMatch, 0, 1);
                 $sufixeReplace  = substr($currentMatch, (strlen($currentMatch) - 1), 1);
-                $uriBaseTrim    = str_replace($currentMatch, $prefixeReplace . $replace . $sufixeReplace, $uriBaseTrim);
+                $uriBaseTrim    = str_replace($currentMatch, $prefixeReplace.$replace.$sufixeReplace, $uriBaseTrim);
 
                 return urldecode($uriBaseTrim);
             }
@@ -334,30 +348,11 @@ class BaseTransformer extends TransformerAbstract
         return $adapter;
     }
 
-    /**
-     * @param $methods
-     * @return mixed
-     */
-    protected function getAllow($methods)
-    {
-        $dataResponse = [];
-        if ($this->options['viewDoc']) {
-            $data = explode(',', $methods);
-            foreach ($data as $method) {
-                $dataResponse[$method] =
-                    $this->options['viewDocBasePath'] . $this->currentResourceKey . '/' . strtolower(ltrim($method));
-            }
-
-            return $dataResponse;
-        }
-
-        return $methods;
-    }
 
     /**
      * Getter for currentScope.
      *
-     * @return \Acme\DemoBundle\Fractal\Scope
+     * @return \Eliberty\ApiBundle\Fractal\Scope
      */
     public function getCurrentScope()
     {
@@ -379,9 +374,9 @@ class BaseTransformer extends TransformerAbstract
     /**
      * Create a new item resource object.
      *
-     * @param mixed $data
+     * @param mixed                    $data
      * @param BaseTransformer|callable $transformer
-     * @param string $resourceKey
+     * @param string                   $resourceKey
      *
      * @return Item
      */
@@ -408,16 +403,19 @@ class BaseTransformer extends TransformerAbstract
      */
     private function getEmbed()
     {
-        return !empty($this->parentEmbed) ? $this->parentEmbed . '.' . $this->currentEmbed : $this->currentEmbed;
+        return !empty($this->parentEmbed) ? $this->parentEmbed.'.'.$this->currentEmbed : $this->currentEmbed;
     }
 
     /**
-     * set the option into transformer
-     * @param $option
+     * set the option into transformer.
+     * @param Request $request
      */
-    public function setOptions($option)
+    public function setOptions(Request $request)
     {
-        $this->options = $option;
+        $headers = $request->headers;
+        $this->options  = [
+            'e-With-Link'        => $headers->get('e-With-Link', 0),
+        ];
     }
 
     /**
@@ -437,10 +435,32 @@ class BaseTransformer extends TransformerAbstract
     }
 
     /**
+     * @return array
+     */
+    public function getDefaultIncludes()
+    {
+        return $this->defaultIncludes;
+    }
+
+    /**
      * @return string
      */
     public function getEntityClass()
     {
         return $this->entityClass;
+    }
+
+    /**
+     * @param \Datetime $datetime
+     *
+     * @return null|string
+     */
+    protected function dateFormat(\Datetime $datetime = null)
+    {
+        if (null === $datetime) {
+            return;
+        }
+
+        return $datetime->format(\DateTime::ISO8601);
     }
 }

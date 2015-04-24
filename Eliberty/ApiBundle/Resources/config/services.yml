@@ -54,6 +54,14 @@ services:
                 - @api.ressource.transformer_resolver
                 - @api.mapping.class_metadata_factory
 
+        api.iri_converter:
+            class: Dunglas\ApiBundle\Api\IriConverter
+            arguments:
+                - @api.resource_collection
+                - @api.data_provider
+                - @api.router
+                - @property_accessor
+
         webhook.doctrine.entity_listener_resolver:
             class: Eliberty\ApiBundle\WebHook\Doctrine\Listener\EntityListenerResolver
             arguments:
@@ -67,12 +75,12 @@ services:
             tags:
                 - { name: kernel.event_subscriber }
 
-        nelmio_api_doc.extractor.api_doc_extractor:
-            class: Eliberty\ApiBundle\Nelmio\Extractor\ApiDocExtractor
-            arguments:
-                - @service_container
-                - @router
-                - @annotation_reader
-                - @nelmio_api_doc.doc_comment_extractor
-                - []
-                - @api.transformer.helper
+#        nelmio_api_doc.extractor.api_doc_extractor:
+#            class: Eliberty\ApiBundle\Nelmio\Extractor\ApiDocExtractor
+#            arguments:
+#                - @service_container
+#                - @router
+#                - @annotation_reader
+#                - @nelmio_api_doc.doc_comment_extractor
+#                - []
+#                - @api.transformer.helper

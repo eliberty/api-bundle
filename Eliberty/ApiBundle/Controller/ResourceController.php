@@ -11,8 +11,6 @@
 
 namespace Eliberty\ApiBundle\Controller;
 
-use Dunglas\ApiBundle\Controller\ResourceController as BaseResourceController;
-
 use Doctrine\Common\Inflector\Inflector;
 use Dunglas\ApiBundle\Doctrine\Orm\Filter;
 use Dunglas\ApiBundle\Event\Events;
@@ -24,7 +22,6 @@ use Dunglas\ApiBundle\Api\ResourceInterface;
 use Dunglas\ApiBundle\Model\PaginatorInterface;
 use Dunglas\ApiBundle\JsonLd\Response;
 use Eliberty\ApiBundle\Doctrine\Orm\MappingsFilter;
-use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
@@ -32,8 +29,7 @@ use Symfony\Component\Serializer\Exception\Exception;
 use FOS\RestBundle\Controller\Annotations;
 
 /**
- * Class ResourceController
- * @package Eliberty\ApiBundle\Controller
+ * Class ResourceController.
  */
 class ResourceController extends FOSRestController
 {
@@ -102,23 +98,17 @@ class ResourceController extends FOSRestController
 
     /**
      * Gets the collection.
+     *
      * @ApiDoc(
      *   resource = true,
-     *   input = "Acme\DemoBundle\Transformer\Api\V1\ContactTransformer",
      *   statusCodes = {
      *     200 = "Returned when successful",
      *     401 = "Returned when the User is not authorized to use this method",
      *   },
-     *   tags={
-     *         "stable",
-     *         "v1" = "#ff0000"
-     *     }
      * )
      *
-     * @Annotations\QueryParam(name="offset",  requirements="\d+", nullable=true, description="Offset from which to start listing contacts.")
-     * @Annotations\QueryParam(name="limit", requirements="\d+", nullable=true, description="How many contacts to return.")
      * @Annotations\QueryParam(name="orderby",  default={"id"="asc"}, nullable=true, description="Way to sort the rows in the result set.")
-     * @Annotations\QueryParam(name="embed",  default="addresses", nullable=true, description="Include resources within other resources.")
+     * @Annotations\QueryParam(name="embed",  default="", nullable=true, description="Include resources within other resources.")
      * @Annotations\QueryParam(name="page",  requirements="\d+", nullable=true, default="1", description="How many page start to return.")
      * @Annotations\QueryParam(name="perpage",  requirements="\d+", nullable=true, default="10", description="How many contact return per page.")
      *
@@ -131,7 +121,7 @@ class ResourceController extends FOSRestController
     public function cgetAction(Request $request)
     {
         $resource = $this->getResource($request);
-        $data = $this->getCollectionData($resource, $request);
+        $data     = $this->getCollectionData($resource, $request);
 
         $this->get('event_dispatcher')->dispatch(Events::RETRIEVE_LIST, new ObjectEvent($resource, $data));
 
@@ -143,13 +133,12 @@ class ResourceController extends FOSRestController
      *
      * @param Request $request
      * @ApiDoc(
-     *   resource = true,
-     *   input = "Acme\DemoBundle\Transformer\Api\V1\ContactTransformer",
-     *   statusCodes = {
-     *     200 = "Returned when successful",
-     *     400 = "Returned when the form has errors"
-     *   }
-     * )
+     *                         resource = true,
+     *                         statusCodes = {
+     *                         200 = "Returned when successful",
+     *                         400 = "Returned when the form has errors"
+     *                         }
+     *                         )
      *
      * @Annotations\QueryParam(name="embed", default="addresses,rights", description="How man y notes to return.")
      *
@@ -206,7 +195,7 @@ class ResourceController extends FOSRestController
     public function getAction(Request $request, $id)
     {
         $resource = $this->getResource($request);
-        $object = $this->findOrThrowNotFound($resource, $id);
+        $object   = $this->findOrThrowNotFound($resource, $id);
 
         $this->get('event_dispatcher')->dispatch(Events::RETRIEVE, new ObjectEvent($resource, $object));
 
@@ -219,15 +208,15 @@ class ResourceController extends FOSRestController
      * @param Request $request
      * @param string  $id
      * @ApiDoc(
-     *   resource = true,
-     *   input = "Acme\DemoBundle\Form\Type\Api\V1\ContactType",
-     *   statusCodes = {
-     *     200 = "Returned when successful",
-     *     400 = "Returned when the form has errors"
-     *   }
-     * )
+     *                         resource = true,
+     *                         statusCodes = {
+     *                         200 = "Returned when successful",
+     *                         400 = "Returned when the form has errors"
+     *                         }
+     *                         )
      *
      * @Annotations\QueryParam(name="embed", default="addresses,rights", description="How man y notes to return.")
+     *
      * @return Response
      *
      * @throws DeserializationException
@@ -235,9 +224,9 @@ class ResourceController extends FOSRestController
     public function putAction(Request $request, $id)
     {
         $resource = $this->getResource($request);
-        $object = $this->findOrThrowNotFound($resource, $id);
+        $object   = $this->findOrThrowNotFound($resource, $id);
 
-        $context = $resource->getDenormalizationContext();
+        $context                       = $resource->getDenormalizationContext();
         $context['object_to_populate'] = $object;
 
         try {
@@ -270,9 +259,10 @@ class ResourceController extends FOSRestController
      * @param Request $request
      * @param string  $id
      * @ApiDoc(
-     *      description="Delete Contact",
-     *      resource=true
-     * )
+     *                         description="Delete Contact",
+     *                         resource=true
+     *                         )
+     *
      * @return Response
      *
      * @throws NotFoundHttpException
@@ -281,13 +271,12 @@ class ResourceController extends FOSRestController
     public function deleteAction(Request $request, $id)
     {
         $resource = $this->getResource($request);
-        $object = $this->findOrThrowNotFound($resource, $id);
+        $object   = $this->findOrThrowNotFound($resource, $id);
 
         $this->get('event_dispatcher')->dispatch(Events::PRE_DELETE, new ObjectEvent($resource, $object));
 
         return new Response(null, 204);
     }
-
 
     /**
      * Normalizes data using the Symfony Serializer.
@@ -312,7 +301,7 @@ class ResourceController extends FOSRestController
      * Gets collection data.
      *
      * @param ResourceInterface $resource
-     * @param Request $request
+     * @param Request           $request
      *
      * @return PaginatorInterface
      */
@@ -321,10 +310,10 @@ class ResourceController extends FOSRestController
         $page = (int) $request->get('page', 1);
 
         $itemsPerPage = $this->container->getParameter('api.default.items_per_page');
-        $perpage = (int) $request->get('perpage', $itemsPerPage);
-        $defaultOrder = $this->container->getParameter('api.default.order');
-        $orderBy = $request->get('order', $defaultOrder);
-        $order = $orderBy ? ['id' => $orderBy] : [];
+        $perpage      = (int) $request->get('perpage', $itemsPerPage);
+        $defaultOrder = $request->get('orderby', []);
+        $orderBy      = $request->get('order', $defaultOrder);
+        $order        = $orderBy ? (array) json_decode(str_replace('=', ':', $defaultOrder)) : [];
 
         return $this->get('api.data_provider')->getCollection(
             $resource,
@@ -334,7 +323,6 @@ class ResourceController extends FOSRestController
             $perpage
         );
     }
-
 
     /**
      * Gets an element of the collection.
@@ -350,7 +338,7 @@ class ResourceController extends FOSRestController
      */
     public function cgetMappingsAction(Request $request, $id, $mappings = null)
     {
-        $resource = $this->getResource($request);
+        $resource         = $this->getResource($request);
         $mappingShortname = ucwords(Inflector::singularize($mappings));
 
         $resourceMapping = $this->get('api.resource_collection')->getResourceForShortName($mappingShortname);
@@ -359,7 +347,9 @@ class ResourceController extends FOSRestController
 
         $itemsPerPage = $this->container->getParameter('api.default.items_per_page');
         $defaultOrder = $this->container->getParameter('api.default.order');
-        $order = $defaultOrder ? ['id' => $defaultOrder] : [];
+        $order        = $defaultOrder ? ['id' => $defaultOrder] : [];
+
+        $iriConverter = $this->get('api.iri_converter');
 
         $dataProvider = $this->get('api.data_provider');
 
@@ -367,11 +357,11 @@ class ResourceController extends FOSRestController
 
         $filterName = strtolower($resource->getShortName());
 
-        $filter = new MappingsFilter($dataProvider,$propertyAccessor, $filterName);
+        $filter = new MappingsFilter($iriConverter, $propertyAccessor, $filterName);
 
         $filter->setParameters([
             'mappings' => $mappings,
-            'id'       => $id
+            'id'       => $id,
         ]);
 
         $filter->setRouteName($request->get('_route'));
@@ -390,5 +380,4 @@ class ResourceController extends FOSRestController
 
         return $this->getSuccessResponse($resourceMapping, $data);
     }
-
 }

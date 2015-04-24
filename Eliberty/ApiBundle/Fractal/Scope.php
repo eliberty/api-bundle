@@ -137,6 +137,7 @@ class Scope extends BaseFractalScope
 
         $this->dunglasResource = $this->getDunglasRessource();
 
+        $data = [];
         $data['@context'] = $this->getContext($this->dunglasResource);
 
         list($rawData, $rawIncludedData) = $this->executeResourceTransformers();
@@ -205,8 +206,8 @@ class Scope extends BaseFractalScope
         $includedData = [];
         $transformedData = [];
 
-        if (!is_null($this->dunglasResource)) {
-            $transformedData['@id'] = $this->getGenerateRoute($this->dunglasResource);
+        if (!empty($data)) {
+            $transformedData['@id'] = $this->getGenerateRoute($data);
         }
 
         $classMetadata =  $this->manager->getApiClassMetadataFactory()->getMetadataFor(
@@ -243,7 +244,7 @@ class Scope extends BaseFractalScope
      */
     protected function getPreviewPage(&$data, $object, $currentPage, $paginatedUrl, $baseUrl)
     {
-        if ( 0 !== ($currentPage - 1)) {
+        if (0 !== ($currentPage - 1)) {
             $previousPage = $currentPage - 1.;
             if ($object instanceof FractalPaginatorInterface) {
                 $data['hydra:previousPage'] = $object->getUrl($currentPage - 1);

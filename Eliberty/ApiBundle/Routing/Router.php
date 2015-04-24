@@ -127,6 +127,7 @@ class Router implements RouterInterface
             ));
 
             return $this->router->generate($name, $parameters, $referenceType);
+
         } finally {
             $this->router->setContext($baseContext);
         }

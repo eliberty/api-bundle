@@ -5,6 +5,7 @@ namespace Eliberty\ApiBundle\Helper;
 
 use Dunglas\ApiBundle\Api\Resource;
 use Dunglas\ApiBundle\Api\ResourceInterface;
+use Dunglas\ApiBundle\Mapping\AttributeMetadata;
 use Dunglas\ApiBundle\Mapping\ClassMetadataFactory;
 use Eliberty\ApiBundle\Transformer\BaseTransformer;
 use Eliberty\ApiBundle\Transformer\Listener\TransformerResolver;
@@ -34,7 +35,7 @@ class TransformerHelper
      * @param TransformerResolver $transformerResolver
      * @param ClassMetadataFactory $classMetadataFactory
      */
-    public function __construct(TransformerResolver $transformerResolver ,ClassMetadataFactory $classMetadataFactory)
+    public function __construct(TransformerResolver $transformerResolver, ClassMetadataFactory $classMetadataFactory)
     {
         $this->transformerResolver  = $transformerResolver;
         $this->classMetadataFactory = $classMetadataFactory;
@@ -45,8 +46,9 @@ class TransformerHelper
      * @return BaseTransformer
      * @throws \Exception
      */
-    public function getTransformer($entityname){
-        if(!$this->transformer){
+    public function getTransformer($entityname)
+    {
+        if (!$this->transformer) {
             $this->transformer = $this->transformerResolver->resolve($entityname);
         }
 
@@ -136,31 +138,30 @@ class TransformerHelper
 
     /**
      * @param $shortname
+     * @param $data
+     * @param string $type
      * @return array
-     * @throws \Exception
      */
-    public function getOutputAttr($shortname, &$data)
+    public function getOutputAttr($shortname, &$data, $type = 'context')
     {
-        $attribute = $this->getAttribute($shortname);
+
+        $attributes             = $this->getAttribute($shortname);
         $transformerAttributes = $this->getTransformerAttributes();
 
-        foreach($data as $key => $value) {
-            if (!array_key_exists($key, $attribute) && !in_array($key,['@vocab', 'hydra'])){
+        foreach ($data as $key => $value) {
+            if (!array_key_exists($key, $attributes) && !in_array($key, ['@vocab', 'hydra'])) {
                 unset($data[$key]);
             }
         }
 
-        foreach($attribute as $attributeName => $value){
-            if(array_key_exists($attributeName, $transformerAttributes)){
+        foreach ($attributes as $attributeName => $value) {
+            if (array_key_exists($attributeName, $transformerAttributes)) {
                 $attribute = $transformerAttributes[$attributeName];
-                if (!$id = $attribute->getIri()) {
-                    $prefixedShortName = sprintf('#%s', $shortname);
-                    $id = sprintf('%s/%s', $prefixedShortName, $attributeName);
-                }
-
-                $data[$attributeName] = $id;
+                $data[$attributeName] = $this->addAttribute($attribute, $shortname, $type);
             }
         }
+
+        $this->transformer = null;
 
         return $data;
     }
@@ -173,4 +174,36 @@ class TransformerHelper
         return $this->classMetadataFactory;
     }
 
+    /**
+     * @param AttributeMetadata $attribute
+     * @param $entityName
+     * @param $type
+     * @return array|null|string
+     */
+    protected function addAttribute(AttributeMetadata $attribute, $entityName, $type)
+    {
+        if ($type === 'context') {
+            if (!$id = $attribute->getIri()) {
+                $prefixedShortName = sprintf('#%s', $entityName);
+                $id                = sprintf('%s/%s', $prefixedShortName, $attribute->getName());
+            }
+
+            return $id;
+        }
+
+        $propertyInfo = array_shift($attribute->getTypes());
+        $type = $propertyInfo->getType();
+
+        return [
+            'dataType'     => $type,
+            'actualType'   => $type,
+            'subType'      => null,
+            'required'     => $attribute->isRequired(),
+            'default'      => null,
+            'description'  => $attribute->getDescription(),
+            'readonly'     => !$attribute->isWritable(),
+            'sinceVersion' => null,
+            'untilVersion' => null
+        ];
+    }
 }

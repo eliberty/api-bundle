@@ -57,7 +57,9 @@ class ApiRouter extends Router implements RequestMatcherInterface
             }
         }
 
-        $this->getContext()->setApiVersion($version);
+        if (method_exists($this->getContext(), 'setApiVersion')) {
+            $this->getContext()->setApiVersion($version);
+        }
 
         return parent::matchRequest($request);
     }

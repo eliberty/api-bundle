@@ -93,6 +93,7 @@ class ApiDocExtractor extends BaseApiDocExtractor
         // create a new annotation
         $annotation = clone $annotation;
 
+        $annotation->addTag($this->router->getContext()->getApiVersion(),'#ff0000');
         // doc
         $annotation->setDocumentation($this->commentExtractor->getDocCommentText($method));
 
@@ -120,10 +121,11 @@ class ApiDocExtractor extends BaseApiDocExtractor
                 if ($parser->supports($normalizedInput)) {
                     $supportedParsers[] = $parser;
                     $parameters         = $this->mergeParameters($parameters, $parser->parse($normalizedInput));
+
                 }
             }
 
-            $this->transformerHelper->getOutputAttr($resource, $parameters);
+            $this->transformerHelper->getOutputAttr($resource, $parameters, 'doc');
 
             foreach ($supportedParsers as $parser) {
                 if ($parser instanceof PostParserInterface) {
@@ -170,7 +172,7 @@ class ApiDocExtractor extends BaseApiDocExtractor
                 }
             }
 
-            $this->transformerHelper->getOutputAttr($resource, $response);
+            $this->transformerHelper->getOutputAttr($resource, $response, 'doc');
             $response = $this->clearClasses($response);
             $response = $this->generateHumanReadableTypes($response);
 
