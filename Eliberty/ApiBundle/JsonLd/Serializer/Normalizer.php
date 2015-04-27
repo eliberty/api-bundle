@@ -13,7 +13,7 @@ namespace Eliberty\ApiBundle\JsonLd\Serializer;
 
 use Dunglas\ApiBundle\JsonLd\Serializer\DateTimeNormalizer;
 use Eliberty\ApiBundle\Fractal\Manager;
-use Eliberty\ApiBundle\Transformer\Listener\TransformerResolver;
+use Eliberty\ApiBundle\Helper\TransformerHelper;
 use Dunglas\ApiBundle\Api\ResourceCollectionInterface;
 use Dunglas\ApiBundle\Api\ResourceInterface;
 use Dunglas\ApiBundle\Api\ResourceResolver;
@@ -70,10 +70,6 @@ class Normalizer extends AbstractNormalizer implements NormalizerInterface
      * @var ContextBuilder
      */
     private $contextBuilder;
-    /**
-     * @var TransformerResolver
-     */
-    private $transformerResolver;
 
     /**
      * @var Manager
@@ -94,7 +90,23 @@ class Normalizer extends AbstractNormalizer implements NormalizerInterface
      * @var ResourceCollection
      */
     private $resourceCollection;
+    /**
+     * @var TransformerHelper
+     */
+    private $transformerHelper;
 
+    /**
+     * @param ResourceCollectionInterface $resourceCollection
+     * @param DataProviderInterface $dataProvider
+     * @param RouterInterface $router
+     * @param ClassMetadataFactory $apiClassMetadataFactory
+     * @param ContextBuilder $contextBuilder
+     * @param PropertyAccessorInterface $propertyAccessor
+     * @param TransformerHelper $transformerHelper
+     * @param ResourceCollection|ResourceCollectionInterface $resourceCollection
+     * @param Request $request
+     * @param NameConverterInterface $nameConverter
+     */
     public function __construct(
         ResourceCollectionInterface $resourceCollection,
         DataProviderInterface $dataProvider,
@@ -102,7 +114,7 @@ class Normalizer extends AbstractNormalizer implements NormalizerInterface
         ClassMetadataFactory $apiClassMetadataFactory,
         ContextBuilder $contextBuilder,
         PropertyAccessorInterface $propertyAccessor,
-        TransformerResolver $transformerResolver,
+        TransformerHelper $transformerHelper,
         ResourceCollection $resourceCollection,
         Request $request,
         NameConverterInterface $nameConverter = null
@@ -114,9 +126,9 @@ class Normalizer extends AbstractNormalizer implements NormalizerInterface
         $this->apiClassMetadataFactory = $apiClassMetadataFactory;
         $this->contextBuilder = $contextBuilder;
         $this->propertyAccessor = $propertyAccessor;
-        $this->transformerResolver = $transformerResolver;
         $this->resourceCollection = $resourceCollection;
         $this->setRequest($request);
+        $this->transformerHelper = $transformerHelper;
     }
 
     /**
@@ -139,7 +151,7 @@ class Normalizer extends AbstractNormalizer implements NormalizerInterface
         $dunglasResource = $this->guessResource($object, $context);
 
         if (!$this->transformer) {
-            $this->transformer = $this->transformerResolver->resolve($dunglasResource->getShortName());
+            $this->transformer = $this->transformerHelper->getTransformer($dunglasResource->getShortName());
             $this->transformer->setRequest($this->request);
         }
 

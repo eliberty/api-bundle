@@ -6,6 +6,7 @@ use Dunglas\ApiBundle\Api\Operation\Operation;
 use Dunglas\ApiBundle\Api\Operation\OperationInterface;
 use Doctrine\Common\Inflector\Inflector;
 use Dunglas\ApiBundle\Api\ResourceInterface;
+use Eliberty\ApiBundle\Helper\TransformerHelper;
 use Symfony\Component\Routing\Route;
 /**
  * Class OperationFactory
@@ -15,6 +16,19 @@ class OperationFactory
 {
     const ROUTE_NAME_PREFIX = 'api_';
     const DEFAULT_CONTROLLER = 'ElibertyApiBundle:Resource';
+    /**
+     * @var TransformerHelper
+     */
+    private $transformerHelper;
+
+
+    /**
+     * @param TransformerHelper $transformerHelper
+     */
+    public function __construct(TransformerHelper $transformerHelper){
+
+        $this->transformerHelper = $transformerHelper;
+    }
 
     /**
      * @var array
@@ -127,14 +141,25 @@ class OperationFactory
             }
         }
 
+        $requirements = [];
+
+        if (strpos($path, '{id}')){
+            $requirements ['id'] = '\d+';
+        }
+
+        if (strpos($path, '{embed}')){
+            $embeds = $this->transformerHelper->getAvailableIncludes($shortName);
+            $requirements ['embed'] = implode('|', $embeds);
+        }
+
         return new Operation(
             new Route(
                 $path,
                 [
                     '_controller' => $controller,
-                    '_resource' => $shortName,
+                    '_resource'   => $shortName,
                 ],
-                [],
+                $requirements,
                 [],
                 '',
                 [],

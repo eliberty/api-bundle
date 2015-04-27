@@ -19,7 +19,7 @@ class TransformerResolver
     /**
      * @var string
      */
-    private $version;
+    private $version = 'v1';
 
     /**
      * @param ContainerInterface $container
@@ -28,8 +28,8 @@ class TransformerResolver
     {
         $this->container = $container;
         $this->mapping   = array();
-        $container->get('router')->matchRequest($container->get('request'));
-        $this->version   = $container->get('router')->getContext()->getApiVersion();
+//        $container->get('router')->matchRequest($container->get('request'));
+        //$this->version   = $container->get('router')->getContext()->getApiVersion();
     }
 
     /**
@@ -49,11 +49,11 @@ class TransformerResolver
     public function resolve($entityName)
     {
         $serviceId = 'transformer.'.strtolower($entityName).'.'.$this->version;
-
+//        var_dump($serviceId);
         if (isset($this->mapping[$serviceId])) {
             return $this->container->get($this->mapping[$serviceId]);
         }
 
-        throw new \Exception('transformer not found');
+        throw new \Exception('transformer not found for '.$serviceId);
     }
 }

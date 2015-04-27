@@ -24,6 +24,7 @@ use Dunglas\ApiBundle\JsonLd\Response;
 use Eliberty\ApiBundle\Doctrine\Orm\EmbedFilter;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\Routing\Exception\RouteNotFoundException;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
 use Symfony\Component\Serializer\Exception\Exception;
 use FOS\RestBundle\Controller\Annotations;
@@ -105,6 +106,9 @@ class ResourceController extends FOSRestController
      *     200 = "Returned when successful",
      *     401 = "Returned when the User is not authorized to use this method",
      *   },
+     *   tags = {
+     *          "collection" = "#0040FF"
+     *      }
      * )
      *
      * @Annotations\QueryParam(name="orderby",  default={"id"="asc"}, nullable=true, description="Way to sort the rows in the result set.")
@@ -327,6 +331,16 @@ class ResourceController extends FOSRestController
     /**
      * Gets an element of the collection.
      *
+     * @ApiDoc(
+     *   resource = true,
+     *   statusCodes = {
+     *     200 = "Returned when successful",
+     *     401 = "Returned when the User is not authorized to use this method",
+     *   },
+     *   tags = {
+     *          "collection" = "#0040FF"
+     *      }
+     * )
      * @param Request $request
      * @param int     $id
      * @param string  $embed
@@ -336,13 +350,15 @@ class ResourceController extends FOSRestController
      * @throws NotFoundHttpException
      * @throws \InvalidArgumentException
      */
-    public function cgetEmbedAction(Request $request, $id, $embed = null)
+    public function cgetEmbedAction(Request $request, $id, $embed)
     {
 
         $resource         = $this->getResource($request);
-        $embedShortname = ucwords(Inflector::singularize($embed));
+        $embedShortname   = ucwords(Inflector::singularize($embed));
 
-        $resourceEmbed = $this->get('api.resource_collection')->getResourceForShortName($embedShortname);
+        $resourceEmbed    = $this->get('api.resource_collection')->getResourceForShortName($embedShortname);
+
+//        $resourceEmbed  = $this->get('api.resource_collection')->getResourceForShortName($embedShortname);
 
         $page = (int) $request->get('page', 1);
 

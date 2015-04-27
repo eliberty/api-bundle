@@ -19,7 +19,7 @@ services:
                 - @api.mapping.class_metadata_factory
                 - @api.json_ld.context_builder
                 - @property_accessor
-                - @api.ressource.transformer_resolver
+                - @api.transformer.helper
                 - @api.resource_collection
                 - @request
             scope: request
@@ -33,6 +33,8 @@ services:
 
         api.operation_factory:
             class: Eliberty\ApiBundle\Api\Operation\OperationFactory
+            arguments:
+                - @api.transformer.helper
 
         api.router:
             class: Eliberty\ApiBundle\Routing\Router
@@ -52,7 +54,6 @@ services:
             class: Eliberty\ApiBundle\Helper\TransformerHelper
             arguments:
                 - @api.ressource.transformer_resolver
-                - @api.mapping.class_metadata_factory
 
         api.iri_converter:
             class: Dunglas\ApiBundle\Api\IriConverter
@@ -84,3 +85,4 @@ services:
                 - @nelmio_api_doc.doc_comment_extractor
                 - []
                 - @api.transformer.helper
+                - @api.mapping.class_metadata_factory

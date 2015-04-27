@@ -33,12 +33,22 @@ class TransformerHelper
 
     /**
      * @param TransformerResolver $transformerResolver
-     * @param ClassMetadataFactory $classMetadataFactory
      */
-    public function __construct(TransformerResolver $transformerResolver, ClassMetadataFactory $classMetadataFactory)
+    public function __construct(TransformerResolver $transformerResolver)
     {
         $this->transformerResolver  = $transformerResolver;
+    }
+
+    /**
+     * @param ClassMetadataFactory $classMetadataFactory
+     *
+     * @return $this
+     */
+    public function setClassMetadataFactory(ClassMetadataFactory $classMetadataFactory)
+    {
         $this->classMetadataFactory = $classMetadataFactory;
+
+        return $this;
     }
 
     /**
@@ -46,9 +56,12 @@ class TransformerHelper
      * @return BaseTransformer
      * @throws \Exception
      */
-    public function getTransformer($entityname)
+    public function getTransformer($entityname = null)
     {
-        if (!$this->transformer) {
+        if (!$this->transformer || ($entityname !== null && $this->transformer->getCurrentResourceKey() !== $entityname)) {
+            if (null === $entityname) {
+                throw new \Exception('transformer is empty, specify the entity name into the parameter');
+            }
             $this->transformer = $this->transformerResolver->resolve($entityname);
         }
 
@@ -62,14 +75,9 @@ class TransformerHelper
      */
     public function getEntityClass($shortname = null)
     {
-        if (!$this->transformer) {
-            if (null === $shortname) {
-                throw new \Exception('transformer is empty, specify the shortname into the parameter');
-            }
-            $this->getTransformer($shortname);
-        }
+        $transformer = $this->getTransformer($shortname);
 
-        return $this->transformer->getEntityClass();
+        return $transformer->getEntityClass();
     }
 
     /**
@@ -79,15 +87,11 @@ class TransformerHelper
      */
     public function getTransformerClass($shortname = null)
     {
-        if (!$this->transformer) {
-            if (null === $shortname) {
-                throw new \Exception('transformer is empty, specify the shortname into the parameter');
-            }
-            $this->getTransformer($shortname);
-        }
+        $transformer = $this->getTransformer($shortname);
 
-        return get_class($this->transformer);
+        return get_class($transformer);
     }
+
 
     /**
      * @param null $shortname
@@ -96,17 +100,13 @@ class TransformerHelper
      */
     public function getAttribute($shortname = null)
     {
-        if (!$this->transformer) {
-            if (null === $shortname) {
-                throw new \Exception('transformer is empty, specify the shortname into the parameter');
-            }
-            $this->getTransformer($shortname);
-        }
-        $class = $this->getEntityClass();
+        $class = $this->getEntityClass($shortname);
 
         $entity = new $class();
 
-        return $this->transformer->transform($entity);
+        $transformer = $this->getTransformer($shortname);
+
+        return $transformer->transform($entity);
 
     }
 
@@ -115,19 +115,15 @@ class TransformerHelper
      * @return \Dunglas\ApiBundle\Mapping\AttributeMetadata[]
      * @throws \Exception
      */
-    public function getTransformerAttributes(ResourceInterface $resource = null)
+    protected  function getTransformerAttributes(ResourceInterface $resource = null)
     {
-        if (!$this->transformer) {
-            if (null === $resource) {
-                throw new \Exception('transformer is empty, specify the resource into the parameter');
-            }
-            $this->getTransformer($resource->getShortName());
-        }
 
-        $resource = new Resource($this->getEntityClass());
+        $shortname = (null !== $resource) ? $resource->getShortName(): null;
+
+        $resource = new Resource($this->getEntityClass($shortname));
 
         $attributes = $this->classMetadataFactory->getMetadataFor(
-            $this->getTransformerClass(),
+            $this->getTransformerClass($shortname),
             $resource->getNormalizationGroups(),
             $resource->getDenormalizationGroups(),
             $resource->getValidationGroups()
@@ -182,14 +178,9 @@ class TransformerHelper
      */
     public function getAvailableIncludes($shortname = null)
     {
-        if (!$this->transformer) {
-            if (null === $shortname) {
-                throw new \Exception('transformer is empty, specify the shortname into the parameter');
-            }
-            $this->getTransformer($shortname);
-        }
+        $transformer = $this->getTransformer($shortname);
 
-        return $this->transformer->getAvailableIncludes();
+        return $transformer->getAvailableIncludes();
     }
 
     /**
@@ -200,15 +191,11 @@ class TransformerHelper
      */
     public function getDefaultIncludes($shortname = null)
     {
-        if (!$this->transformer) {
-            if (null === $shortname) {
-                throw new \Exception('transformer is empty, specify the shortname into the parameter');
-            }
-            $this->getTransformer($shortname);
-        }
+        $transformer = $this->getTransformer($shortname);
 
-        return $this->transformer->getDefaultIncludes();
+        return $transformer->getDefaultIncludes();
     }
+
 
     /**
      * @param AttributeMetadata $attribute

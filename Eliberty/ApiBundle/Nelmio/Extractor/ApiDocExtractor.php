@@ -3,6 +3,7 @@
 namespace Eliberty\ApiBundle\Nelmio\Extractor;
 
 use Doctrine\Common\Annotations\Reader;
+use Doctrine\Common\Inflector\Inflector;
 use Doctrine\Common\Util\ClassUtils;
 use Eliberty\ApiBundle\Helper\TransformerHelper;
 use Eliberty\ApiBundle\Transformer\Listener\TransformerResolver;
@@ -14,6 +15,7 @@ use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouterInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
+use Dunglas\ApiBundle\Mapping\ClassMetadataFactory;
 use Nelmio\ApiDocBundle\Util\DocCommentExtractor;
 use Nelmio\ApiDocBundle\Extractor\ApiDocExtractor as BaseApiDocExtractor;
 
@@ -62,6 +64,7 @@ class ApiDocExtractor extends BaseApiDocExtractor
      * @param DocCommentExtractor $commentExtractor
      * @param array $handlers
      * @param TransformerHelper $transformerHelper
+     * @param ClassMetadataFactory $classMetadataFactory
      */
     public function __construct(
         ContainerInterface $container,
@@ -69,7 +72,8 @@ class ApiDocExtractor extends BaseApiDocExtractor
         Reader $reader,
         DocCommentExtractor $commentExtractor,
         array $handlers,
-        TransformerHelper $transformerHelper
+        TransformerHelper $transformerHelper,
+        ClassMetadataFactory $classMetadataFactory
     ){
         $this->container        = $container;
         $this->router           = $router;
@@ -77,7 +81,106 @@ class ApiDocExtractor extends BaseApiDocExtractor
         $this->commentExtractor = $commentExtractor;
         $this->handlers         = $handlers;
         $this->transformerHelper = $transformerHelper;
+
+        $this->transformerHelper->setClassMetadataFactory($classMetadataFactory);
         parent::__construct($container, $router, $reader, $commentExtractor, $handlers);
+    }
+
+    /**
+     * Returns an array of data where each data is an array with the following keys:
+     *  - annotation
+     *  - resource
+     *
+     * @param array $routes array of Route-objects for which the annotations should be extracted
+     *
+     * @return array
+     */
+    public function extractAnnotations(array $routes)
+    {
+        $array     = array();
+        $resources = array();
+        $excludeSections = $this->container->getParameter('nelmio_api_doc.exclude_sections');
+
+        foreach ($routes as $route) {
+            if (!$route instanceof Route) {
+                throw new \InvalidArgumentException(sprintf('All elements of $routes must be instances of Route. "%s" given', gettype($route)));
+            }
+
+            if ($method = $this->getReflectionMethod($route->getDefault('_controller'))) {
+                $annotation = $this->reader->getMethodAnnotation($method, self::ANNOTATION_CLASS);
+                if ($annotation && !in_array($annotation->getSection(), $excludeSections)) {
+                    if ($annotation->isResource()) {
+                        if ($resource = $annotation->getResource()) {
+                            $resources[] = $resource;
+                        } else {
+                            // remove format from routes used for resource grouping
+                            $resources[] = str_replace('.{_format}', '', $route->getPattern());
+                        }
+                    }
+
+                    $path = $route->getPath();
+                    if(false === strstr($path, '{embed}')) {
+                        $array[] = ['annotation' => $this->extractData($annotation, $route, $method)];
+                        continue;
+                    }
+
+                    $availableIncludes = $this->transformerHelper->getAvailableIncludes($route->getDefault('_resource'));
+                    foreach ($availableIncludes as $include) {
+                        $route->setPath(str_replace('{embed}', $include, $path));
+                        $name = Inflector::singularize($include);
+                        $route->addDefaults(['_resource' => ucfirst($name)]);
+                        $array[] = ['annotation' => $this->extractData($annotation, $route, $method)];
+                    }
+                }
+            }
+        }
+
+        rsort($resources);
+        foreach ($array as $index => $element) {
+            $hasResource = false;
+            $pattern     = $element['annotation']->getRoute()->getPattern();
+
+            foreach ($resources as $resource) {
+                if (0 === strpos($pattern, $resource) || $resource === $element['annotation']->getResource()) {
+                    $array[$index]['resource'] = $resource;
+
+                    $hasResource = true;
+                    break;
+                }
+            }
+
+            if (false === $hasResource) {
+                $array[$index]['resource'] = 'others';
+            }
+        }
+
+        $methodOrder = array('GET', 'POST', 'PUT', 'DELETE');
+        usort($array, function ($a, $b) use ($methodOrder) {
+            if ($a['resource'] === $b['resource']) {
+                if ($a['annotation']->getRoute()->getPattern() === $b['annotation']->getRoute()->getPattern()) {
+                    $methodA = array_search($a['annotation']->getRoute()->getRequirement('_method'), $methodOrder);
+                    $methodB = array_search($b['annotation']->getRoute()->getRequirement('_method'), $methodOrder);
+
+                    if ($methodA === $methodB) {
+                        return strcmp(
+                            $a['annotation']->getRoute()->getRequirement('_method'),
+                            $b['annotation']->getRoute()->getRequirement('_method')
+                        );
+                    }
+
+                    return $methodA > $methodB ? 1 : -1;
+                }
+
+                return strcmp(
+                    $a['annotation']->getRoute()->getPattern(),
+                    $b['annotation']->getRoute()->getPattern()
+                );
+            }
+
+            return strcmp($a['resource'], $b['resource']);
+        });
+
+        return $array;
     }
 
     /**
@@ -92,10 +195,6 @@ class ApiDocExtractor extends BaseApiDocExtractor
     {
         // create a new annotation
         $annotation = clone $annotation;
-//var_dump($route->getPath());
-        if('/api/contacts/{id}/{mappings}'===$route->getPath()){
-            var_dump($route);exit;
-        }
 
         $annotation->addTag($this->router->getContext()->getApiVersion(),'#ff0000');
         // doc
@@ -109,17 +208,19 @@ class ApiDocExtractor extends BaseApiDocExtractor
         // route
         $annotation->setRoute($route);
 
-        $entityClass = null;
+        $entityClassInput = $entityClassOutput = null;
 
         if ('DELETE' !== $annotation->getMethod()) {
-            $entityClass = $this->transformerHelper->getEntityClass($resource);
+            $entityClassInput = $entityClassOutput = $this->transformerHelper->getEntityClass($resource);
         }
 
         $this->addFilters($resource, $annotation);
+        if('GET' === $annotation->getMethod()) {
+            $entityClassInput = null;
+        }
 
         // input (populates 'parameters' for the formatters)
-        if (null !== $input = $entityClass) {
-
+        if (null !== $input = $entityClassInput ) {
             $parameters      = array();
             $normalizedInput = $this->normalizeClassParameter($input);
             $supportedParsers = array();
@@ -157,7 +258,7 @@ class ApiDocExtractor extends BaseApiDocExtractor
 
 
         // output (populates 'response' for the formatters)
-        if (null !== $output = $entityClass) {
+        if (null !== $output = $entityClassOutput) {
 
             $response         = array();
             $supportedParsers = array();
