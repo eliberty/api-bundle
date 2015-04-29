@@ -39,13 +39,6 @@ class BaseTransformer extends TransformerAbstract
     public $paramsByEmbed = [];
 
     /**
-     * Base Uniform Resource Identifier (is the domaine name).
-     *
-     * @var string
-     */
-    protected $baseUri;
-
-    /**
      * Uniform Resource Identifier.
      *
      * @var string
@@ -101,11 +94,6 @@ class BaseTransformer extends TransformerAbstract
     protected $entityClass;
 
     /**
-     * @var array
-     */
-    protected $options = [];
-
-    /**
      * Constructor.
      *
      * @param Request       $request
@@ -119,55 +107,6 @@ class BaseTransformer extends TransformerAbstract
     }
 
     /**
-     * @param Request $request
-     *
-     * @return $this
-     */
-    public function setRequest(Request $request = null)
-    {
-        $this->request = $request;
-        $this->setParamRequestEmbed();
-
-        if (null !== $request) {
-            $this->setOptions($request);
-            $this->baseUri = $request->getScheme().'://'.$request->getHost();
-            $this->uri     = urldecode(str_replace($this->baseUri, '', $this->request->getUri()));
-        }
-
-
-        return $this;
-    }
-
-    /**
-     * @return string
-     */
-    public function getBaseUri()
-    {
-        return $this->baseUri;
-    }
-
-    /**
-     * @return $this
-     */
-    public function setParamRequestEmbed()
-    {
-        if ($this->request) {
-            $this->requestEmbed = $this->request->get('embed');
-            $this->embeds       = $this->getEmbeds($this->requestEmbed);
-        }
-
-        return $this;
-    }
-
-    /**
-     * @param $embed
-     */
-    public function setEmbed($embed)
-    {
-        $this->currentEmbed = $embed;
-    }
-
-    /**
      * @return EntityManager
      */
     public function getEm()
@@ -176,11 +115,153 @@ class BaseTransformer extends TransformerAbstract
     }
 
     /**
+     * @param Collection          $resource
+     * @param TransformerAbstract $transformer
+     *
+     * @return Collection|\League\Fractal\Resource\Collection
+     */
+    public function paginate(Collection $resource, TransformerAbstract $transformer)
+    {
+        $this->initTransformer($transformer);
+
+        if (!isset($this->embeds[$this->getEmbed()]) || null === $this->embeds[$this->getEmbed()]) {
+            return $this->collection($resource, $transformer);
+        }
+
+        $optionEmbed = isset($this->embeds[$this->getEmbed()]) ? $this->embeds[$this->getEmbed()] : null;
+
+        $collection = new Pagerfanta(new ArrayAdapter($resource->toArray()));
+
+        $limit = isset($optionEmbed['perpage']) ? $optionEmbed['perpage'] : 10;
+
+        $collection->setMaxPerPage($limit);
+
+        $page = isset($optionEmbed['page']) && ($optionEmbed['page'] <= $collection->getNbPages()) ?
+            $optionEmbed['page'] : 1;
+
+        $collection->setCurrentPage($page);
+
+        $resource = $this->collection($collection, $transformer);
+
+        $adapter = $this->getAdapter($collection, $this->uri, $optionEmbed, $this->currentEmbed);
+
+        $resource->setPaginator($adapter);
+
+        return $resource;
+    }
+
+    /**
+     * @param $collection
+     * @param $uri
+     * @param array $optionEmbed
+     *
+     * @return PagerfantaPaginatorAdapter
+     */
+    public function getAdapter($collection, $uri, $optionEmbed = [])
+    {
+        $currentEmbed = $this->getEmbed();
+
+        $adapter = new PagerfantaPaginatorAdapter($collection, function ($page) use ($uri, $optionEmbed, $currentEmbed) {
+            $i      = 0;
+            $search = $replace = $currentEmbed;
+            foreach ($optionEmbed as $property => $value) {
+                if ($i === 0) {
+                    $replace = $replace.'{';
+                    $search  = $search.'{';
+                }
+                $i++;
+
+                //find the last carac for build new option
+                $endStr  = (count($optionEmbed) !== $i) ? ',' : '}';
+                $search  = $search.'"'.trim($property).'"='.trim($value).$endStr;
+                $prefixe = $replace.'"'.trim($property).'"=';
+
+                $replace = ($property === 'page') ?
+                    $prefixe.$page.$endStr :
+                    $prefixe.trim($value).$endStr;
+            }
+
+            if (empty($optionEmbed)) {
+                $search = $search.'{}';
+            }
+
+            //check if property page not existing add
+            if (!isset($optionEmbed['page'])) {
+                $replace = $replace !== $currentEmbed ?
+                    str_replace('}', ',"page"='.$page.'}', $replace) :
+                    $replace.'{"page"='.$page.'}';
+            }
+
+            //delete white space into uri
+            $uriBaseTrim = str_replace(' ', '', $uri);
+            //check if i find data int uri
+            $isFind = preg_match('/[=|,]'.$search.'[,|{|&]/', $uriBaseTrim, $matches);
+
+            //if embed is find
+            if ((bool) $isFind && !empty($matches)) {
+                $currentMatch   = array_shift($matches);
+                $prefixeReplace = substr($currentMatch, 0, 1);
+                $sufixeReplace  = substr($currentMatch, (strlen($currentMatch) - 1), 1);
+                $uriBaseTrim    = str_replace($currentMatch, $prefixeReplace.$replace.$sufixeReplace, $uriBaseTrim);
+
+                return urldecode($uriBaseTrim);
+            }
+
+            return urldecode(str_replace($search, $replace, $uriBaseTrim));
+        });
+
+        return $adapter;
+    }
+
+    /**
+     * Create a new item resource object.
+     *
+     * @param mixed                    $data
+     * @param BaseTransformer|callable $transformer
+     * @param string                   $resourceKey
+     *
+     * @return Item
+     */
+    protected function item($data, BaseTransformer $transformer, $resourceKey = null)
+    {
+        $this->initTransformer($transformer);
+
+        return new Item($data, $transformer, $resourceKey);
+    }
+
+    /**
+     * @param $transformer
+     */
+    protected function initTransformer(BaseTransformer $transformer)
+    {
+        $transformer
+            ->setCurrentScope($this->currentScope)
+            ->setParamRequestEmbed($this->requestEmbed)
+            ->setParentEmbed($this->getEmbed());
+    }
+
+    /**
+     * @param \Datetime $datetime
+     *
+     * @return null|string
+     */
+    protected function dateFormat(\Datetime $datetime = null)
+    {
+        if (null === $datetime) {
+            return;
+        }
+
+        return $datetime->format(\DateTime::ISO8601);
+    }
+
+    /////Embed/////
+
+    /**
      * @param $requestEmbed
      *
      * @return array
      */
-    public function getEmbeds($requestEmbed)
+    protected function getEmbeds($requestEmbed)
     {
         $explodeEmbeds    = preg_split("/[(a-zA-Z|}),],/", $requestEmbed, -1, PREG_SPLIT_OFFSET_CAPTURE);
         $embedWithOptions = [];
@@ -250,114 +331,43 @@ class BaseTransformer extends TransformerAbstract
         return $splitEmbedOption;
     }
 
+    ///////////////SETTER////////////
     /**
-     * @param Collection          $resource
-     * @param TransformerAbstract $transformer
+     * @param Request $request
      *
-     * @return Collection|\League\Fractal\Resource\Collection
+     * @return $this
      */
-    public function paginate(Collection $resource, TransformerAbstract $transformer)
+    public function setRequest(Request $request = null)
     {
-        $this->initTransformer($transformer);
+        $this->request = $request;
+        $this->setParamRequestEmbed();
 
-        if (!isset($this->embeds[$this->getEmbed()]) || null === $this->embeds[$this->getEmbed()]) {
-            return $this->collection($resource, $transformer);
+        if (null !== $request) {
+            $this->uri     = $this->request->getPathInfo();
         }
 
-        $optionEmbed = isset($this->embeds[$this->getEmbed()]) ? $this->embeds[$this->getEmbed()] : null;
-
-        $collection = new Pagerfanta(new ArrayAdapter($resource->toArray()));
-
-        $limit = isset($optionEmbed['perpage']) ? $optionEmbed['perpage'] : 10;
-
-        $collection->setMaxPerPage($limit);
-
-        $page = isset($optionEmbed['page']) && ($optionEmbed['page'] <= $collection->getNbPages()) ?
-            $optionEmbed['page'] : 1;
-
-        $collection->setCurrentPage($page);
-
-        $resource = $this->collection($collection, $transformer);
-
-        $adapter = $this->getAdapter($collection, $this->uri, $optionEmbed, $this->currentEmbed);
-
-        $resource->setPaginator($adapter);
-
-        return $resource;
+        return $this;
     }
 
     /**
-     * @param $collection
-     * @param $baseUri
-     * @param array $optionEmbed
-     *
-     * @return PagerfantaPaginatorAdapter
+     * @return $this
      */
-    public function getAdapter($collection, $baseUri, $optionEmbed = [])
+    public function setParamRequestEmbed()
     {
-        $currentEmbed = $this->getEmbed();
+        if ($this->request) {
+            $this->requestEmbed = $this->request->get('embed');
+            $this->embeds       = $this->getEmbeds($this->requestEmbed);
+        }
 
-        $adapter = new PagerfantaPaginatorAdapter($collection, function ($page) use ($baseUri, $optionEmbed, $currentEmbed) {
-            $i      = 0;
-            $search = $replace = $currentEmbed;
-            foreach ($optionEmbed as $property => $value) {
-                if ($i === 0) {
-                    $replace = $replace.'{';
-                    $search  = $search.'{';
-                }
-                $i++;
-
-                //find the last carac for build new option
-                $endStr  = (count($optionEmbed) !== $i) ? ',' : '}';
-                $search  = $search.'"'.trim($property).'"='.trim($value).$endStr;
-                $prefixe = $replace.'"'.trim($property).'"=';
-
-                $replace = ($property === 'page') ?
-                    $prefixe.$page.$endStr :
-                    $prefixe.trim($value).$endStr;
-            }
-
-            if (empty($optionEmbed)) {
-                $search = $search.'{}';
-            }
-
-            //check if property page not existing add
-            if (!isset($optionEmbed['page'])) {
-                $replace = $replace !== $currentEmbed ?
-                    str_replace('}', ',"page"='.$page.'}', $replace) :
-                    $replace.'{"page"='.$page.'}';
-            }
-
-            //delete white space into uri
-            $uriBaseTrim = str_replace(' ', '', $baseUri);
-            //check if i find data int uri
-            $isFind = preg_match('/[=|,]'.$search.'[,|{|&]/', $uriBaseTrim, $matches);
-
-            //if embed is find
-            if ((bool) $isFind && !empty($matches)) {
-                $currentMatch   = array_shift($matches);
-                $prefixeReplace = substr($currentMatch, 0, 1);
-                $sufixeReplace  = substr($currentMatch, (strlen($currentMatch) - 1), 1);
-                $uriBaseTrim    = str_replace($currentMatch, $prefixeReplace.$replace.$sufixeReplace, $uriBaseTrim);
-
-                return urldecode($uriBaseTrim);
-            }
-
-            return urldecode(str_replace($search, $replace, $uriBaseTrim));
-        });
-
-        return $adapter;
+        return $this;
     }
 
-
     /**
-     * Getter for currentScope.
-     *
-     * @return \Eliberty\ApiBundle\Fractal\Scope
+     * @param $embed
      */
-    public function getCurrentScope()
+    public function setEmbed($embed)
     {
-        return $this->currentScope;
+        $this->currentEmbed = $embed;
     }
 
     /**
@@ -372,32 +382,7 @@ class BaseTransformer extends TransformerAbstract
         return $this;
     }
 
-    /**
-     * Create a new item resource object.
-     *
-     * @param mixed                    $data
-     * @param BaseTransformer|callable $transformer
-     * @param string                   $resourceKey
-     *
-     * @return Item
-     */
-    protected function item($data, BaseTransformer $transformer, $resourceKey = null)
-    {
-        $this->initTransformer($transformer);
-
-        return new Item($data, $transformer, $resourceKey);
-    }
-
-    /**
-     * @param $transformer
-     */
-    private function initTransformer(BaseTransformer $transformer)
-    {
-        $transformer
-            ->setCurrentScope($this->currentScope)
-            ->setParamRequestEmbed($this->requestEmbed)
-            ->setParentEmbed($this->getEmbed());
-    }
+    ///////////////GETTER////////////
 
     /**
      * @return string
@@ -408,19 +393,7 @@ class BaseTransformer extends TransformerAbstract
     }
 
     /**
-     * set the option into transformer.
-     * @param Request $request
-     */
-    public function setOptions(Request $request)
-    {
-        $headers = $request->headers;
-//        $request->headers->add()
-        $this->options  = [
-            'e-With-Link'        => $headers->get('e-With-Link', 0),
-        ];
-    }
-
-    /**
+     * Getter the current resource key for the transformer.
      * @return string
      */
     public function getCurrentResourceKey()
@@ -429,6 +402,7 @@ class BaseTransformer extends TransformerAbstract
     }
 
     /**
+     * Getter available includes for current transformer.
      * @return array
      */
     public function getAvailableIncludes()
@@ -437,6 +411,7 @@ class BaseTransformer extends TransformerAbstract
     }
 
     /**
+     * Getter default includes for current transformer.
      * @return array
      */
     public function getDefaultIncludes()
@@ -445,6 +420,7 @@ class BaseTransformer extends TransformerAbstract
     }
 
     /**
+     * Getter for current entity Class.
      * @return string
      */
     public function getEntityClass()
@@ -453,16 +429,49 @@ class BaseTransformer extends TransformerAbstract
     }
 
     /**
-     * @param \Datetime $datetime
+     * Getter for currentScope.
      *
-     * @return null|string
+     * @return \Eliberty\ApiBundle\Fractal\Scope
      */
-    protected function dateFormat(\Datetime $datetime = null)
+    public function getCurrentScope()
     {
-        if (null === $datetime) {
-            return;
+        return $this->currentScope;
+    }
+
+    /**
+     * is the child transformer
+     * @return bool
+     */
+    public function isChild()
+    {
+        return !is_null($this->parentEmbed);
+    }
+
+    //transformer abstract fractal
+    /**
+     * This method is fired to loop through available includes, see if any of
+     * them are requested and permitted for this scope.
+     *
+     * @internal
+     *
+     * @param Scope $scope
+     * @param mixed $data
+     *
+     * @return array
+     */
+    public function processIncludedResources(Scope $scope, $data)
+    {
+        $includedData = parent::processIncludedResources($scope, $data);
+        foreach ($includedData as $include => $data) {
+            if (false !== strpos($include, 'childrens')) {
+                $key = str_replace($this->currentResourceKey, '', $include);
+                $includedData[$key] = $includedData[$include];
+                unset($includedData[$include]);
+            }
         }
 
-        return $datetime->format(\DateTime::ISO8601);
+        return $includedData;
     }
+
+
 }

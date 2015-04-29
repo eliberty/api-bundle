@@ -30,6 +30,7 @@ services:
             class: Eliberty\ApiBundle\Transformer\Listener\TransformerResolver
             arguments:
                 - @service_container
+                - @router
 
         api.resource_collection:
             class: Eliberty\ApiBundle\Api\ResourceCollection

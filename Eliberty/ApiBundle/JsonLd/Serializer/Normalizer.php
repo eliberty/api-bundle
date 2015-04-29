@@ -195,10 +195,10 @@ class Normalizer extends AbstractNormalizer implements NormalizerInterface
      */
     public function denormalize($data, $class, $format = null, array $context = [])
     {
-//        var_dump($data);exit;
+
         $resource = $this->guessResource($data, $context, true);
         $normalizedData = $this->prepareForDenormalization(json_decode($data));
-//var_dump($normalizedData);exit;
+
         $attributesMetadata = $this->getMetadata($resource, $context)->getAttributes();
 
         $allowedAttributes = [];
@@ -322,6 +322,10 @@ class Normalizer extends AbstractNormalizer implements NormalizerInterface
 
         if (null === $embeds) {
             $embeds = implode(',', $this->transformer->getDefaultIncludes());
+        }
+
+        if ($this->request->headers->get('e-embed-available', 0)) {
+            $embeds = implode(',', $this->transformer->getAvailableIncludes());
         }
 
         $datas        = [];

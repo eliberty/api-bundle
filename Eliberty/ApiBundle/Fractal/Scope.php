@@ -18,6 +18,7 @@ use League\Fractal\Pagination\PaginatorInterface as FractalPaginatorInterface;
 use League\Fractal\Scope as BaseFractalScope;
 use League\Fractal\Resource\Collection;
 use Dunglas\ApiBundle\Api\ResourceInterface as DunglasResource;
+use League\Fractal\TransformerAbstract;
 
 /**
  * Scope.
@@ -77,6 +78,10 @@ class Scope extends BaseFractalScope
         }
 
         $data['@context'] = $this->getContext($this->dunglasResource);
+
+        if (!$this->resource->getTransformer()->isChild()) {
+            $data['@embed'] = implode(',', $this->resource->getTransformer()->getAvailableIncludes());
+        }
 
         if (!is_null($this->resource)) {
             foreach ($this->dunglasResource->getFilters() as $filter) {
@@ -139,6 +144,10 @@ class Scope extends BaseFractalScope
 
         $data = [];
         $data['@context'] = $this->getContext($this->dunglasResource);
+
+        if (!$this->resource->getTransformer()->isChild()) {
+            $data['@embed'] = implode(',', $this->resource->getTransformer()->getAvailableIncludes());
+        }
 
         list($rawData, $rawIncludedData) = $this->executeResourceTransformers();
         $data = array_merge($data, $this->serializeResource($serializer, $rawData));

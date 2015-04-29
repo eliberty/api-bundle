@@ -137,14 +137,13 @@ class ResourceController extends FOSRestController
      *
      * @param Request $request
      * @ApiDoc(
-     *                         resource = true,
-     *                         statusCodes = {
-     *                         200 = "Returned when successful",
-     *                         400 = "Returned when the form has errors"
-     *                         }
-     *                         )
+     *   resource = true,
+     *   statusCodes = {
+     *     200 = "Returned when successful",
+     *     401 = "Returned when the User is not authorized to use this method",
+     *   }
+     * )
      *
-     * @Annotations\QueryParam(name="embed", default="addresses,rights", description="How man y notes to return.")
      *
      * @return Response
      *
@@ -178,18 +177,19 @@ class ResourceController extends FOSRestController
     }
 
     /**
-     * Gets an element of the collection.
+     * Get an element.
      *
      * @param Request $request
      * @param int     $id
      *
      * @ApiDoc(
+     *   resource = true,
      *   statusCodes = {
      *     200 = "Returned when successful",
-     *     404 = "Returned when the note is not found"
+     *     401 = "Returned when the User is not authorized to use this method",
+     *     404 = "Returned when the element not found",
      *   }
      * )
-     * @Annotations\QueryParam(name="embed", default="addresses,rights", description="How many notes to return.")
      *
      * @return Response
      *
@@ -212,14 +212,14 @@ class ResourceController extends FOSRestController
      * @param Request $request
      * @param string  $id
      * @ApiDoc(
-     *                         resource = true,
-     *                         statusCodes = {
-     *                         200 = "Returned when successful",
-     *                         400 = "Returned when the form has errors"
-     *                         }
-     *                         )
+     *   resource = true,
+     *   statusCodes = {
+     *     200 = "Returned when successful",
+     *     401 = "Returned when the User is not authorized to use this method",
+     *     404 = "Returned when the element not found",
+     *   }
+     * )
      *
-     * @Annotations\QueryParam(name="embed", default="addresses,rights", description="How man y notes to return.")
      *
      * @return Response
      *
@@ -263,9 +263,13 @@ class ResourceController extends FOSRestController
      * @param Request $request
      * @param string  $id
      * @ApiDoc(
-     *                         description="Delete Contact",
-     *                         resource=true
-     *                         )
+     *   resource = true,
+     *   statusCodes = {
+     *     204 = "Returned when successful",
+     *     401 = "Returned when the User is not authorized to use this method",
+     *     404 = "Returned when the element not found",
+     *   }
+     * )
      *
      * @return Response
      *
@@ -336,6 +340,7 @@ class ResourceController extends FOSRestController
      *   statusCodes = {
      *     200 = "Returned when successful",
      *     401 = "Returned when the User is not authorized to use this method",
+     *     404 = "Returned when the element not found",
      *   },
      *   tags = {
      *          "collection" = "#0040FF"

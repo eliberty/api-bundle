@@ -14,7 +14,7 @@ use Symfony\Component\Routing\Route;
  */
 class OperationFactory
 {
-    const ROUTE_NAME_PREFIX = 'api_';
+    const ROUTE_NAME_PREFIX = 'eliberty_api_';
     const DEFAULT_CONTROLLER = 'ElibertyApiBundle:Resource';
     /**
      * @var TransformerHelper
@@ -148,8 +148,12 @@ class OperationFactory
         }
 
         if (strpos($path, '{embed}')) {
-            $embeds = $this->transformerHelper->getAvailableIncludes($shortName);
-            $requirements ['embed'] = implode('|', $embeds);
+            try {
+                $embeds = $this->transformerHelper->getAvailableIncludes($shortName);
+                $requirements ['embed'] = implode('|', $embeds);
+            } catch (\Exception $ex) {
+                //commande sfroute symfony
+            }
         }
 
         return new Operation(
@@ -165,7 +169,7 @@ class OperationFactory
                 [],
                 $methods
             ),
-            $routeName,
+            self::ROUTE_NAME_PREFIX.$routeName,
             $context
         );
     }

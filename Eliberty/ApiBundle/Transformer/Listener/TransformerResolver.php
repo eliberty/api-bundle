@@ -19,7 +19,7 @@ class TransformerResolver
     /**
      * @var string
      */
-    private $version = 'v2';
+    private $version = 'v1';
 
     /**
      * @param ContainerInterface $container
@@ -28,10 +28,10 @@ class TransformerResolver
     {
         $this->container = $container;
         $this->mapping   = array();
-//        $versioning = $container->get('router')->getContext()->getApiVersion();
-//        if (!empty($versioning)) {
-//            $this->version = $versioning;
-//        }
+        $versioning = $container->get('router')->getContext()->getApiVersion();
+        if (!empty($versioning)) {
+            $this->version = $versioning;
+        }
     }
 
     /**

@@ -51,12 +51,12 @@ class Resource implements ResourceInterface
     protected $alias = [];
 
     /**
-     * @param string $entityClass
+     * @param $entityClass
      * @param array $alias
      */
     public function __construct(
         $entityClass,
-        $alias = array()
+        $alias = []
     ) {
         if (!class_exists($entityClass)) {
             throw new \InvalidArgumentException(sprintf('The class %s does not exist.', $entityClass));
@@ -65,8 +65,8 @@ class Resource implements ResourceInterface
         $this->entityClass = $entityClass;
         $shortName = substr($this->entityClass, strrpos($this->entityClass, '\\') + 1);
         $this->shortName = ucwords(strtolower($shortName));
-
         $this->alias = $alias;
+
     }
 
     /**
