@@ -224,7 +224,6 @@ class Scope extends BaseFractalScope
 
         if ($this->transformerHasIncludes($transformer)) {
             $includedData = $this->fireIncludedTransformers($transformer, $data);
-
             // If the serializer does not want the includes to be side-loaded then
             // the included data must be merged with the transformed data.
             if (! $this->manager->getSerializer()->sideloadIncludes()) {

@@ -115,7 +115,7 @@ class TransformerHelper
      * @return \Dunglas\ApiBundle\Mapping\AttributeMetadata[]
      * @throws \Exception
      */
-    protected  function getTransformerAttributes(ResourceInterface $resource = null)
+    protected function getTransformerAttributes(ResourceInterface $resource = null)
     {
 
         $shortname = (null !== $resource) ? $resource->getShortName(): null;

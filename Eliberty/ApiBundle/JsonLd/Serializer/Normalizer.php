@@ -103,7 +103,7 @@ class Normalizer extends AbstractNormalizer implements NormalizerInterface
      * @param ContextBuilder $contextBuilder
      * @param PropertyAccessorInterface $propertyAccessor
      * @param TransformerHelper $transformerHelper
-     * @param ResourceCollection|ResourceCollectionInterface $resourceCollection
+     * @param ResourceCollectionInterface $resourceCollection
      * @param Request $request
      * @param NameConverterInterface $nameConverter
      */
@@ -115,7 +115,7 @@ class Normalizer extends AbstractNormalizer implements NormalizerInterface
         ContextBuilder $contextBuilder,
         PropertyAccessorInterface $propertyAccessor,
         TransformerHelper $transformerHelper,
-        ResourceCollection $resourceCollection,
+        ResourceCollectionInterface $resourceCollection,
         Request $request,
         NameConverterInterface $nameConverter = null
     ) {
@@ -127,7 +127,7 @@ class Normalizer extends AbstractNormalizer implements NormalizerInterface
         $this->contextBuilder = $contextBuilder;
         $this->propertyAccessor = $propertyAccessor;
         $this->resourceCollection = $resourceCollection;
-        $this->setRequest($request);
+        $this->request =$request;
         $this->transformerHelper = $transformerHelper;
     }
 

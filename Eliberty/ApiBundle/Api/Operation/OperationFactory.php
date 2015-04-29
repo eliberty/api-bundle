@@ -143,11 +143,11 @@ class OperationFactory
 
         $requirements = [];
 
-        if (strpos($path, '{id}')){
+        if (strpos($path, '{id}')) {
             $requirements ['id'] = '\d+';
         }
 
-        if (strpos($path, '{embed}')){
+        if (strpos($path, '{embed}')) {
             $embeds = $this->transformerHelper->getAvailableIncludes($shortName);
             $requirements ['embed'] = implode('|', $embeds);
         }

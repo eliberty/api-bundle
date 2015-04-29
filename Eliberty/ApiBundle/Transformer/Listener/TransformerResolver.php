@@ -19,7 +19,7 @@ class TransformerResolver
     /**
      * @var string
      */
-    private $version = 'v1';
+    private $version = 'v2';
 
     /**
      * @param ContainerInterface $container
@@ -28,15 +28,17 @@ class TransformerResolver
     {
         $this->container = $container;
         $this->mapping   = array();
-//        $container->get('router')->matchRequest($container->get('request'));
-        //$this->version   = $container->get('router')->getContext()->getApiVersion();
+//        $versioning = $container->get('router')->getContext()->getApiVersion();
+//        if (!empty($versioning)) {
+//            $this->version = $versioning;
+//        }
     }
 
     /**
      * @param $service
      * @param array $tags
      */
-    public function addMapping($service, $tags = [])
+    public function addMapping($service)
     {
         $this->mapping[$service] = $service;
     }
@@ -49,7 +51,6 @@ class TransformerResolver
     public function resolve($entityName)
     {
         $serviceId = 'transformer.'.strtolower($entityName).'.'.$this->version;
-//        var_dump($serviceId);
         if (isset($this->mapping[$serviceId])) {
             return $this->container->get($this->mapping[$serviceId]);
         }

@@ -31,6 +31,10 @@ services:
             arguments:
                 - @service_container
 
+        api.resource_collection:
+            class: Eliberty\ApiBundle\Api\ResourceCollection
+            lazy: true
+
         api.operation_factory:
             class: Eliberty\ApiBundle\Api\Operation\OperationFactory
             arguments:
@@ -47,6 +51,7 @@ services:
             class: Eliberty\ApiBundle\JsonLd\ContextBuilder
             arguments:
                 - @api.router
+                - @api.mapping.class_metadata_factory
                 - @api.resource_collection
                 - @api.transformer.helper
 
@@ -76,13 +81,13 @@ services:
             tags:
                 - { name: kernel.event_subscriber }
 
-        nelmio_api_doc.extractor.api_doc_extractor:
-            class: Eliberty\ApiBundle\Nelmio\Extractor\ApiDocExtractor
-            arguments:
-                - @service_container
-                - @router
-                - @annotation_reader
-                - @nelmio_api_doc.doc_comment_extractor
-                - []
-                - @api.transformer.helper
-                - @api.mapping.class_metadata_factory
+#        nelmio_api_doc.extractor.api_doc_extractor:
+#            class: Eliberty\ApiBundle\Nelmio\Extractor\ApiDocExtractor
+#            arguments:
+#                - @service_container
+#                - @router
+#                - @annotation_reader
+#                - @nelmio_api_doc.doc_comment_extractor
+#                - []
+#                - @api.transformer.helper
+#                - @api.mapping.class_metadata_factory

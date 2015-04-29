@@ -15,48 +15,58 @@ class Resource implements ResourceInterface
     /**
      * @var string
      */
-    private $entityClass;
+    protected $entityClass;
     /**
      * @var OperationInterface[]
      */
-    private $itemOperations = [];
+    protected $itemOperations = [];
     /**
      * @var OperationInterface[]
      */
-    private $collectionOperations = [];
+    protected $collectionOperations = [];
     /**
      * @var FilterInterface[]
      */
-    private $filters = [];
+    protected $filters = [];
     /**
      * @var array
      */
-    private $normalizationContext = [];
+    protected $normalizationContext = [];
     /**
      * @var array
      */
-    private $denormalizationContext = [];
+    protected $denormalizationContext = [];
     /**
      * @var array|null
      */
-    private $validationGroups;
+    protected $validationGroups;
     /**
      * @var string|null
      */
-    private $shortName;
+    protected $shortName;
+
+    /**
+     * @var array
+     */
+    protected $alias = [];
 
     /**
      * @param string $entityClass
+     * @param array $alias
      */
     public function __construct(
-        $entityClass
+        $entityClass,
+        $alias = array()
     ) {
         if (!class_exists($entityClass)) {
             throw new \InvalidArgumentException(sprintf('The class %s does not exist.', $entityClass));
         }
 
         $this->entityClass = $entityClass;
-        $this->shortName = substr($this->entityClass, strrpos($this->entityClass, '\\') + 1);
+        $shortName = substr($this->entityClass, strrpos($this->entityClass, '\\') + 1);
+        $this->shortName = ucwords(strtolower($shortName));
+
+        $this->alias = $alias;
     }
 
     /**
@@ -217,5 +227,13 @@ class Resource implements ResourceInterface
     public function getShortName()
     {
         return $this->shortName;
+    }
+
+    /**
+     * @return array
+     */
+    public function getAlias()
+    {
+        return $this->alias;
     }
 }

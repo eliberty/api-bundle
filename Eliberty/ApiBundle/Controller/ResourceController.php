@@ -355,10 +355,7 @@ class ResourceController extends FOSRestController
 
         $resource         = $this->getResource($request);
         $embedShortname   = ucwords(Inflector::singularize($embed));
-
         $resourceEmbed    = $this->get('api.resource_collection')->getResourceForShortName($embedShortname);
-
-//        $resourceEmbed  = $this->get('api.resource_collection')->getResourceForShortName($embedShortname);
 
         $page = (int) $request->get('page', 1);
 

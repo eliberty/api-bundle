@@ -13,10 +13,10 @@
     ],
     "require": {
         "php": ">=5.5.0",
+        "nelmio/cors-bundle": "~1.4",
         "nelmio/api-doc-bundle": "2.8.0",
         "league/fractal": "0.12.*@dev",
-        "nelmio/cors-bundle": "~1.4",
-        "dunglas/json-ld-api-bundle": "dev-master"
+        "dunglas/json-ld-api-bundle": "1.0.*@dev"
     },
     "extra": {
         "branch-alias":{

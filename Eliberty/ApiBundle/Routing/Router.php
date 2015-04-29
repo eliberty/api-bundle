@@ -103,6 +103,7 @@ class Router implements RouterInterface
      */
     public function generate($name, $parameters = [], $referenceType = self::ABSOLUTE_PATH)
     {
+
         if (is_object($name)) {
             if ($name instanceof ResourceInterface) {
                 $name = $this->getCollectionRouteName($name);
@@ -125,8 +126,11 @@ class Router implements RouterInterface
                 $baseContext->getHttpPort(),
                 $baseContext->getHttpsPort()
             ));
-
-            return $this->router->generate($name, $parameters, $referenceType);
+//            try {
+                return $this->router->generate($name, $parameters, $referenceType);
+//            } catch (\Exception $e) {
+//                var_dump($name);exit;
+//            }
 
         } finally {
             $this->router->setContext($baseContext);
@@ -178,7 +182,7 @@ class Router implements RouterInterface
         $operations = $resource->getitemOperations();
         foreach ($operations as $operation) {
             if (in_array('GET', $operation->getRoute()->getMethods())) {
-                if (false === strpos($this->router->getRouteCollection()->get($operation->getRouteName())->getPath(), 'mappings')) {
+                if (false === strpos($this->router->getRouteCollection()->get($operation->getRouteName())->getPath(), 'embed')) {
                     $data = $this->routeCache[$resource];
                     $data['itemRouteName'] = $operation->getRouteName();
                     $this->routeCache[$resource] = $data;

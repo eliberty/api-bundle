@@ -24,27 +24,33 @@ class ContextBuilder extends BaseContextBuilder
     const OWL_NS = 'http://www.w3.org/2002/07/owl#';
 
     /**
+     * @var RouterInterface
+     */
+    private $router;
+    /**
      * @var ClassMetadataFactory
      */
     private $classMetadataFactory;
     /**
-     * @var TransformerHelper
+     * @var ResourceCollectionInterface
      */
-    private $transformerHelper;
+    private $resourceCollection;
 
     /**
      * @param RouterInterface $router
+     * @param ClassMetadataFactory $classMetadataFactory
      * @param ResourceCollectionInterface $resourceCollection
      * @param TransformerHelper $transformerHelper
-     * @internal param ClassMetadataFactory $classMetadataFactory
-     * @internal param TransformerResolver $transformerResolver
      */
     public function __construct(
         RouterInterface $router,
+        ClassMetadataFactory $classMetadataFactory,
         ResourceCollectionInterface $resourceCollection,
         TransformerHelper $transformerHelper
     ) {
-        $this->classMetadataFactory = $transformerHelper->getClassMetadataFactory();
+        $this->router = $router;
+        $this->classMetadataFactory = $classMetadataFactory;
+        $this->resourceCollection = $resourceCollection;
         $this->transformerHelper = $transformerHelper;
         parent::__construct($router, $this->classMetadataFactory, $resourceCollection);
     }
@@ -61,23 +67,13 @@ class ContextBuilder extends BaseContextBuilder
     {
         $context = parent::getContext($resource);
         if ($resource) {
+            $this->transformerHelper->setClassMetadataFactory($this->classMetadataFactory);
             $this->transformerHelper->getOutputAttr($resource->getShortName(), $context);
+            $embeds = $this->transformerHelper->getAvailableIncludes($resource->getShortName());
+            $data['@embed'] = implode(',', $embeds);
+            $context = array_merge($data, $context);
         }
 
         return $context;
-    }
-
-    /**
-     * Gets the base context.
-     *
-     * @return array
-     */
-    private function getBaseContext()
-    {
-        return [
-            '@vocab' => '',
-            'hydra' => '',
-            'hydra:embed'
-        ];
     }
 }

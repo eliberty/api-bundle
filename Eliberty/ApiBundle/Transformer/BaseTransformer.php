@@ -232,6 +232,7 @@ class BaseTransformer extends TransformerAbstract
      */
     protected function getEmbedsWithParentEmbed($splitEmbedOption)
     {
+
         foreach ($splitEmbedOption as $embed => $options) {
             $scopeEmbed = explode('.', $embed);
             if (count($scopeEmbed) === 1) {
@@ -413,6 +414,7 @@ class BaseTransformer extends TransformerAbstract
     public function setOptions(Request $request)
     {
         $headers = $request->headers;
+//        $request->headers->add()
         $this->options  = [
             'e-With-Link'        => $headers->get('e-With-Link', 0),
         ];
