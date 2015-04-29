@@ -18,9 +18,6 @@
         "dunglas/api-bundle": "dev-master"
     },
     "extra": {
-        "branch-alias":{
-            "dev-master": "1.0-dev"
-        }
     },
     "autoload": {
         "psr-4": { "Eliberty\\Bundle\\ApiBundle\\": "" }
