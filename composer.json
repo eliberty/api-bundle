@@ -15,7 +15,7 @@
         "nelmio/cors-bundle": "~1.4",
         "nelmio/api-doc-bundle": "2.8.0",
         "league/fractal": "0.12.*@dev",
-        "dunglas/api-bundle": "1.0.*@dev"
+        "dunglas/api-bundle": "dev-master"
     },
     "extra": {
     },
