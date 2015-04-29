@@ -15,11 +15,11 @@
         "nelmio/cors-bundle": "~1.4",
         "nelmio/api-doc-bundle": "2.8.0",
         "league/fractal": "0.12.*@dev",
-        "dunglas/api-bundle": "1.0.x-dev"
+        "dunglas/api-bundle": "dev-master"
     },
     "extra": {
         "branch-alias":{
-            "dev-master": "1.0.x-dev"
+            "dev-master": "1.0-dev"
         }
     },
     "autoload": {
