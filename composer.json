@@ -4,7 +4,6 @@
     "description": "JSON-LD / Hydra REST API with use fractal for Symfony",
     "keywords": ["api", "jsonld", "eliberty", "rest", "Hydra"],
     "license": "PROPRIETARY",
-    "minimum-stability": "dev",
     "authors": [
         {
             "name": "philippe vesin",
@@ -16,7 +15,7 @@
         "nelmio/cors-bundle": "~1.4",
         "nelmio/api-doc-bundle": "2.8.0",
         "league/fractal": "0.12.*@dev",
-        "dunglas/api-bundle": "dev-master"
+        "dunglas/api-bundle": "1.0.x-dev"
     },
     "extra": {
         "branch-alias":{
