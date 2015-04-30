@@ -8,7 +8,8 @@ use Dunglas\ApiBundle\JsonLd\ContextBuilder;
 use Dunglas\ApiBundle\Mapping\ClassMetadataFactory;
 use League\Fractal\Manager as BaseFractalManager;
 use League\Fractal\Resource\ResourceInterface;
-use Eliberty\ApiBundle\Fractal\Scope;
+use Eliberty\ApiBundle\Fractal\Scope as ApiScope;
+use League\Fractal\Scope;
 
 /**
  * Manager
@@ -108,7 +109,7 @@ class Manager extends BaseFractalManager
      */
     public function createData(ResourceInterface $resource, $scopeIdentifier = null, Scope $parentScopeInstance = null)
     {
-        $scopeInstance = new Scope($this, $resource, $scopeIdentifier);
+        $scopeInstance = new ApiScope($this, $resource, $scopeIdentifier);
 
         // Update scope history
         if ($parentScopeInstance !== null) {

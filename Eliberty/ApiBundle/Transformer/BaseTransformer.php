@@ -2,7 +2,7 @@
 
 namespace Eliberty\ApiBundle\Transformer;
 
-use Eliberty\ApiBundle\Fractal\Scope;
+use League\Fractal\Scope;
 use Doctrine\ORM\EntityManager;
 use Eliberty\ApiBundle\Fractal\Pagination\PagerfantaPaginatorAdapter;
 use League\Fractal\TransformerAbstract;
@@ -459,21 +459,21 @@ class BaseTransformer extends TransformerAbstract
      *
      * @return array
      */
-//    public function processIncludedResources(Scope $scope, $data)
-//    {
-//        $includedData = parent::processIncludedResources($scope, $data);
-//        if (is_array($includedData)) {
-//            foreach ($includedData as $include => $data) {
-//                if (false !== strpos($include, 'childrens')) {
-//                    $key                = str_replace($this->currentResourceKey, '', $include);
-//                    $includedData[$key] = $includedData[$include];
-//                    unset($includedData[$include]);
-//                }
-//            }
-//        }
-//
-//        return $includedData;
-//    }
+    public function processIncludedResources(Scope $scope, $data)
+    {
+        $includedData = parent::processIncludedResources($scope, $data);
+        if (is_array($includedData)) {
+            foreach ($includedData as $include => $data) {
+                if (false !== strpos($include, 'childrens')) {
+                    $key                = str_replace($this->currentResourceKey, '', $include);
+                    $includedData[$key] = $includedData[$include];
+                    unset($includedData[$include]);
+                }
+            }
+        }
+
+        return $includedData;
+    }
 
 
 }
