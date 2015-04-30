@@ -104,7 +104,7 @@ class Resource implements ResourceInterface
     /**
      * {@inheritdoc}
      */
-    public function addMappingOperation(OperationInterface $operation)
+    public function addEmbedOperation(OperationInterface $operation)
     {
         $this->itemOperations[] = $operation;
     }

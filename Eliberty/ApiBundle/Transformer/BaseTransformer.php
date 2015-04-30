@@ -462,11 +462,13 @@ class BaseTransformer extends TransformerAbstract
     public function processIncludedResources(Scope $scope, $data)
     {
         $includedData = parent::processIncludedResources($scope, $data);
-        foreach ($includedData as $include => $data) {
-            if (false !== strpos($include, 'childrens')) {
-                $key = str_replace($this->currentResourceKey, '', $include);
-                $includedData[$key] = $includedData[$include];
-                unset($includedData[$include]);
+        if (is_array($includedData)) {
+            foreach ($includedData as $include => $data) {
+                if (false !== strpos($include, 'childrens')) {
+                    $key                = str_replace($this->currentResourceKey, '', $include);
+                    $includedData[$key] = $includedData[$include];
+                    unset($includedData[$include]);
+                }
             }
         }
 
