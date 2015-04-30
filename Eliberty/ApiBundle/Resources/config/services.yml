@@ -20,7 +20,6 @@ services:
                 - @api.json_ld.context_builder
                 - @property_accessor
                 - @api.transformer.helper
-                - @api.resource_collection
                 - @request
             scope: request
             tags:

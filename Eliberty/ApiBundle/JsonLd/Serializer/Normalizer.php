@@ -41,7 +41,7 @@ use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
  *
  * @package Eliberty\ApiBundle\JsonLd\Serializer
  */
-class Normalizer extends AbstractNormalizer implements NormalizerInterface
+class Normalizer extends AbstractNormalizer
 {
     use ResourceResolver;
 
@@ -87,10 +87,6 @@ class Normalizer extends AbstractNormalizer implements NormalizerInterface
     private $request;
 
     /**
-     * @var ResourceCollection
-     */
-    private $resourceCollection;
-    /**
      * @var TransformerHelper
      */
     private $transformerHelper;
@@ -103,7 +99,6 @@ class Normalizer extends AbstractNormalizer implements NormalizerInterface
      * @param ContextBuilder $contextBuilder
      * @param PropertyAccessorInterface $propertyAccessor
      * @param TransformerHelper $transformerHelper
-     * @param ResourceCollectionInterface $resourceCollection
      * @param Request $request
      * @param NameConverterInterface $nameConverter
      */
@@ -115,7 +110,6 @@ class Normalizer extends AbstractNormalizer implements NormalizerInterface
         ContextBuilder $contextBuilder,
         PropertyAccessorInterface $propertyAccessor,
         TransformerHelper $transformerHelper,
-        ResourceCollectionInterface $resourceCollection,
         Request $request,
         NameConverterInterface $nameConverter = null
     ) {
@@ -126,7 +120,6 @@ class Normalizer extends AbstractNormalizer implements NormalizerInterface
         $this->apiClassMetadataFactory = $apiClassMetadataFactory;
         $this->contextBuilder = $contextBuilder;
         $this->propertyAccessor = $propertyAccessor;
-        $this->resourceCollection = $resourceCollection;
         $this->request =$request;
         $this->transformerHelper = $transformerHelper;
     }

@@ -222,7 +222,7 @@ class BaseTransformer extends TransformerAbstract
      *
      * @return Item
      */
-    protected function item($data, BaseTransformer $transformer, $resourceKey = null)
+    protected function item($data, $transformer, $resourceKey = null)
     {
         $this->initTransformer($transformer);
 
@@ -459,21 +459,21 @@ class BaseTransformer extends TransformerAbstract
      *
      * @return array
      */
-    public function processIncludedResources(Scope $scope, $data)
-    {
-        $includedData = parent::processIncludedResources($scope, $data);
-        if (is_array($includedData)) {
-            foreach ($includedData as $include => $data) {
-                if (false !== strpos($include, 'childrens')) {
-                    $key                = str_replace($this->currentResourceKey, '', $include);
-                    $includedData[$key] = $includedData[$include];
-                    unset($includedData[$include]);
-                }
-            }
-        }
-
-        return $includedData;
-    }
+//    public function processIncludedResources(Scope $scope, $data)
+//    {
+//        $includedData = parent::processIncludedResources($scope, $data);
+//        if (is_array($includedData)) {
+//            foreach ($includedData as $include => $data) {
+//                if (false !== strpos($include, 'childrens')) {
+//                    $key                = str_replace($this->currentResourceKey, '', $include);
+//                    $includedData[$key] = $includedData[$include];
+//                    unset($includedData[$include]);
+//                }
+//            }
+//        }
+//
+//        return $includedData;
+//    }
 
 
 }
