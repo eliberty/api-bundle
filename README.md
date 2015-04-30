@@ -415,25 +415,6 @@ with the Doctrine `QueryBuilder`.
 
 Don't forget to register your custom filters with the `Dunglas\ApiBundle\Api\Resource::addFilter()` method.
 
-### Serialization groups
-
-Symfony 2.7 introduced [serialization (and deserialization) groups support](http://symfony.com/blog/new-in-symfony-2-7-serialization-groups)
-in the Serializer component. Specifying to the API system the groups to use is damn easy:
-
-```yaml
-services:
-    resource.product:
-        parent:    "api.resource"
-        arguments: [ "AppBundle\Entity\Product" ]
-        calls:
-            -      [ "initNormalizationContext", [ { groups: [ "serialization_group1", "serialization_group2" ] } ] ]
-            -      [ "initDenormalizationContext", [ { groups: [ "deserialization_group1", "deserialization_group2" ] } ] ]
-        tags:      [ { name: "api.resource" } ]
-```
-
-The built-in controller and the Hydra documentation generator will leverage specified serialization and deserialization
-to give access only to exposed properties and to guess if they are readable or/and writable.
-
 ### Embedding relations
 
 By default, Embedding relations is null , if will be configure for the entity into the .
@@ -516,9 +497,9 @@ class OfferTransformer extends BaseTransformer
         return $this->item($product, $productTransformer);
     }
 }
-
+```
 #if you have a relation collectionyour declaration looks like
-
+```php
     /**
      * List of resources to automatically include
      *
@@ -986,7 +967,7 @@ angular.module('myAngularjsApp')
     }])
 ;
 ```
-##versioning
+##Versioning
 
 for check the versioning controle beween the different version of the endpoint
 
