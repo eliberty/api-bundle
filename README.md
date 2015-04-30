@@ -569,8 +569,116 @@ with this declaration all embed defined into the offer transformer in the sectio
 
 and if into you api request you will be view all embed you can add into you request header:
 
-e-embed-available: 1
+#e-embed-available: 1
 
+### embed Alias
+
+if you have an embed with a different name of your resource you can use is your alias to match a resource that embed
+
+#exemple
+```php
+<?php
+
+namespace AppBundle\Transformer\V2;
+
+use AppBundle\Entity\Offer;
+use Eliberty\ApiBundle\Transformer\BaseTransformer;
+use Symfony\Component\Validator\Constraints as Assert;
+use Dunglas\ApiBundle\Annotation\Iri;
+
+class OfferTransformer extends BaseTransformer
+{
+
+    /**
+     * @var string
+     */
+    protected $currentResourceKey = 'offer';
+
+    /**
+     * entity class
+     * @var string
+     */
+    protected $entityClass = 'AppBundle\Entity\Offer';
+
+    /**
+     * List of resources to automatically include
+     *
+     * @var array
+     */
+    protected $defaultIncludes = ['productalias'];
+
+    /**
+     * List of resources possible to embed via this processor.
+     *
+     * @var array
+     */
+    protected $availableIncludes = ['product'];
+
+    /**
+     * Turn this item object into a generic array.
+     * @param Offer $offer
+     * @return array
+     */
+    public function transform(Offer $offer = null)
+    {
+        if (is_null($offer)) {
+            return [];
+        }
+
+        $response = [
+            "id"        => $offer->getId(),
+            "description" => $offer->getDescription(),
+        ];
+
+        return $response;
+    }
+
+    /**
+     * Embed Productalias.
+     *
+     * @param Orderitem $orderitem
+     *
+     * @return \League\Fractal\Resource\Item
+     */
+    public function includeProductalias(Offer $offer = null)
+    {
+        $this->setEmbed('product');
+
+        $product = null !== $offer ? $offer->getProduct() : null;
+
+        $productTransformer = new ProductTransformer($this->getEm());
+        $productTransformer
+            ->setRequest($this->request);
+
+        return $this->item($product, $productTransformer);
+    }
+}
+```
+
+
+```yaml
+    resource.product:
+       parent: api.resource
+       arguments:
+          - AppBundle\Entity\Product
+          - ['Productalias']
+       tags:
+          - { name: api.resource }
+```
+
+#this market also for classes if you use a single table inheritance
+
+* [single table inheritance](http://doctrine-orm.readthedocs.org/en/latest/reference/inheritance-mapping.html) (in english)
+
+```yaml
+    resource.product:
+       parent: api.resource
+       arguments:
+          - AppBundle\Entity\Product
+          - ['AppBundle\Entity\ProductChild']
+       tags:
+          - { name: api.resource }
+```
 
 ### Validation groups
 

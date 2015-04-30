@@ -75,11 +75,11 @@ class ApiDocExtractor extends BaseApiDocExtractor
         TransformerHelper $transformerHelper,
         ClassMetadataFactory $classMetadataFactory
     ){
-        $this->container        = $container;
-        $this->router           = $router;
-        $this->reader           = $reader;
-        $this->commentExtractor = $commentExtractor;
-        $this->handlers         = $handlers;
+        $this->container         = $container;
+        $this->router            = $router;
+        $this->reader            = $reader;
+        $this->commentExtractor  = $commentExtractor;
+        $this->handlers          = $handlers;
         $this->transformerHelper = $transformerHelper;
 
         $this->transformerHelper->setClassMetadataFactory($classMetadataFactory);
@@ -97,14 +97,22 @@ class ApiDocExtractor extends BaseApiDocExtractor
      */
     public function extractAnnotations(array $routes)
     {
-        $array     = array();
-        $resources = array();
+        $array           = array();
+        $resources       = array();
         $excludeSections = $this->container->getParameter('nelmio_api_doc.exclude_sections');
+
+        $versionApi = $this->container->get('request')->request->get('version', 'v2');
+        $this->transformerHelper->setVersion($versionApi);
 
         foreach ($routes as $route) {
             if (!$route instanceof Route) {
                 throw new \InvalidArgumentException(sprintf('All elements of $routes must be instances of Route. "%s" given', gettype($route)));
             }
+
+            if (is_null($route->getDefault('_resource'))) {
+                continue;
+            }
+
 
             if ($method = $this->getReflectionMethod($route->getDefault('_controller'))) {
                 $annotation = $this->reader->getMethodAnnotation($method, self::ANNOTATION_CLASS);
@@ -119,7 +127,7 @@ class ApiDocExtractor extends BaseApiDocExtractor
                     }
 
                     $path = $route->getPath();
-                    if(false === strstr($path, '{embed}')) {
+                    if (false === strstr($path, '{embed}')) {
                         $array[] = ['annotation' => $this->extractData($annotation, $route, $method)];
                         continue;
                     }
@@ -186,8 +194,8 @@ class ApiDocExtractor extends BaseApiDocExtractor
     /**
      * Returns a new ApiDoc instance with more data.
      *
-     * @param  ApiDoc            $annotation
-     * @param  Route             $route
+     * @param  ApiDoc $annotation
+     * @param  Route $route
      * @param  \ReflectionMethod $method
      * @return ApiDoc
      */
@@ -196,7 +204,7 @@ class ApiDocExtractor extends BaseApiDocExtractor
         // create a new annotation
         $annotation = clone $annotation;
 
-        $annotation->addTag($this->router->getContext()->getApiVersion(),'#ff0000');
+        $annotation->addTag($this->router->getContext()->getApiVersion(), '#ff0000');
         // doc
         $annotation->setDocumentation($this->commentExtractor->getDocCommentText($method));
 
@@ -210,19 +218,22 @@ class ApiDocExtractor extends BaseApiDocExtractor
 
         $entityClassInput = $entityClassOutput = null;
 
+        //section
+        $annotation->setSection($resource);
+
         if ('DELETE' !== $annotation->getMethod()) {
             $entityClassInput = $entityClassOutput = $this->transformerHelper->getEntityClass($resource);
         }
 
         $this->addFilters($resource, $annotation);
-        if('GET' === $annotation->getMethod()) {
+        if ('GET' === $annotation->getMethod()) {
             $entityClassInput = null;
         }
 
         // input (populates 'parameters' for the formatters)
-        if (null !== $input = $entityClassInput ) {
-            $parameters      = array();
-            $normalizedInput = $this->normalizeClassParameter($input);
+        if (null !== $input = $entityClassInput) {
+            $parameters       = array();
+            $normalizedInput  = $this->normalizeClassParameter($input);
             $supportedParsers = array();
             foreach ($this->getParsers($normalizedInput) as $parser) {
                 if ($parser->supports($normalizedInput)) {
@@ -268,13 +279,13 @@ class ApiDocExtractor extends BaseApiDocExtractor
             foreach ($this->getParsers($normalizedOutput) as $parser) {
                 if ($parser->supports($normalizedOutput)) {
                     $supportedParsers[] = $parser;
-                    $response = $this->mergeParameters($response, $parser->parse($normalizedOutput));
+                    $response           = $this->mergeParameters($response, $parser->parse($normalizedOutput));
                 }
             }
 
             foreach ($supportedParsers as $parser) {
                 if ($parser instanceof PostParserInterface) {
-                    $mp = $parser->postParse($normalizedOutput, $response);
+                    $mp       = $parser->postParse($normalizedOutput, $response);
                     $response = $this->mergeParameters($response, $mp);
                 }
             }
@@ -291,7 +302,7 @@ class ApiDocExtractor extends BaseApiDocExtractor
 
             foreach ($annotation->getResponseMap() as $code => $modelName) {
 
-                if ('200' === (string) $code && isset($modelName['type']) && isset($modelName['model'])) {
+                if ('200' === (string)$code && isset($modelName['type']) && isset($modelName['model'])) {
                     /*
                      * Model was already parsed as the default `output` for this ApiDoc.
                      */
@@ -300,18 +311,18 @@ class ApiDocExtractor extends BaseApiDocExtractor
 
                 $normalizedModel = $this->normalizeClassParameter($modelName);
 
-                $parameters = array();
+                $parameters       = array();
                 $supportedParsers = array();
                 foreach ($this->getParsers($normalizedModel) as $parser) {
                     if ($parser->supports($normalizedModel)) {
                         $supportedParsers[] = $parser;
-                        $parameters = $this->mergeParameters($parameters, $parser->parse($normalizedModel));
+                        $parameters         = $this->mergeParameters($parameters, $parser->parse($normalizedModel));
                     }
                 }
 
                 foreach ($supportedParsers as $parser) {
                     if ($parser instanceof PostParserInterface) {
-                        $mp = $parser->postParse($normalizedModel, $parameters);
+                        $mp         = $parser->postParse($normalizedModel, $parameters);
                         $parameters = $this->mergeParameters($parameters, $mp);
                     }
                 }

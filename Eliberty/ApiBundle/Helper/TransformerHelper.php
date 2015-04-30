@@ -40,6 +40,14 @@ class TransformerHelper
     }
 
     /**
+     * set version api
+     */
+    public function setVersion($apiVersion)
+    {
+        $this->transformerResolver->setVersion($apiVersion);
+    }
+
+    /**
      * @param ClassMetadataFactory $classMetadataFactory
      *
      * @return $this

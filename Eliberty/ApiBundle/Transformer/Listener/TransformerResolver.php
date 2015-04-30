@@ -28,10 +28,29 @@ class TransformerResolver
     {
         $this->container = $container;
         $this->mapping   = array();
-        $versioning = $container->get('router')->getContext()->getApiVersion();
+        $router = $container->get('router');
+//
+//        if (empty($router->getContext()->getApiVersion())) {
+//            $request = $container->get('request');
+//            $router->matchRequest($request);
+//        }
+
+        $versioning = $router->getContext()->getApiVersion();
         if (!empty($versioning)) {
             $this->version = $versioning;
         }
+    }
+
+    /**
+     * @param string $version
+     *
+     * @return $this
+     */
+    public function setVersion($version)
+    {
+        $this->version = $version;
+
+        return $this;
     }
 
     /**
