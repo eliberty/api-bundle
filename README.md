@@ -245,7 +245,16 @@ class OfferTransformer extends BaseTransformer
         return $response;
     }
 }
+```
+```php
+<?php
 
+namespace AppBundle\Transformer\V2;
+
+use AppBundle\Entity\Product;
+use Eliberty\ApiBundle\Transformer\BaseTransformer;
+use Symfony\Component\Validator\Constraints as Assert;
+use Dunglas\ApiBundle\Annotation\Iri;
 class ProductTransformer extends BaseTransformer
 {
 
@@ -318,7 +327,7 @@ services:
          tags:
             - { name: api_transformer }
          scope: request
-
+```
 **You're done!**
 
 You now have a fully featured API exposing your Doctrine entities.
