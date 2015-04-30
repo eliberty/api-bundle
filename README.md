@@ -46,9 +46,9 @@ Then, update your `app/config/AppKernel.php` file:
     {
         $bundles = [
             // ...
+            new Nelmio\ApiDocBundle\NelmioApiDocBundle()
             new Dunglas\ApiBundle\DunglasApiBundle(),
             new Eliberty\ApiBundle\ElibertyApiBundle(),
-            new Nelmio\ApiDocBundle\NelmioApiDocBundle()
             // ...
         ];
 
@@ -67,6 +67,8 @@ api:
 
 ## Usage
 
+
+
 ### Configure
 
 The first step is to name your API. Add the following lines in `app/config/config.yml`:
@@ -78,6 +80,17 @@ dunglas_api:
     default:                                               # optional
         items_per_page: 30                                 # Number of items per page in paginated collections (optional)
         order:          ~                                  # Default order: null for natural order, ASC or DESC (optional)
+
+# Nelmio API Doc
+nelmio_api_doc:
+    sandbox:
+        accept_type:        "application/json"
+        body_format:
+            formats:        [ "json" ]
+            default_format: "json"
+        request_format:
+            formats:
+                json:       "application/json"
 ```
 
 The name and the description you give will be accessible trough the auto-generated Hydra documentation.
