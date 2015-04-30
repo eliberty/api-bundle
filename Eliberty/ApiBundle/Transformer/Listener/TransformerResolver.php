@@ -19,7 +19,7 @@ class TransformerResolver
     /**
      * @var string
      */
-    private $version = 'v1';
+    private $version = 'v2';
 
     /**
      * @param ContainerInterface $container
