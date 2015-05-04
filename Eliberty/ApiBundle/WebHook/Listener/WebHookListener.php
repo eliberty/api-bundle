@@ -25,27 +25,27 @@ class WebHookListener implements EventSubscriberInterface
      * @var array
      */
     private $configuration = [
-        'Acme\DemoBundle\Entity\Contact' => [
-            'Listener' => 'Acme\DemoBundle\Doctrine\Listener\Entity\ContactListener',
-            'Transformer' => 'Acme\DemoBundle\Transformer\Api\V1\ContactTransformer',
-            'Embed' => ['addresses', 'rights'],
-            'Action'   => [
-                Events::postPersist => 'postPersist',
-                Events::postUpdate  => 'postUpdate',
-                Events::postRemove  => 'postRemove'
-            ]
-        ],
-        'Acme\DemoBundle\Entity\Address' => [
-            'Listener' => 'Acme\DemoBundle\Doctrine\Listener\Entity\AddressListener',
-            'Transformer' => 'Acme\DemoBundle\Transformer\Api\V1\ContactTransformer',
-            'Embed' => ['contact', 'rights'],
-            'CallBackMethod' => 'getContact',
-            'Action'   => [
-                Events::postPersist => 'postPersist',
-                Events::postUpdate  => 'postUpdate',
-                Events::postRemove  => 'postRemove'
-            ]
-        ]
+//        'Acme\DemoBundle\Entity\Contact' => [
+//            'Listener' => 'Acme\DemoBundle\Doctrine\Listener\Entity\ContactListener',
+//            'Transformer' => 'Acme\DemoBundle\Transformer\Api\V1\ContactTransformer',
+//            'Embed' => ['addresses', 'rights'],
+//            'Action'   => [
+//                Events::postPersist => 'postPersist',
+//                Events::postUpdate  => 'postUpdate',
+//                Events::postRemove  => 'postRemove'
+//            ]
+//        ],
+//        'Acme\DemoBundle\Entity\Address' => [
+//            'Listener' => 'Acme\DemoBundle\Doctrine\Listener\Entity\AddressListener',
+//            'Transformer' => 'Acme\DemoBundle\Transformer\Api\V1\ContactTransformer',
+//            'Embed' => ['contact', 'rights'],
+//            'CallBackMethod' => 'getContact',
+//            'Action'   => [
+//                Events::postPersist => 'postPersist',
+//                Events::postUpdate  => 'postUpdate',
+//                Events::postRemove  => 'postRemove'
+//            ]
+//        ]
     ];
 
     /**
