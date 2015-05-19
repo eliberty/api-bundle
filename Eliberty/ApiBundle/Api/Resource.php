@@ -51,20 +51,35 @@ class Resource implements ResourceInterface
     protected $alias = [];
 
     /**
+     * @var null| ResourceInterface
+     */
+    protected $parent = null;
+
+    /**
      * @param $entityClass
+     * @param null $parent
      * @param array $alias
+     * @param null $shortname
      */
     public function __construct(
         $entityClass,
-        $alias = []
+        $parent = null,
+        $alias = [],
+        $shortname = null
     ) {
         if (!class_exists($entityClass)) {
             throw new \InvalidArgumentException(sprintf('The class %s does not exist.', $entityClass));
         }
 
         $this->entityClass = $entityClass;
-        $shortName = substr($this->entityClass, strrpos($this->entityClass, '\\') + 1);
-        $this->shortName = ucwords(strtolower($shortName));
+        $this->shortName   = $shortname;
+        $this->parent      = $parent;
+
+        if (null === $shortname) {
+            $shortName = substr($this->entityClass, strrpos($this->entityClass, '\\') + 1);
+            $this->shortName = ucwords(strtolower($shortName));
+        }
+
         $this->alias = $alias;
 
     }
@@ -235,5 +250,13 @@ class Resource implements ResourceInterface
     public function getAlias()
     {
         return $this->alias;
+    }
+
+    /**
+     * @return array
+     */
+    public function getParent()
+    {
+        return $this->parent;
     }
 }

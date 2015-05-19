@@ -13,6 +13,7 @@ namespace Eliberty\ApiBundle\Fractal;
 
 use Doctrine\Common\Inflector\Inflector;
 use Dunglas\ApiBundle\Model\PaginatorInterface;
+use Eliberty\ApiBundle\Doctrine\Orm\EmbedFilter;
 use Eliberty\ApiBundle\Doctrine\Orm\MappingsFilter;
 use League\Fractal\Pagination\PaginatorInterface as FractalPaginatorInterface;
 use League\Fractal\Scope as BaseFractalScope;
@@ -85,7 +86,12 @@ class Scope extends BaseFractalScope
 
         if (!is_null($this->resource)) {
             foreach ($this->dunglasResource->getFilters() as $filter) {
-                if ($filter instanceof MappingsFilter) {
+                if (!is_null($this->dunglasResource->getParent())) {
+                    if ($filter instanceof EmbedFilter) {
+                        $route = $this->getGenerateRoute($filter->getRouteName(), $filter->getParameters());
+                        break;
+                    }
+                } else if ($filter instanceof MappingsFilter) {
                     $route = $this->getGenerateRoute($filter->getRouteName(), $filter->getParameters());
                     break;
                 }
@@ -171,7 +177,11 @@ class Scope extends BaseFractalScope
      */
     protected function getEntityName()
     {
-        return ucwords(Inflector::singularize($this->scopeIdentifer));
+        if (substr($this->scopeIdentifer, -1) === 's') {
+            return ucwords(Inflector::singularize($this->scopeIdentifer));
+        }
+
+        return ucwords($this->scopeIdentifer);
     }
 
     /**

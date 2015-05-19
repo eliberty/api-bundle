@@ -238,8 +238,7 @@ class Normalizer extends AbstractNormalizer
             if (isset($types[0])) {
                 $type = $types[0];
 
-                if (
-                    $attributeValue &&
+                if ($attributeValue &&
                     $type->isCollection() &&
                     ($collectionType = $type->getCollectionType()) &&
                     ($class = $collectionType->getClass())

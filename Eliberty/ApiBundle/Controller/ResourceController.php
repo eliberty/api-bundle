@@ -16,23 +16,25 @@ use Dunglas\ApiBundle\Doctrine\Orm\Filter;
 use Dunglas\ApiBundle\Event\Events;
 use FOS\RestBundle\Controller\FOSRestController;
 use Nelmio\ApiDocBundle\Annotation\ApiDoc;
-use Dunglas\ApiBundle\Event\ObjectEvent;
+use Dunglas\ApiBundle\Event\DataEvent;
 use Dunglas\ApiBundle\Exception\DeserializationException;
 use Dunglas\ApiBundle\Api\ResourceInterface;
 use Dunglas\ApiBundle\Model\PaginatorInterface;
 use Dunglas\ApiBundle\JsonLd\Response;
-use Eliberty\ApiBundle\Doctrine\Orm\EmbedFilter;
+use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-use Symfony\Component\Routing\Exception\RouteNotFoundException;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
 use Symfony\Component\Serializer\Exception\Exception;
+use Eliberty\ApiBundle\Doctrine\Orm\EmbedFilter;
+use Symfony\Component\Routing\Exception\RouteNotFoundException;
 use FOS\RestBundle\Controller\Annotations;
+use Dunglas\ApiBundle\Controller\ResourceController as BaseResourceController;
 
 /**
  * Class ResourceController.
  */
-class ResourceController extends FOSRestController
+class ResourceController extends BaseResourceController
 {
     /**
      * @var ResourceInterface
@@ -81,7 +83,7 @@ class ResourceController extends FOSRestController
      * Finds an object of throws a 404 error.
      *
      * @param ResourceInterface $resource
-     * @param string|int        $id
+     * @param string|int $id
      *
      * @return object
      *
@@ -126,10 +128,14 @@ class ResourceController extends FOSRestController
     {
         $resource = $this->getResource($request);
         $data     = $this->getCollectionData($resource, $request);
+        if ($request->get($this->container->getParameter('api.collection.pagination.page_parameter_name')) &&
+            0 === count($data)
+        ) {
+            throw $this->createNotFoundException();
+        }
+        $this->get('event_dispatcher')->dispatch(Events::RETRIEVE_LIST, new DataEvent($resource, $data));
 
-        $this->get('event_dispatcher')->dispatch(Events::RETRIEVE_LIST, new ObjectEvent($resource, $data));
-
-        return $this->getSuccessResponse($resource, $data);
+        return $this->getSuccessResponse($resource, $data, 200, [], ['request_uri' => $request->getRequestUri()]);
     }
 
     /**
@@ -180,7 +186,7 @@ class ResourceController extends FOSRestController
      * Get an element.
      *
      * @param Request $request
-     * @param int     $id
+     * @param int $id
      *
      * @ApiDoc(
      *   resource = true,
@@ -199,9 +205,10 @@ class ResourceController extends FOSRestController
     public function getAction(Request $request, $id)
     {
         $resource = $this->getResource($request);
-        $object   = $this->findOrThrowNotFound($resource, $id);
 
-        $this->get('event_dispatcher')->dispatch(Events::RETRIEVE, new ObjectEvent($resource, $object));
+        $object = $this->findOrThrowNotFound($resource, $id);
+
+        $this->get('event_dispatcher')->dispatch(Events::RETRIEVE, new DataEvent($resource, $object));
 
         return $this->getSuccessResponse($resource, $object);
     }
@@ -210,7 +217,7 @@ class ResourceController extends FOSRestController
      * Replaces an element of the collection.
      *
      * @param Request $request
-     * @param string  $id
+     * @param string $id
      * @ApiDoc(
      *   resource = true,
      *   statusCodes = {
@@ -261,7 +268,7 @@ class ResourceController extends FOSRestController
      * Deletes an element of the collection.
      *
      * @param Request $request
-     * @param string  $id
+     * @param string $id
      * @ApiDoc(
      *   resource = true,
      *   statusCodes = {
@@ -290,16 +297,23 @@ class ResourceController extends FOSRestController
      * Normalizes data using the Symfony Serializer.
      *
      * @param ResourceInterface $resource
-     * @param array|object      $data
-     * @param int               $status
-     * @param array             $headers
-     *
+     * @param array|object $data
+     * @param int $status
+     * @param array $headers
+     * @param array $additionalContext
      * @return Response
      */
-    protected function getSuccessResponse(ResourceInterface $resource, $data, $status = 200, array $headers = [])
+    protected function getSuccessResponse(
+        ResourceInterface $resource,
+        $data,
+        $status = 200,
+        array $headers = [],
+        array $additionalContext = []
+    )
     {
         return new Response(
-            $this->get('api.json_ld.normalizer.item')->normalize($data, 'json-ld', $resource->getNormalizationContext()),
+            $this->get('api.json_ld.normalizer.item')
+                ->normalize($data, 'json-ld', $resource->getNormalizationContext() + $additionalContext),
             $status,
             $headers
         );
@@ -309,26 +323,23 @@ class ResourceController extends FOSRestController
      * Gets collection data.
      *
      * @param ResourceInterface $resource
-     * @param Request           $request
+     * @param Request $request
      *
      * @return PaginatorInterface
      */
     protected function getCollectionData(ResourceInterface $resource, Request $request)
     {
-        $page = (int) $request->get('page', 1);
+        $page = (int)$request->get('page', 1);
 
         $itemsPerPage = $this->container->getParameter('api.default.items_per_page');
-        $perpage      = (int) $request->get('perpage', $itemsPerPage);
+        $perpage      = (int)$request->get('perpage', $itemsPerPage);
         $defaultOrder = $request->get('orderby', []);
         $orderBy      = $request->get('order', $defaultOrder);
-        $order        = $orderBy ? (array) json_decode(str_replace('=', ':', $defaultOrder)) : [];
+        $order        = $orderBy ? (array)json_decode(str_replace('=', ':', $defaultOrder)) : [];
 
         return $this->get('api.data_provider')->getCollection(
             $resource,
-            $request->query->getIterator()->getArrayCopy(),
-            $order,
-            $page,
-            $perpage
+            $request
         );
     }
 
@@ -347,8 +358,8 @@ class ResourceController extends FOSRestController
      *      }
      * )
      * @param Request $request
-     * @param int     $id
-     * @param string  $embed
+     * @param int $id
+     * @param string $embed
      *
      * @return Response
      *
@@ -358,11 +369,11 @@ class ResourceController extends FOSRestController
     public function cgetEmbedAction(Request $request, $id, $embed)
     {
 
-        $resource         = $this->getResource($request);
-        $embedShortname   = ucwords(Inflector::singularize($embed));
-        $resourceEmbed    = $this->get('api.resource_collection')->getResourceForShortName($embedShortname);
+        $resource       = $this->getResource($request);
+        $embedShortname = ucwords(Inflector::singularize($embed));
+        $resourceEmbed  = $this->get('api.resource_collection')->getResourceForShortName($embedShortname);
 
-        $page = (int) $request->get('page', 1);
+        $page = (int)$request->get('page', 1);
 
         $itemsPerPage = $this->container->getParameter('api.default.items_per_page');
         $defaultOrder = $this->container->getParameter('api.default.order');
@@ -370,13 +381,13 @@ class ResourceController extends FOSRestController
 
         $iriConverter = $this->get('api.iri_converter');
 
-        $dataProvider = $this->get('api.data_provider');
+        $managerRegister = $this->get('doctrine');
 
         $propertyAccessor = $this->get('property_accessor');
 
         $filterName = strtolower($resource->getShortName());
 
-        $filter = new EmbedFilter($iriConverter, $propertyAccessor, $filterName);
+        $filter = new EmbedFilter($managerRegister, $iriConverter, $propertyAccessor);
 
         $filter->setParameters([
             'embed' => $embed,
@@ -387,15 +398,11 @@ class ResourceController extends FOSRestController
 
         $resourceEmbed->addFilter($filter);
 
-        $data = $dataProvider->getCollection(
+        $data = $this->get('api.data_provider')->getCollection(
             $resourceEmbed,
-            [$filterName => $id],
-            $order,
-            $page,
-            $itemsPerPage
+            $request
         );
-
-        $this->get('event_dispatcher')->dispatch(Events::RETRIEVE_LIST, new ObjectEvent($resourceEmbed, $data));
+        $this->get('event_dispatcher')->dispatch(Events::RETRIEVE_LIST, new DataEvent($resourceEmbed, $data));
 
         return $this->getSuccessResponse($resourceEmbed, $data);
     }
