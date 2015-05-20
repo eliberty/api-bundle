@@ -150,6 +150,7 @@ class TransformerHelper
     {
 
         $attributes             = $this->getAttribute($shortname);
+
         $transformerAttributes = $this->getTransformerAttributes();
 
         foreach ($data as $key => $value) {
@@ -237,4 +238,6 @@ class TransformerHelper
             'untilVersion' => null
         ];
     }
+
+
 }

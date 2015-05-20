@@ -14,8 +14,8 @@ namespace Eliberty\ApiBundle\Fractal;
 use Doctrine\Common\Inflector\Inflector;
 use Dunglas\ApiBundle\Model\PaginatorInterface;
 use Eliberty\ApiBundle\Doctrine\Orm\EmbedFilter;
-use Eliberty\ApiBundle\Doctrine\Orm\MappingsFilter;
 use League\Fractal\Pagination\PaginatorInterface as FractalPaginatorInterface;
+use League\Fractal\Resource\ResourceInterface;
 use League\Fractal\Scope as BaseFractalScope;
 use League\Fractal\Resource\Collection;
 use Dunglas\ApiBundle\Api\ResourceInterface as DunglasResource;
@@ -34,6 +34,11 @@ class Scope extends BaseFractalScope
      * @var DunglasResource
      */
     protected $dunglasResource;
+
+    /**
+     * @var Scope
+     */
+    protected $parentScope;
 
     /**
      * @var string
@@ -91,13 +96,20 @@ class Scope extends BaseFractalScope
                         $route = $this->getGenerateRoute($filter->getRouteName(), $filter->getParameters());
                         break;
                     }
-                } else if ($filter instanceof MappingsFilter) {
+                } else if ($filter instanceof EmbedFilter) {
                     $route = $this->getGenerateRoute($filter->getRouteName(), $filter->getParameters());
                     break;
                 }
             }
             if (empty($route)) {
-                $route = $this->getGenerateRoute($this->dunglasResource);
+                if (null === $this->dunglasResource->getParent()) {
+                    $route = $this->getGenerateRoute($this->dunglasResource);
+                } else {
+                    $parameterName = strtolower($this->parentScope->dunglasResource->getShortname()).'id';
+                    $value = $this->parentScope->resource->getData()->getId();
+                    $parameters[$parameterName] = $value;
+                    $route = $this->getGenerateRoute($this->dunglasResource, $parameters);
+                }
             }
             //var_dump($route);exit;
             $data['@id'] = $route;
@@ -342,5 +354,25 @@ class Scope extends BaseFractalScope
     protected function getGenerateRoute($data, $params = [])
     {
         return $this->manager->getRouter()->generate($data, $params);
+    }
+
+    /**
+     * @return ResourceInterface
+     */
+    public function getResource()
+    {
+        return $this->resource;
+    }
+
+    /**
+     * @param Scope $parentScope
+     *
+     * @return $this
+     */
+    public function setParentScope($parentScope)
+    {
+        $this->parentScope = $parentScope;
+
+        return $this;
     }
 }

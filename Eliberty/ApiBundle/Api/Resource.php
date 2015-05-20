@@ -54,18 +54,24 @@ class Resource implements ResourceInterface
      * @var null| ResourceInterface
      */
     protected $parent = null;
+    /**
+     * @var null
+     */
+    private $parentName;
 
     /**
      * @param $entityClass
-     * @param null $parent
+     * @param ResourceInterface $parent
      * @param array $alias
      * @param null $shortname
+     * @param null $parentName
      */
     public function __construct(
         $entityClass,
-        $parent = null,
+        ResourceInterface $parent = null,
         $alias = [],
-        $shortname = null
+        $shortname = null,
+        $parentName = null
     ) {
         if (!class_exists($entityClass)) {
             throw new \InvalidArgumentException(sprintf('The class %s does not exist.', $entityClass));
@@ -73,7 +79,8 @@ class Resource implements ResourceInterface
 
         $this->entityClass = $entityClass;
         $this->shortName   = $shortname;
-        $this->parent      = $parent;
+        $this->parentName = $parentName;
+        $this->setParent($parent);
 
         if (null === $shortname) {
             $shortName = substr($this->entityClass, strrpos($this->entityClass, '\\') + 1);
@@ -82,6 +89,7 @@ class Resource implements ResourceInterface
 
         $this->alias = $alias;
 
+        $this->parentName = $parentName;
     }
 
     /**
@@ -91,6 +99,33 @@ class Resource implements ResourceInterface
     {
         return $this->entityClass;
     }
+
+    /**
+     * @param ResourceInterface|null $parent
+     *
+     * @return $this
+     */
+    public function setParent($parent)
+    {
+
+        $this->parent = $parent;
+
+        if (null !== $this->parent && null === $this->parentName) {
+            $this->parentName = $this->parent->getShortName();
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return null
+     */
+    public function getParentName()
+    {
+        return $this->parentName;
+    }
+
+
 
     /**
      * {@inheritdoc}

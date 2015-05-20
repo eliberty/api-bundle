@@ -10,6 +10,13 @@ services:
             class: Eliberty\ApiBundle\Api\Resource
             abstract: true
 
+        api.json_ld.entrypoint_builder:
+            class: Eliberty\ApiBundle\JsonLd\EntrypointBuilder
+            arguments:
+                 - @api.resource_collection
+                 - @api.iri_converter
+                 - @api.router
+
         api.json_ld.normalizer.item:
             class: Eliberty\ApiBundle\JsonLd\Serializer\Normalizer
             arguments:
@@ -91,3 +98,4 @@ services:
                 - []
                 - @api.transformer.helper
                 - @api.mapping.class_metadata_factory
+                - @api.resource_collection

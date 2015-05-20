@@ -11,6 +11,7 @@
 
 namespace Eliberty\ApiBundle\Routing;
 
+use Doctrine\Common\Util\Inflector;
 use Dunglas\ApiBundle\Api\ResourceCollectionInterface;
 use Dunglas\ApiBundle\Api\ResourceInterface;
 use Eliberty\ApiBundle\Doctrine\Orm\MappingsFilter;
@@ -111,15 +112,14 @@ class Router implements RouterInterface
                 if ($resource = $this->resourceCollection->getResourceForEntity($name)) {
                     $parameters['id'] = $this->propertyAccessor->getValue($name, 'id');
                     if (null !== $resource->getParent()) {
-                        $parent = $resource->getParent() instanceof ResourceInterface ?
-                            $resource->getParent()->getShortname() :
-                            $resource->getParent()
-                        ;
                         $parentObject = $this->propertyAccessor->getValue(
                             $name,
-                            $parent
+                            $resource->getParentName()
                         );
-                        $parameters['idparent'] = $this->propertyAccessor->getValue($parentObject, 'id');
+
+                        $parentResource = $this->resourceCollection->getResourceForEntity(get_class($parentObject));
+                        $parameterName = strtolower($parentResource->getShortName()).'id';
+                        $parameters[$parameterName] = $this->propertyAccessor->getValue($parentObject, 'id');
                     }
                     $name = $this->getItemRouteName($resource);
                 }

@@ -5,6 +5,7 @@ namespace Eliberty\ApiBundle\Nelmio\Extractor;
 use Doctrine\Common\Annotations\Reader;
 use Doctrine\Common\Inflector\Inflector;
 use Doctrine\Common\Util\ClassUtils;
+use Eliberty\ApiBundle\Api\ResourceCollection;
 use Eliberty\ApiBundle\Helper\TransformerHelper;
 use Eliberty\ApiBundle\Transformer\Listener\TransformerResolver;
 use Nelmio\ApiDocBundle\Annotation\ApiDoc;
@@ -58,6 +59,15 @@ class ApiDocExtractor extends BaseApiDocExtractor
     private $transformerHelper;
 
     /**
+     * @var ResourceCollection
+     */
+    protected $resourceCollection;
+
+    /**
+     * @var string
+     */
+    protected $versionApi;
+    /**
      * @param ContainerInterface $container
      * @param RouterInterface $router
      * @param Reader $reader
@@ -65,6 +75,7 @@ class ApiDocExtractor extends BaseApiDocExtractor
      * @param array $handlers
      * @param TransformerHelper $transformerHelper
      * @param ClassMetadataFactory $classMetadataFactory
+     * @param ResourceCollection $resourceCollection
      */
     public function __construct(
         ContainerInterface $container,
@@ -73,14 +84,16 @@ class ApiDocExtractor extends BaseApiDocExtractor
         DocCommentExtractor $commentExtractor,
         array $handlers,
         TransformerHelper $transformerHelper,
-        ClassMetadataFactory $classMetadataFactory
-    ){
+        ClassMetadataFactory $classMetadataFactory,
+        ResourceCollection $resourceCollection
+    ) {
         $this->container         = $container;
         $this->router            = $router;
         $this->reader            = $reader;
         $this->commentExtractor  = $commentExtractor;
         $this->handlers          = $handlers;
         $this->transformerHelper = $transformerHelper;
+        $this->resourceCollection  = $resourceCollection;
 
         $this->transformerHelper->setClassMetadataFactory($classMetadataFactory);
         parent::__construct($container, $router, $reader, $commentExtractor, $handlers);
@@ -101,8 +114,8 @@ class ApiDocExtractor extends BaseApiDocExtractor
         $resources       = array();
         $excludeSections = $this->container->getParameter('nelmio_api_doc.exclude_sections');
 
-        $versionApi = $this->container->get('request')->request->get('version', 'v2');
-        $this->transformerHelper->setVersion($versionApi);
+        $this->versionApi = $this->container->get('request')->request->get('version', 'v2');
+        $this->transformerHelper->setVersion($this->versionApi);
 
         foreach ($routes as $route) {
             if (!$route instanceof Route) {
@@ -136,7 +149,8 @@ class ApiDocExtractor extends BaseApiDocExtractor
                     foreach ($availableIncludes as $include) {
                         $route->setPath(str_replace('{embed}', $include, $path));
                         $name = Inflector::singularize($include);
-                        $route->addDefaults(['_resource' => ucfirst($name)]);
+                        $dunglasResource = $this->resourceCollection->getResourceForShortName(ucfirst($name));
+                        $route->addDefaults(['_resource' => $dunglasResource->getShortName()]);
                         $array[] = ['annotation' => $this->extractData($annotation, $route, $method)];
                     }
                 }
@@ -204,7 +218,7 @@ class ApiDocExtractor extends BaseApiDocExtractor
         // create a new annotation
         $annotation = clone $annotation;
 
-        $annotation->addTag($this->router->getContext()->getApiVersion(), '#ff0000');
+        $annotation->addTag($this->versionApi, '#ff0000');
         // doc
         $annotation->setDocumentation($this->commentExtractor->getDocCommentText($method));
 
@@ -239,7 +253,6 @@ class ApiDocExtractor extends BaseApiDocExtractor
                 if ($parser->supports($normalizedInput)) {
                     $supportedParsers[] = $parser;
                     $parameters         = $this->mergeParameters($parameters, $parser->parse($normalizedInput));
-
                 }
             }
 
@@ -257,7 +270,7 @@ class ApiDocExtractor extends BaseApiDocExtractor
             $parameters = $this->clearClasses($parameters);
             $parameters = $this->generateHumanReadableTypes($parameters);
 
-            if ('PUT' === $annotation->getMethod()) {
+            if (in_array($annotation->getMethod(), ['PUT','PATCH','POST'])) {
                 // All parameters are optional with PUT (update)
                 array_walk($parameters, function ($val, $key) use (&$parameters) {
                     $parameters[$key]['required'] = false;
