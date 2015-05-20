@@ -329,14 +329,6 @@ class ResourceController extends BaseResourceController
      */
     protected function getCollectionData(ResourceInterface $resource, Request $request)
     {
-        $page = (int)$request->get('page', 1);
-
-        $itemsPerPage = $this->container->getParameter('api.default.items_per_page');
-        $perpage      = (int)$request->get('perpage', $itemsPerPage);
-        $defaultOrder = $request->get('orderby', []);
-        $orderBy      = $request->get('order', $defaultOrder);
-        $order        = $orderBy ? (array)json_decode(str_replace('=', ':', $defaultOrder)) : [];
-
         return $this->get('api.data_provider')->getCollection(
             $resource,
             $request
@@ -373,19 +365,11 @@ class ResourceController extends BaseResourceController
         $embedShortname = ucwords(Inflector::singularize($embed));
         $resourceEmbed  = $this->get('api.resource_collection')->getResourceForShortName($embedShortname);
 
-        $page = (int)$request->get('page', 1);
-
-        $itemsPerPage = $this->container->getParameter('api.default.items_per_page');
-        $defaultOrder = $this->container->getParameter('api.default.order');
-        $order        = $defaultOrder ? ['id' => $defaultOrder] : [];
-
         $iriConverter = $this->get('api.iri_converter');
 
         $managerRegister = $this->get('doctrine');
 
         $propertyAccessor = $this->get('property_accessor');
-
-        $filterName = strtolower($resource->getShortName());
 
         $filter = new EmbedFilter($managerRegister, $iriConverter, $propertyAccessor);
 
