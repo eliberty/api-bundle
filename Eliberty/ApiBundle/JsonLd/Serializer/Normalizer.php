@@ -180,6 +180,8 @@ class Normalizer extends AbstractNormalizer
             ->setCurrentScope($rootScope)
             ->setEmbed($dunglasResource->getShortName());
         $this->logger->info('normalize7 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
+
+        $rootScope->setLogger($this->logger);
         return $rootScope->toArray();
     }
 
