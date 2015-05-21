@@ -54,6 +54,12 @@ class Scope extends BaseFractalScope
      */
     const HYDRA_PAGED_COLLECTION = 'hydra:PagedCollection';
 
+
+    /**
+     * @var Logger
+     */
+    protected $logger;
+
     /**
      * Convert the current data for this scope to an array.
      *
@@ -157,23 +163,24 @@ class Scope extends BaseFractalScope
      */
     protected function itemNormalizer()
     {
+        $this->logger->info('itemNormalizer1 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
         $serializer = $this->manager->getSerializer();
-
+        $this->logger->info('itemNormalizer2 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
         // Don't use hydra:Collection in sub levels
         $context['json_ld_sub_level'] = true;
-
+        $this->logger->info('itemNormalizer3 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
         $this->dunglasResource = $this->getDunglasRessource();
-
+        $this->logger->info('itemNormalizer4 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
         $data = [];
         $data['@context'] = $this->getContext($this->dunglasResource);
-
+        $this->logger->info('itemNormalizer5 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
         if (!$this->resource->getTransformer()->isChild()) {
             $data['@embed'] = implode(',', $this->resource->getTransformer()->getAvailableIncludes());
         }
-
+        $this->logger->info('itemNormalizer6 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
         list($rawData, $rawIncludedData) = $this->executeResourceTransformers();
         $data = array_merge($data, $this->serializeResource($serializer, $rawData));
-
+        $this->logger->info('itemNormalizer7 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
         // If the serializer wants the includes to be side-loaded then we'll
         // serialize the included data and merge it with the data.
         if ($serializer->sideloadIncludes()) {
@@ -181,10 +188,10 @@ class Scope extends BaseFractalScope
 
             $data = array_merge($data, $includedData);
         }
-
+        $this->logger->info('itemNormalizer8 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
         // Pull out all of OUR metadata and any custom meta data to merge with the main level data
         $meta = $serializer->meta($this->resource->getMeta());
-
+        $this->logger->info('itemNormalizer9 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
         return array_merge($data, $meta);
     }
 
@@ -408,5 +415,16 @@ class Scope extends BaseFractalScope
         return $this;
     }
 
+    /**
+     * @param Logger $logger
+     *
+     * @return $this
+     */
+    public function setLogger($logger)
+    {
+        $this->logger = $logger;
+
+        return $this;
+    }
 
 }
