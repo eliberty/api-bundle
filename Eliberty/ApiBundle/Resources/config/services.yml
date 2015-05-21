@@ -17,6 +17,18 @@ services:
                  - @api.iri_converter
                  - @api.router
 
+        api.doctrine.orm.data_provider:
+            class: Eliberty\ApiBundle\Doctrine\Orm\DataProvider
+            arguments:
+                 - @doctrine
+                 - %api.collection.order%
+                 - %api.collection.pagination.page_parameter_name%
+                 - %api.collection.pagination.items_per_page.number%
+                 - %api.collection.pagination.items_per_page.enable_client_request%
+                 - %api.collection.pagination.items_per_page.parameter_name%
+            tags:
+                 - { name: api.data_provider }
+
         eliberty.api.hydra.normalizer.violation.list.error:
             class: Eliberty\ApiBundle\Hydra\Serializer\ErrorViolationListNormalizer
             arguments:
