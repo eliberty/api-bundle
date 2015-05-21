@@ -2,7 +2,7 @@
 
 namespace Eliberty\ApiBundle\Transformer;
 
-use Eliberty\ApiBundle\Fractal\Scope;
+use League\Fractal\Scope;
 use Doctrine\ORM\EntityManager;
 use Eliberty\ApiBundle\Fractal\Pagination\PagerfantaPaginatorAdapter;
 use League\Fractal\TransformerAbstract;
