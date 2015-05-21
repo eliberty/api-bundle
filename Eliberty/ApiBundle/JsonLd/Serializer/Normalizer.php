@@ -150,14 +150,13 @@ class Normalizer extends AbstractNormalizer
     public function normalize($object, $format = null, array $context = [])
     {
 
-        $this->logger->info('normalize1 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
         $dunglasResource = $this->guessResource($object, $context);
-        $this->logger->info('normalize2 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
+
         if (!$this->transformer) {
             $this->transformer = $this->transformerHelper->getTransformer($dunglasResource->getShortName());
             $this->transformer->setRequest($this->request);
         }
-        $this->logger->info('normalize3 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
+
         if (!$this->fractal) {
             $this->fractal = new Manager();
             $this->fractal->setApiClassMetadataFactory($this->apiClassMetadataFactory);
@@ -165,7 +164,7 @@ class Normalizer extends AbstractNormalizer
             $this->fractal->setContextBuilder($this->contextBuilder);
             $this->fractal->setResourceCollection($this->resourceCollection);
         }
-        $this->logger->info('normalize4 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
+
         $this->fractal->parseIncludes($this->getEmbedsWithoutOptions());
 
         if ($object instanceof Paginator) {
@@ -173,15 +172,13 @@ class Normalizer extends AbstractNormalizer
         } else {
             $resource = new Item($object, $this->transformer);
         }
-        $this->logger->info('normalize5 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
+
         $rootScope = $this->fractal->createData($resource, $dunglasResource->getShortName());
-        $this->logger->info('normalize6 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
+
         $this->transformer
             ->setCurrentScope($rootScope)
             ->setEmbed($dunglasResource->getShortName());
-        $this->logger->info('normalize7 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
 
-        $rootScope->setLogger($this->logger);
         return $rootScope->toArray();
     }
 

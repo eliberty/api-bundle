@@ -163,25 +163,25 @@ class Scope extends BaseFractalScope
      */
     protected function itemNormalizer()
     {
-        $this->logger->info('itemNormalizer1 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
+
         $serializer = $this->manager->getSerializer();
-        $this->logger->info('itemNormalizer2 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
+
         // Don't use hydra:Collection in sub levels
         $context['json_ld_sub_level'] = true;
-        $this->logger->info('itemNormalizer3 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
+
         $this->dunglasResource = $this->getDunglasRessource();
-        $this->logger->info('itemNormalizer4 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
+
         $data = [];
         $data['@context'] = $this->getContext($this->dunglasResource);
-        $this->logger->info('itemNormalizer5 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
+
         if (!$this->resource->getTransformer()->isChild()) {
             $data['@embed'] = implode(',', $this->resource->getTransformer()->getAvailableIncludes());
         }
-        $this->logger->info('itemNormalizer6 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
+
         list($rawData, $rawIncludedData) = $this->executeResourceTransformers();
-        $this->logger->info('itemNormalizer7 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
+
         $data = array_merge($data, $this->serializeResource($serializer, $rawData));
-        $this->logger->info('itemNormalizer8 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
+
         // If the serializer wants the includes to be side-loaded then we'll
         // serialize the included data and merge it with the data.
         if ($serializer->sideloadIncludes()) {
@@ -189,10 +189,10 @@ class Scope extends BaseFractalScope
 
             $data = array_merge($data, $includedData);
         }
-        $this->logger->info('itemNormalizer9 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
+
         // Pull out all of OUR metadata and any custom meta data to merge with the main level data
         $meta = $serializer->meta($this->resource->getMeta());
-        $this->logger->info('itemNormalizer10 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
+
         return array_merge($data, $meta);
     }
 
@@ -246,26 +246,26 @@ class Scope extends BaseFractalScope
      */
     protected function fireTransformer($transformer, $data)
     {
-        $this->logger->info('fireTransformer1 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
+
         $includedData = [];
         $transformedData = [];
 
         if (!empty($data)) {
-            $transformedData['@id'] = $this->getGenerateRoute($data);
+            //$transformedData['@id'] = $this->getGenerateRoute($data);
         }
-        $this->logger->info('fireTransformer2 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
-        $classMetadata =  $this->manager->getApiClassMetadataFactory()->getMetadataFor(
-            $this->dunglasResource->getEntityClass()
-        );
-        $this->logger->info('fireTransformer3 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
-        $transformedData['@type'] =  ($iri = $classMetadata->getIri()) ? $iri : $this->getEntityName();
-        $this->logger->info('fireTransformer4 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
+
+//        $classMetadata =  $this->manager->getApiClassMetadataFactory()->getMetadataFor(
+//            $this->dunglasResource->getEntityClass()
+//        );
+        //$transformedData['@type'] =  ($iri = $classMetadata->getIri()) ? $iri : $this->getEntityName();
+        $transformedData['@type'] = $this->getEntityName();
+
         if (is_callable($transformer)) {
             $transformedData = array_merge($transformedData, call_user_func($transformer, $data));
         } else {
             $transformedData = array_merge($transformedData, $transformer->transform($data));
         }
-        $this->logger->info('fireTransformer5 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
+
         if ($this->transformerHasIncludes($transformer)) {
             $includedData = $this->fireIncludedTransformers($transformer, $data);
             // If the serializer does not want the includes to be side-loaded then
@@ -274,7 +274,7 @@ class Scope extends BaseFractalScope
                 $transformedData = array_merge($transformedData, $includedData);
             }
         }
-        $this->logger->info('fireTransformer6 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
+
         return array($transformedData, $includedData);
     }
 
@@ -416,17 +416,4 @@ class Scope extends BaseFractalScope
 
         return $this;
     }
-
-    /**
-     * @param Logger $logger
-     *
-     * @return $this
-     */
-    public function setLogger($logger)
-    {
-        $this->logger = $logger;
-
-        return $this;
-    }
-
 }
