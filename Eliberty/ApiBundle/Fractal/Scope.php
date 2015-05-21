@@ -179,8 +179,9 @@ class Scope extends BaseFractalScope
         }
         $this->logger->info('itemNormalizer6 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
         list($rawData, $rawIncludedData) = $this->executeResourceTransformers();
-        $data = array_merge($data, $this->serializeResource($serializer, $rawData));
         $this->logger->info('itemNormalizer7 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
+        $data = array_merge($data, $this->serializeResource($serializer, $rawData));
+        $this->logger->info('itemNormalizer8 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
         // If the serializer wants the includes to be side-loaded then we'll
         // serialize the included data and merge it with the data.
         if ($serializer->sideloadIncludes()) {
@@ -188,10 +189,10 @@ class Scope extends BaseFractalScope
 
             $data = array_merge($data, $includedData);
         }
-        $this->logger->info('itemNormalizer8 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
+        $this->logger->info('itemNormalizer9 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
         // Pull out all of OUR metadata and any custom meta data to merge with the main level data
         $meta = $serializer->meta($this->resource->getMeta());
-        $this->logger->info('itemNormalizer9 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
+        $this->logger->info('itemNormalizer10 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
         return array_merge($data, $meta);
     }
 
