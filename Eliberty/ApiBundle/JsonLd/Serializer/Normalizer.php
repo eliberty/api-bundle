@@ -378,7 +378,7 @@ class Normalizer extends AbstractNormalizer
      */
     private function denormalizeRelation(ResourceInterface $currentResource, AttributeMetadata $attributeMetadata, $class, $value)
     {
-        if ('DateTime' === $class) {
+        if ('Datetime' === $class) {
             $dateTimeNormalizer = new DateTimeNormalizer();
             return $dateTimeNormalizer->denormalize($value, $class ?: null, self::FORMAT);
         }
@@ -402,17 +402,25 @@ class Normalizer extends AbstractNormalizer
         }
 
         if (!$this->resourceCollection->getResourceForEntity($class)) {
-            throw new InvalidArgumentException(sprintf(
-                'Type not supported (found "%s" in attribute "%s" of "%s")',
-                $class,
-                $attributeName,
-                $currentResource->getEntityClass()
-            ));
+            if (!$this->resourceCollection->getResourceForShortName(ucfirst($attributeName))) {
+                throw new InvalidArgumentException(sprintf(
+                    'Type not supported (found "%s" in attribute "%s" of "%s")',
+                    $class,
+                    $attributeName,
+                    $currentResource->getEntityClass()
+                ));
+            } else {
+                $resource = $this->resourceCollection->getResourceForShortName(ucfirst($attributeName));
+                $context = $this->contextBuilder->bootstrapRelation($currentResource, $resource->getEntityClass());
+            }
+        } else {
+            $context = $this->contextBuilder->bootstrapRelation($currentResource, $class);
         }
 
-        $context = $this->contextBuilder->bootstrapRelation($currentResource, $class);
+
         if (!$attributeMetadata->isDenormalizationLink()) {
-            return $this->denormalize($value, $class, self::FORMAT, $context);
+            $value = json_encode($value);
+            return $this->denormalize($value, $resource->getEntityClass(), self::FORMAT, $context);
         }
 
         throw new InvalidArgumentException(sprintf(

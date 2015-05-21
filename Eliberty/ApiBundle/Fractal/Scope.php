@@ -36,9 +36,14 @@ class Scope extends BaseFractalScope
     protected $dunglasResource;
 
     /**
+     * @var array
+     */
+    protected $data;
+
+    /**
      * @var Scope
      */
-    protected $parentScope;
+    protected $parent;
 
     /**
      * @var string
@@ -105,13 +110,12 @@ class Scope extends BaseFractalScope
                 if (null === $this->dunglasResource->getParent()) {
                     $route = $this->getGenerateRoute($this->dunglasResource);
                 } else {
-                    $parameterName = strtolower($this->parentScope->dunglasResource->getShortname()).'id';
-                    $value = $this->parentScope->resource->getData()->getId();
+                    $parameterName = strtolower($this->getParent()->dunglasResource->getShortname()).'id';
+                    $value = $this->getParent()->getData()->getId();
                     $parameters[$parameterName] = $value;
                     $route = $this->getGenerateRoute($this->dunglasResource, $parameters);
                 }
             }
-            //var_dump($route);exit;
             $data['@id'] = $route;
         }
 
@@ -365,14 +369,44 @@ class Scope extends BaseFractalScope
     }
 
     /**
-     * @param Scope $parentScope
+     * @param array
      *
      * @return $this
      */
-    public function setParentScope($parentScope)
+    public function setData($data)
     {
-        $this->parentScope = $parentScope;
+        $this->data = $data;
 
         return $this;
     }
+
+    /**
+     * @return array
+     */
+    public function getData()
+    {
+        return $this->data;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getParent()
+    {
+        return $this->parent;
+    }
+
+    /**
+     * @param mixed $parent
+     *
+     * @return $this
+     */
+    public function setParent($parent)
+    {
+        $this->parent = $parent;
+
+        return $this;
+    }
+
+
 }

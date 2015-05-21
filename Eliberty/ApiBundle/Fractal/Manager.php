@@ -118,7 +118,7 @@ class Manager extends BaseFractalManager
             $scopeArray[] = $parentScopeInstance->getScopeIdentifier();
 
             $scopeInstance->setParentScopes($scopeArray);
-            $scopeInstance->setParentScope($parentScopeInstance);
+            $scopeInstance->setParent($parentScopeInstance);
         }
 
         return $scopeInstance;
@@ -163,8 +163,5 @@ class Manager extends BaseFractalManager
 
         return $this;
     }
-
-
-
 
 }

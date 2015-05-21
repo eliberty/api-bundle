@@ -17,6 +17,14 @@ services:
                  - @api.iri_converter
                  - @api.router
 
+        eliberty.api.hydra.normalizer.violation.list.error:
+            class: Eliberty\ApiBundle\Hydra\Serializer\ErrorViolationListNormalizer
+            arguments:
+                 - @api.router
+                 - %kernel.debug%
+            tags:
+                 - { name: serializer.normalizer }
+
         api.json_ld.normalizer.item:
             class: Eliberty\ApiBundle\JsonLd\Serializer\Normalizer
             arguments:

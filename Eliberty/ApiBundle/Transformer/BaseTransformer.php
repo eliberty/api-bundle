@@ -2,7 +2,7 @@
 
 namespace Eliberty\ApiBundle\Transformer;
 
-use League\Fractal\Scope;
+use Eliberty\ApiBundle\Fractal\Scope;
 use Doctrine\ORM\EntityManager;
 use Eliberty\ApiBundle\Fractal\Pagination\PagerfantaPaginatorAdapter;
 use League\Fractal\TransformerAbstract;
@@ -476,4 +476,22 @@ class BaseTransformer extends TransformerAbstract
     }
 
 
+    /**
+     * Call Include Method.
+     *
+     * @internal
+     *
+     * @param Scope  $scope
+     * @param string $includeName
+     * @param mixed  $data
+     *
+     * @throws \Exception
+     *
+     * @return \League\Fractal\Resource\ResourceInterface
+     */
+    protected function callIncludeMethod(Scope $scope, $includeName, $data)
+    {
+        $scope->setData($data);
+        return parent::callIncludeMethod($scope, $includeName, $data);
+    }
 }

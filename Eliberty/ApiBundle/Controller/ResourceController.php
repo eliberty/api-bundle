@@ -76,7 +76,10 @@ class ResourceController extends BaseResourceController
      */
     protected function getErrorResponse(ConstraintViolationListInterface $violations)
     {
-        return new Response($this->get('serializer')->normalize($violations, 'hydra-error'), 400);
+        return new Response(
+            $this->get('eliberty.api.hydra.normalizer.violation.list.error')->normalize($violations, 'hydra-error'),
+            400
+        );
     }
 
     /**
@@ -169,12 +172,12 @@ class ResourceController extends BaseResourceController
             throw new DeserializationException($e->getMessage(), $e->getCode(), $e);
         }
 
-        $this->get('event_dispatcher')->dispatch(Events::PRE_CREATE_VALIDATION, new ObjectEvent($resource, $object));
+        $this->get('event_dispatcher')->dispatch(Events::PRE_CREATE_VALIDATION, new DataEvent($resource, $object));
 
         $violations = $this->get('validator')->validate($object, null, $resource->getValidationGroups());
         if (0 === count($violations)) {
             // Validation succeed
-            $this->get('event_dispatcher')->dispatch(Events::PRE_CREATE, new ObjectEvent($resource, $object));
+            $this->get('event_dispatcher')->dispatch(Events::PRE_CREATE, new DataEvent($resource, $object));
 
             return $this->getSuccessResponse($resource, $object, 201);
         }
@@ -251,12 +254,12 @@ class ResourceController extends BaseResourceController
             throw new DeserializationException($e->getMessage(), $e->getCode(), $e);
         }
 
-        $this->get('event_dispatcher')->dispatch(Events::PRE_UPDATE_VALIDATION, new ObjectEvent($resource, $object));
+        $this->get('event_dispatcher')->dispatch(Events::PRE_UPDATE_VALIDATION, new DataEvent($resource, $object));
 
         $violations = $this->get('validator')->validate($object, null, $resource->getValidationGroups());
         if (0 === count($violations)) {
             // Validation succeed
-            $this->get('event_dispatcher')->dispatch(Events::PRE_UPDATE, new ObjectEvent($resource, $object));
+            $this->get('event_dispatcher')->dispatch(Events::PRE_UPDATE, new DataEvent($resource, $object));
 
             return $this->getSuccessResponse($resource, $object, 202);
         }
@@ -288,7 +291,7 @@ class ResourceController extends BaseResourceController
         $resource = $this->getResource($request);
         $object   = $this->findOrThrowNotFound($resource, $id);
 
-        $this->get('event_dispatcher')->dispatch(Events::PRE_DELETE, new ObjectEvent($resource, $object));
+        $this->get('event_dispatcher')->dispatch(Events::PRE_DELETE, new DataEvent($resource, $object));
 
         return new Response(null, 204);
     }
