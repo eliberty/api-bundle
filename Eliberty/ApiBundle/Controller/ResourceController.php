@@ -116,7 +116,7 @@ class ResourceController extends BaseResourceController
      *      }
      * )
      *
-     * @Annotations\QueryParam(name="orderby",  default={"id"="asc"}, nullable=true, description="Way to sort the rows in the result set.")
+     * @Annotations\QueryParam(name="orderby",  default={"id":"asc"}, nullable=true, description="Way to sort the rows in the result set.")
      * @Annotations\QueryParam(name="embed",  default="", nullable=true, description="Include resources within other resources.")
      * @Annotations\QueryParam(name="page",  requirements="\d+", nullable=true, default="1", description="How many page start to return.")
      * @Annotations\QueryParam(name="perpage",  requirements="\d+", nullable=true, default="10", description="How many contact return per page.")

@@ -117,7 +117,10 @@ class Router implements RouterInterface
                             $resource->getParentName()
                         );
 
-                        $parentResource = $this->resourceCollection->getResourceForEntity(get_class($parentObject));
+                        $parentResource = $this->resourceCollection->getResourceForShortName($resource->getParentName());
+                        if (null === $parentResource) {
+                            $parentResource = $this->resourceCollection->getResourceForEntity(get_class($parentObject));
+                        }
                         $parameterName = strtolower($parentResource->getShortName()).'id';
                         $parameters[$parameterName] = $this->propertyAccessor->getValue($parentObject, 'id');
                     }

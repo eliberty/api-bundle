@@ -61,15 +61,15 @@ class Resource implements ResourceInterface
 
     /**
      * @param $entityClass
-     * @param ResourceInterface $parent
      * @param array $alias
+     * @param ResourceInterface $parent
      * @param null $shortname
      * @param null $parentName
      */
     public function __construct(
         $entityClass,
-        ResourceInterface $parent = null,
         $alias = [],
+        ResourceInterface $parent = null,
         $shortname = null,
         $parentName = null
     ) {
