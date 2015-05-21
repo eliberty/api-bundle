@@ -246,25 +246,26 @@ class Scope extends BaseFractalScope
      */
     protected function fireTransformer($transformer, $data)
     {
+        $this->logger->info('fireTransformer1 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
         $includedData = [];
         $transformedData = [];
 
         if (!empty($data)) {
             $transformedData['@id'] = $this->getGenerateRoute($data);
         }
-
+        $this->logger->info('fireTransformer2 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
         $classMetadata =  $this->manager->getApiClassMetadataFactory()->getMetadataFor(
             $this->dunglasResource->getEntityClass()
         );
-
+        $this->logger->info('fireTransformer3 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
         $transformedData['@type'] =  ($iri = $classMetadata->getIri()) ? $iri : $this->getEntityName();
-
+        $this->logger->info('fireTransformer4 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
         if (is_callable($transformer)) {
             $transformedData = array_merge($transformedData, call_user_func($transformer, $data));
         } else {
             $transformedData = array_merge($transformedData, $transformer->transform($data));
         }
-
+        $this->logger->info('fireTransformer5 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
         if ($this->transformerHasIncludes($transformer)) {
             $includedData = $this->fireIncludedTransformers($transformer, $data);
             // If the serializer does not want the includes to be side-loaded then
@@ -273,7 +274,7 @@ class Scope extends BaseFractalScope
                 $transformedData = array_merge($transformedData, $includedData);
             }
         }
-
+        $this->logger->info('fireTransformer6 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
         return array($transformedData, $includedData);
     }
 
