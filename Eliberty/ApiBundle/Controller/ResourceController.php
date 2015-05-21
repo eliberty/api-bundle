@@ -24,6 +24,7 @@ use Dunglas\ApiBundle\JsonLd\Response;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\Validator\Constraints\DateTime;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
 use Symfony\Component\Serializer\Exception\Exception;
 use Eliberty\ApiBundle\Doctrine\Orm\EmbedFilter;
@@ -207,12 +208,13 @@ class ResourceController extends BaseResourceController
      */
     public function getAction(Request $request, $id)
     {
+        $this->container->get('logger')->info('step1 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
         $resource = $this->getResource($request);
-
+        $this->container->get('logger')->info('step2 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
         $object = $this->findOrThrowNotFound($resource, $id);
-
+        $this->container->get('logger')->info('step3 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
         $this->get('event_dispatcher')->dispatch(Events::RETRIEVE, new DataEvent($resource, $object));
-
+        $this->container->get('logger')->info('step4 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
         return $this->getSuccessResponse($resource, $object);
     }
 
@@ -312,11 +314,13 @@ class ResourceController extends BaseResourceController
         $status = 200,
         array $headers = [],
         array $additionalContext = []
-    )
-    {
+    ) {
+
+        $dataResponse = $this->get('api.json_ld.normalizer.item')
+            ->normalize($data, 'json-ld', $resource->getNormalizationContext() + $additionalContext);
+        $this->container->get('logger')->info('step5 '.(new \DateTime())->format('Y-m-d H:i:s.u'));
         return new Response(
-            $this->get('api.json_ld.normalizer.item')
-                ->normalize($data, 'json-ld', $resource->getNormalizationContext() + $additionalContext),
+            $dataResponse,
             $status,
             $headers
         );

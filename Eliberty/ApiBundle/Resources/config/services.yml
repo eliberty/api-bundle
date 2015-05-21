@@ -48,6 +48,7 @@ services:
                 - @property_accessor
                 - @api.transformer.helper
                 - @request
+                - @logger
             scope: request
             tags:
                 - { name: serializer.normalizer }
