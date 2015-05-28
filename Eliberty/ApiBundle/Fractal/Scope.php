@@ -113,14 +113,12 @@ class Scope extends BaseFractalScope
                 }
             }
             if (empty($route)) {
-                if (null === $this->dunglasResource->getParent()) {
-                    $route = $this->getGenerateRoute($this->dunglasResource);
-                } else {
-                    $parameterName = strtolower($this->getParent()->dunglasResource->getShortname()).'id';
-                    $value = $this->getParent()->getData()->getId();
-                    $parameters[$parameterName] = $value;
-                    $route = $this->getGenerateRoute($this->dunglasResource, $parameters);
+                $parameters = [];
+                if ($this->dunglasResource->getParent() instanceof DunglasResource) {
+                    $dunglasParentResource = $this->dunglasResource->getParent();
+                    $parameters = $dunglasParentResource->getRouteKeyParams($this->getParent()->getData());
                 }
+                $route = $this->getGenerateRoute($this->dunglasResource, $parameters);
             }
             $data['@id'] = $route;
         }
@@ -251,7 +249,7 @@ class Scope extends BaseFractalScope
         $transformedData = [];
 
         if (!empty($data)) {
-            //$transformedData['@id'] = $this->getGenerateRoute($data);
+            $transformedData['@id'] = $this->getGenerateRoute($data);
         }
 
 //        $classMetadata =  $this->manager->getApiClassMetadataFactory()->getMetadataFor(

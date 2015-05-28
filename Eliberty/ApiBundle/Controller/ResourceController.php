@@ -14,21 +14,18 @@ namespace Eliberty\ApiBundle\Controller;
 use Doctrine\Common\Inflector\Inflector;
 use Dunglas\ApiBundle\Doctrine\Orm\Filter;
 use Dunglas\ApiBundle\Event\Events;
-use FOS\RestBundle\Controller\FOSRestController;
 use Nelmio\ApiDocBundle\Annotation\ApiDoc;
 use Dunglas\ApiBundle\Event\DataEvent;
 use Dunglas\ApiBundle\Exception\DeserializationException;
 use Dunglas\ApiBundle\Api\ResourceInterface;
 use Dunglas\ApiBundle\Model\PaginatorInterface;
 use Dunglas\ApiBundle\JsonLd\Response;
-use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-use Symfony\Component\Validator\Constraints\DateTime;
+use Symfony\Component\Validator\ConstraintViolationList;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
 use Symfony\Component\Serializer\Exception\Exception;
 use Eliberty\ApiBundle\Doctrine\Orm\EmbedFilter;
-use Symfony\Component\Routing\Exception\RouteNotFoundException;
 use FOS\RestBundle\Controller\Annotations;
 use Dunglas\ApiBundle\Controller\ResourceController as BaseResourceController;
 
@@ -87,7 +84,7 @@ class ResourceController extends BaseResourceController
      * Finds an object of throws a 404 error.
      *
      * @param ResourceInterface $resource
-     * @param string|int $id
+     * @param string|int        $id
      *
      * @return object
      *
@@ -147,13 +144,12 @@ class ResourceController extends BaseResourceController
      *
      * @param Request $request
      * @ApiDoc(
-     *   resource = true,
-     *   statusCodes = {
-     *     200 = "Returned when successful",
-     *     401 = "Returned when the User is not authorized to use this method",
-     *   }
+     *         resource = true,
+     *         statusCodes = {
+     *              200 = "Returned when successful",
+     *              401 = "Returned when the User is not authorized to use this method",
+     *         }
      * )
-     *
      *
      * @return Response
      *
@@ -162,77 +158,40 @@ class ResourceController extends BaseResourceController
     public function cpostAction(Request $request)
     {
         $resource = $this->getResource($request);
-        try {
-            $object = $this->get('api.json_ld.normalizer.item')->denormalize(
-                $request->getContent(),
-                $resource->getEntityClass(),
-                'json-ld',
-                $resource->getDenormalizationContext()
-            );
-        } catch (Exception $e) {
-            throw new DeserializationException($e->getMessage(), $e->getCode(), $e);
-        }
+
+        $object = $this->getEntity($request, $resource);
 
         $this->get('event_dispatcher')->dispatch(Events::PRE_CREATE_VALIDATION, new DataEvent($resource, $object));
 
-        $violations = $this->get('validator')->validate($object, null, $resource->getValidationGroups());
-        if (0 === count($violations)) {
-            // Validation succeed
-            $this->get('event_dispatcher')->dispatch(Events::PRE_CREATE, new DataEvent($resource, $object));
+        $objects = $this->get('api.json_ld.normalizer.item')->getObjectNormalizers();
 
-            return $this->getSuccessResponse($resource, $object, 201);
+        $violations = $this->get('validator')->validate($object, null, $resource->getValidationGroups());
+        foreach ($objects as $objToValidation) {
+            $violations->addAll(
+                $this->get('validator')->validate(
+                    $objToValidation->getObject(),
+                    null,
+                    $objToValidation->getValidationGroups()
+                )
+            );
         }
 
-        return $this->getErrorResponse($violations);
-    }
-
-    /**
-     * Get an element.
-     *
-     * @param Request $request
-     * @param int $id
-     *
-     * @ApiDoc(
-     *   resource = true,
-     *   statusCodes = {
-     *     200 = "Returned when successful",
-     *     401 = "Returned when the User is not authorized to use this method",
-     *     404 = "Returned when the element not found",
-     *   }
-     * )
-     *
-     * @return Response
-     *
-     * @throws NotFoundHttpException
-     * @throws \InvalidArgumentException
-     */
-    public function getAction(Request $request, $id)
-    {
-
-        $resource = $this->getResource($request);
-
-        $object = $this->findOrThrowNotFound($resource, $id);
-
-        $this->get('event_dispatcher')->dispatch(Events::RETRIEVE, new DataEvent($resource, $object));
-
-        return $this->getSuccessResponse($resource, $object);
-
+        return $this->FormResponse($object, $violations, $resource, Events::PRE_CREATE);
     }
 
     /**
      * Replaces an element of the collection.
      *
      * @param Request $request
-     * @param string $id
+     * @param string  $id
      * @ApiDoc(
-     *   resource = true,
-     *   statusCodes = {
-     *     200 = "Returned when successful",
-     *     401 = "Returned when the User is not authorized to use this method",
-     *     404 = "Returned when the element not found",
-     *   }
-     * )
-     *
+     *                         resource = true,
+     *                         statusCodes = {
+     *                         200 = "Returned when successful",
+     *                         401 = "Returned when the User is not authorized to use this method",
+     *                         404 = "Returned when the element not found",
+     *                         }
+     *                         )
      *
      * @return Response
      *
@@ -260,29 +219,54 @@ class ResourceController extends BaseResourceController
         $this->get('event_dispatcher')->dispatch(Events::PRE_UPDATE_VALIDATION, new DataEvent($resource, $object));
 
         $violations = $this->get('validator')->validate($object, null, $resource->getValidationGroups());
-        if (0 === count($violations)) {
-            // Validation succeed
-            $this->get('event_dispatcher')->dispatch(Events::PRE_UPDATE, new DataEvent($resource, $object));
 
-            return $this->getSuccessResponse($resource, $object, 202);
-        }
+        return $this->FormResponse($object, $violations, $resource, Events::PRE_UPDATE);
+    }
 
-        return $this->getErrorResponse($violations);
+    /**
+     * Get an element.
+     *
+     * @param Request $request
+     * @param int     $id
+     *
+     * @ApiDoc(
+     *   resource = true,
+     *   statusCodes = {
+     *     200 = "Returned when successful",
+     *     401 = "Returned when the User is not authorized to use this method",
+     *     404 = "Returned when the element not found",
+     *   }
+     * )
+     *
+     * @return Response
+     *
+     * @throws NotFoundHttpException
+     * @throws \InvalidArgumentException
+     */
+    public function getAction(Request $request, $id)
+    {
+        $resource = $this->getResource($request);
+
+        $object = $this->findOrThrowNotFound($resource, $id);
+
+        $this->get('event_dispatcher')->dispatch(Events::RETRIEVE, new DataEvent($resource, $object));
+
+        return $this->getSuccessResponse($resource, $object);
     }
 
     /**
      * Deletes an element of the collection.
      *
      * @param Request $request
-     * @param string $id
+     * @param string  $id
      * @ApiDoc(
-     *   resource = true,
-     *   statusCodes = {
-     *     204 = "Returned when successful",
-     *     401 = "Returned when the User is not authorized to use this method",
-     *     404 = "Returned when the element not found",
-     *   }
-     * )
+     *                         resource = true,
+     *                         statusCodes = {
+     *                         204 = "Returned when successful",
+     *                         401 = "Returned when the User is not authorized to use this method",
+     *                         404 = "Returned when the element not found",
+     *                         }
+     *                         )
      *
      * @return Response
      *
@@ -303,10 +287,11 @@ class ResourceController extends BaseResourceController
      * Normalizes data using the Symfony Serializer.
      *
      * @param ResourceInterface $resource
-     * @param array|object $data
-     * @param int $status
-     * @param array $headers
-     * @param array $additionalContext
+     * @param array|object      $data
+     * @param int               $status
+     * @param array             $headers
+     * @param array             $additionalContext
+     *
      * @return Response
      */
     protected function getSuccessResponse(
@@ -316,7 +301,6 @@ class ResourceController extends BaseResourceController
         array $headers = [],
         array $additionalContext = []
     ) {
-
         $dataResponse = $this->get('api.json_ld.normalizer.item')
             ->normalize($data, 'json-ld', $resource->getNormalizationContext() + $additionalContext);
 
@@ -331,7 +315,7 @@ class ResourceController extends BaseResourceController
      * Gets collection data.
      *
      * @param ResourceInterface $resource
-     * @param Request $request
+     * @param Request           $request
      *
      * @return PaginatorInterface
      */
@@ -357,9 +341,10 @@ class ResourceController extends BaseResourceController
      *          "collection" = "#0040FF"
      *      }
      * )
+     *
      * @param Request $request
-     * @param int $id
-     * @param string $embed
+     * @param int     $id
+     * @param string  $embed
      *
      * @return Response
      *
@@ -368,8 +353,6 @@ class ResourceController extends BaseResourceController
      */
     public function cgetEmbedAction(Request $request, $id, $embed)
     {
-
-        $resource       = $this->getResource($request);
         $embedShortname = ucwords(Inflector::singularize($embed));
         $resourceEmbed  = $this->get('api.resource_collection')->getResourceForShortName($embedShortname);
 
@@ -397,5 +380,51 @@ class ResourceController extends BaseResourceController
         $this->get('event_dispatcher')->dispatch(Events::RETRIEVE_LIST, new DataEvent($resourceEmbed, $data));
 
         return $this->getSuccessResponse($resourceEmbed, $data);
+    }
+
+    /**
+     * @param $object
+     * @param ConstraintViolationListInterface $violations
+     * @param ResourceInterface                $resource
+     * @param string                           $event
+     *
+     * @return Response
+     */
+    protected function formResponse(
+        $object,
+        ConstraintViolationListInterface $violations,
+        ResourceInterface $resource,
+        $event
+    ) {
+        if (0 === count($violations)) {
+            // Validation succeed
+            $this->get('event_dispatcher')->dispatch($event, new DataEvent($resource, $object));
+
+            return $this->getSuccessResponse($resource, $object, 201);
+        }
+
+        return $this->getErrorResponse($violations);
+    }
+
+    /**
+     * @param Request $request
+     * @param ResourceInterface $resource
+     * @return object
+     * @throws DeserializationException
+     */
+    protected function getEntity(Request $request, ResourceInterface $resource)
+    {
+        try {
+            $object = $this->get('api.json_ld.normalizer.item')->denormalize(
+                $request->getContent(),
+                $resource->getEntityClass(),
+                'json-ld',
+                $resource->getDenormalizationContext()
+            );
+        } catch (Exception $e) {
+            throw new DeserializationException($e->getMessage(), $e->getCode(), $e);
+        }
+
+        return $object;
     }
 }

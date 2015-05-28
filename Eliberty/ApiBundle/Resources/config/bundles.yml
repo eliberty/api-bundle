@@ -1,0 +1,4 @@
+bundles:
+    - { name: Nelmio\ApiDocBundle\NelmioApiDocBundle, priority: -255 }
+    - { name: Dunglas\ApiBundle\DunglasApiBundle(), priority: -250 }
+    - { name: Eliberty\ApiBundle\ElibertyApiBundle(), priority: -245 }

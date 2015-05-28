@@ -11,7 +11,11 @@
 
 namespace Eliberty\ApiBundle\JsonLd\Serializer;
 
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Persistence\ObjectManager;
+use Doctrine\Common\Util\Inflector;
 use Dunglas\ApiBundle\JsonLd\Serializer\DateTimeNormalizer;
+use Eliberty\ApiBundle\Api\Resource;
 use Eliberty\ApiBundle\Fractal\Manager;
 use Eliberty\ApiBundle\Helper\TransformerHelper;
 use Dunglas\ApiBundle\Api\ResourceCollectionInterface;
@@ -26,6 +30,7 @@ use League\Fractal\Resource\Item;
 use League\Fractal\TransformerAbstract;
 use Symfony\Bridge\Monolog\Logger;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\PropertyAccess\Exception\NoSuchPropertyException;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 use Symfony\Component\Routing\RouterInterface;
@@ -35,12 +40,10 @@ use Symfony\Component\Serializer\NameConverter\NameConverterInterface;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Dunglas\ApiBundle\Api\ResourceCollection;
 use Dunglas\ApiBundle\Doctrine\Orm\Paginator;
-use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
+use Symfony\Component\Validator\ValidatorInterface;
 
 /**
  * Converts between objects and array including JSON-LD and Hydra metadata.
- *
- * @package Eliberty\ApiBundle\JsonLd\Serializer
  */
 class Normalizer extends AbstractNormalizer
 {
@@ -96,18 +99,33 @@ class Normalizer extends AbstractNormalizer
      * @var Logger
      */
     private $logger;
+    /**
+     * @var ObjectManager
+     */
+    private $objectManager;
+
+    /**
+     * List of denormalizing object.
+     *
+     * @var ArrayCollection
+     */
+    private $denormalizingObjects;
 
     /**
      * @param ResourceCollectionInterface $resourceCollection
-     * @param DataProviderInterface $dataProvider
-     * @param RouterInterface $router
-     * @param ClassMetadataFactory $apiClassMetadataFactory
-     * @param ContextBuilder $contextBuilder
-     * @param PropertyAccessorInterface $propertyAccessor
-     * @param TransformerHelper $transformerHelper
-     * @param Request $request
-     * @param Logger $logger
-     * @param NameConverterInterface $nameConverter
+     * @param DataProviderInterface       $dataProvider
+     * @param RouterInterface             $router
+     * @param ClassMetadataFactory        $apiClassMetadataFactory
+     * @param ContextBuilder              $contextBuilder
+     * @param PropertyAccessorInterface   $propertyAccessor
+     * @param TransformerHelper           $transformerHelper
+     * @param RequestStack                $requestStack
+     * @param ObjectManager               $objectManager
+     * @param Logger                      $logger
+     * @param NameConverterInterface      $nameConverter
+     *
+     * @internal param Request $request
+     * @internal param ValidatorInterface $validator
      */
     public function __construct(
         ResourceCollectionInterface $resourceCollection,
@@ -117,20 +135,22 @@ class Normalizer extends AbstractNormalizer
         ContextBuilder $contextBuilder,
         PropertyAccessorInterface $propertyAccessor,
         TransformerHelper $transformerHelper,
-        Request $request,
+        RequestStack $requestStack,
+        ObjectManager $objectManager,
         Logger $logger,
         NameConverterInterface $nameConverter = null
     ) {
-
-        $this->resourceCollection = $resourceCollection;
-        $this->dataProvider = $dataProvider;
-        $this->router = $router;
+        $this->resourceCollection      = $resourceCollection;
+        $this->dataProvider            = $dataProvider;
+        $this->router                  = $router;
         $this->apiClassMetadataFactory = $apiClassMetadataFactory;
-        $this->contextBuilder = $contextBuilder;
-        $this->propertyAccessor = $propertyAccessor;
-        $this->request =$request;
-        $this->logger =$logger;
-        $this->transformerHelper = $transformerHelper;
+        $this->contextBuilder          = $contextBuilder;
+        $this->propertyAccessor        = $propertyAccessor;
+        $this->request                 = $requestStack->getCurrentRequest();
+        $this->logger                  = $logger;
+        $this->transformerHelper       = $transformerHelper;
+        $this->objectManager           = $objectManager;
+        $this->denormalizingObjects = new ArrayCollection();
     }
 
     /**
@@ -149,12 +169,10 @@ class Normalizer extends AbstractNormalizer
      */
     public function normalize($object, $format = null, array $context = [])
     {
-
         $dunglasResource = $this->guessResource($object, $context);
 
         if (!$this->transformer) {
             $this->transformer = $this->transformerHelper->getTransformer($dunglasResource->getShortName());
-            $this->transformer->setRequest($this->request);
         }
 
         if (!$this->fractal) {
@@ -197,8 +215,7 @@ class Normalizer extends AbstractNormalizer
      */
     public function denormalize($data, $class, $format = null, array $context = [])
     {
-
-        $resource = $this->guessResource($data, $context, true);
+        $resource       = $this->guessResource($data, $context, true);
         $normalizedData = $this->prepareForDenormalization(json_decode($data));
 
         $attributesMetadata = $this->getMetadata($resource, $context)->getAttributes();
@@ -229,6 +246,28 @@ class Normalizer extends AbstractNormalizer
             $allowedAttributes
         );
 
+        if (isset($normalizedData[0])) {
+            foreach ($normalizedData as $data) {
+                $this->normalizedData($object, (array) $data, $allowedAttributes, $attributesMetadata, $resource);
+            }
+        } else {
+            $this->normalizedData($object, $normalizedData, $allowedAttributes, $attributesMetadata, $resource);
+        }
+
+        return $object;
+    }
+
+    /**
+     * @param $object
+     * @param array             $normalizedData
+     * @param array             $allowedAttributes
+     * @param array             $attributesMetadata
+     * @param ResourceInterface $resource
+     *
+     * @throws \Exception
+     */
+    protected function normalizedData($object, array $normalizedData, array $allowedAttributes, array $attributesMetadata, ResourceInterface $resource)
+    {
         foreach ($normalizedData as $attributeName => $attributeValue) {
             // Ignore JSON-LD special attributes
             if ('@' === $attributeName[0]) {
@@ -243,18 +282,15 @@ class Normalizer extends AbstractNormalizer
                 continue;
             }
 
-            $types = $attributesMetadata[$attributeName]->getTypes();
+            $attributeMetatdata = $attributesMetadata[$attributeName];
+            $types              = $attributeMetatdata->getTypes();
             if (isset($types[0])) {
                 $type = $types[0];
 
-                if ($attributeValue &&
-                    $type->isCollection() &&
-                    ($collectionType = $type->getCollectionType()) &&
-                    ($class = $collectionType->getClass())
-                ) {
-                    $values = [];
+                if (is_array($attributeValue)) {
+                    $values = new ArrayCollection();
                     foreach ($attributeValue as $obj) {
-                        $values[] = $this->denormalizeRelation($resource, $attributesMetadata[$attributeName], $class, $obj);
+                        $values->add($this->denormalizeRelation($resource, $attributeMetatdata, $type->getClass(), $obj));
                     }
 
                     $this->setValue($object, $attributeName, $values);
@@ -262,43 +298,28 @@ class Normalizer extends AbstractNormalizer
                     continue;
                 }
 
-                if ($attributeValue && ($class = $type->getClass())) {
-                    $this->setValue(
-                        $object,
-                        $attributeName,
-                        $this->denormalizeRelation($resource, $attributesMetadata[$attributeName], $class, $attributeValue)
-                    );
+                if ($class = $type->getClass()) {
+                    if (is_array($attributeValue) || is_object($attributeValue) || $type->getClass() === 'Datetime') {
+                        $this->setValue(
+                            $object,
+                            $attributeName,
+                            $this->denormalizeRelation($resource, $attributeMetatdata, $class, $attributeValue, $attributeName)
+                        );
 
-                    continue;
+                        continue;
+                    } else {
+                        $id                = $attributeValue;
+                        $shortname         = ucfirst(Inflector::singularize($attributeMetatdata->getName()));
+                        $attributeResource = $this->resourceCollection->getResourceForShortName($shortname);
+                        if (!$attributeResource instanceof ResourceInterface) {
+                            throw new \Exception('resource not found for shortname : '.$shortname);
+                        }
+                        $attributeValue = $this->objectManager->getRepository($attributeResource->getEntityClass())->find($id);
+                    }
                 }
             }
 
             $this->setValue($object, $attributeName, $attributeValue);
-        }
-
-        return $object;
-    }
-
-
-
-    /**
-     * Normalizes a relation as an URI if is a Link or as a JSON-LD object.
-     *
-     * @param ResourceInterface $currentResource
-     * @param AttributeMetadata $attribute
-     * @param mixed             $relatedObject
-     * @param string            $class
-     *
-     * @return string|array
-     */
-    private function normalizeRelation(ResourceInterface $currentResource, AttributeMetadata $attribute, $relatedObject, $class)
-    {
-        if ($attribute->isNormalizationLink()) {
-            return $this->router->generate($relatedObject);
-        } else {
-            $context = $this->contextBuilder->bootstrapRelation($currentResource, $class);
-
-            return $this->serializer->normalize($relatedObject, 'json-ld', $context);
         }
     }
 
@@ -329,11 +350,11 @@ class Normalizer extends AbstractNormalizer
             $embeds = implode(',', $this->transformer->getAvailableIncludes());
         }
 
-        $datas        = [];
+        $datas = [];
         preg_match_all('|{(.*)}|U', $embeds, $datas);
         $withoutEmbeds = $embeds;
         foreach ($datas[1] as $data) {
-            $withoutEmbeds = str_replace('{' . $data . '}', "", $embeds);
+            $withoutEmbeds = str_replace('{'.$data.'}', "", $embeds);
         }
 
         return explode(',', $withoutEmbeds);
@@ -370,6 +391,19 @@ class Normalizer extends AbstractNormalizer
     {
         try {
             $this->propertyAccessor->setValue($object, $attributeName, $value);
+            if (is_object($value) && !$value instanceof \DateTime) {
+                if (!$value instanceof ArrayCollection) {
+                    $resource       = $this->resourceCollection->getResourceForEntity(get_class($value));
+                    $validationGrps = $resource->getValidationGroups(Inflector::singularize($attributeName));
+                    $this->denormalizingObjects->add(new ObjectDenormalizer($value, $validationGrps));
+                }
+
+                foreach ($value as $obj) {
+                    $resource       = $this->resourceCollection->getResourceForEntity(get_class($obj));
+                    $validationGrps = $resource->getValidationGroups(Inflector::singularize($attributeName));
+                    $this->denormalizingObjects->add(new ObjectDenormalizer($obj, $validationGrps));
+                }
+            }
         } catch (NoSuchPropertyException $exception) {
             // Properties not found are ignored
         }
@@ -389,6 +423,7 @@ class Normalizer extends AbstractNormalizer
     {
         if ('Datetime' === $class) {
             $dateTimeNormalizer = new DateTimeNormalizer();
+
             return $dateTimeNormalizer->denormalize($value, $class ?: null, self::FORMAT);
         }
 
@@ -411,7 +446,8 @@ class Normalizer extends AbstractNormalizer
         }
 
         if (!$this->resourceCollection->getResourceForEntity($class)) {
-            if (!$this->resourceCollection->getResourceForShortName(ucfirst($attributeName))) {
+            $shortname = ucfirst(Inflector::singularize($attributeName));
+            if (!$this->resourceCollection->getResourceForShortName($shortname)) {
                 throw new InvalidArgumentException(sprintf(
                     'Type not supported (found "%s" in attribute "%s" of "%s")',
                     $class,
@@ -419,17 +455,19 @@ class Normalizer extends AbstractNormalizer
                     $currentResource->getEntityClass()
                 ));
             } else {
-                $resource = $this->resourceCollection->getResourceForShortName(ucfirst($attributeName));
-                $context = $this->contextBuilder->bootstrapRelation($currentResource, $resource->getEntityClass());
+                $resource = $this->resourceCollection->getResourceForShortName($shortname);
+                $context  = $this->contextBuilder->bootstrapRelation($resource, $resource->getEntityClass());
             }
         } else {
             $context = $this->contextBuilder->bootstrapRelation($currentResource, $class);
         }
 
-
         if (!$attributeMetadata->isDenormalizationLink()) {
-            $value = json_encode($value);
-            return $this->denormalize($value, $resource->getEntityClass(), self::FORMAT, $context);
+            $object = $this->denormalize(json_encode($value), $resource->getEntityClass(), self::FORMAT, $context);
+
+            //$this->deserializeObjects[] = $object;
+
+            return $object;
         }
 
         throw new InvalidArgumentException(sprintf(
@@ -437,5 +475,13 @@ class Normalizer extends AbstractNormalizer
             $attributeName,
             $currentResource->getEntityClass()
         ));
+    }
+
+    /**
+     * @return ArrayCollection
+     */
+    public function getObjectNormalizers()
+    {
+        return $this->objectNormalizers;
     }
 }

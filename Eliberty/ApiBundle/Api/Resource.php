@@ -46,50 +46,35 @@ class Resource implements ResourceInterface
     protected $shortName;
 
     /**
-     * @var array
+     * @var ResourceConfigInterface
      */
-    protected $alias = [];
+    private $config;
 
     /**
-     * @var null| ResourceInterface
+     * versionning api
+     * @var string
      */
-    protected $parent = null;
-    /**
-     * @var null
-     */
-    private $parentName;
+    protected $version;
 
     /**
      * @param $entityClass
-     * @param array $alias
-     * @param ResourceInterface $parent
-     * @param null $shortname
-     * @param null $parentName
+     * @param ResourceConfigInterface $config
      */
     public function __construct(
         $entityClass,
-        $alias = [],
-        ResourceInterface $parent = null,
-        $shortname = null,
-        $parentName = null
+        ResourceConfigInterface $config = null
     ) {
         if (!class_exists($entityClass)) {
             throw new \InvalidArgumentException(sprintf('The class %s does not exist.', $entityClass));
         }
 
+        $this->config = $config;
         $this->entityClass = $entityClass;
-        $this->shortName   = $shortname;
-        $this->parentName = $parentName;
-        $this->setParent($parent);
 
-        if (null === $shortname) {
+        if (null === $this->shortName) {
             $shortName = substr($this->entityClass, strrpos($this->entityClass, '\\') + 1);
             $this->shortName = ucwords(strtolower($shortName));
         }
-
-        $this->alias = $alias;
-
-        $this->parentName = $parentName;
     }
 
     /**
@@ -99,33 +84,6 @@ class Resource implements ResourceInterface
     {
         return $this->entityClass;
     }
-
-    /**
-     * @param ResourceInterface|null $parent
-     *
-     * @return $this
-     */
-    public function setParent($parent)
-    {
-
-        $this->parent = $parent;
-
-        if (null !== $this->parent && null === $this->parentName) {
-            $this->parentName = $this->parent->getShortName();
-        }
-
-        return $this;
-    }
-
-    /**
-     * @return null
-     */
-    public function getParentName()
-    {
-        return $this->parentName;
-    }
-
-
 
     /**
      * {@inheritdoc}
@@ -256,18 +214,41 @@ class Resource implements ResourceInterface
     /**
      * {@inheritdoc}
      */
-    public function getValidationGroups()
+    public function getValidationGroups($alias = null)
     {
-        return $this->validationGroups;
+        if (empty($this->validationGroups)) {
+            return [];
+        }
+
+        $validationGroups = [];
+        foreach ($this->validationGroups as $valGrp) {
+            if (!is_null($alias) && isset($valGrp[$alias])) {
+                return $valGrp[$alias];
+            }
+
+            if (!is_array($valGrp)) {
+                $validationGroups[] = $valGrp;
+            }
+        }
+
+        return $validationGroups;
     }
 
     /**
      * Initializes short name.
-     *
-     * @param string $shortName
+     * @param $shortName
+     * @return $this
      */
     public function initShortName($shortName)
     {
+        if ($this->config instanceof ResourceConfigInterface &&
+            null !== $this->config->getShortname()
+        ) {
+            $this->shortName = $this->config->getShortname();
+
+            return $this;
+        }
+
         $this->shortName = $shortName;
     }
 
@@ -276,6 +257,12 @@ class Resource implements ResourceInterface
      */
     public function getShortName()
     {
+        if ($this->config instanceof ResourceConfigInterface &&
+            null !== $this->config->getShortname()
+        ) {
+            return $this->config->getShortname();
+        }
+
         return $this->shortName;
     }
 
@@ -284,14 +271,79 @@ class Resource implements ResourceInterface
      */
     public function getAlias()
     {
-        return $this->alias;
+        if ($this->config instanceof ResourceConfigInterface &&
+            !empty($this->config->getAlias())
+        ) {
+            return $this->config->getAlias();
+        }
+
+        return [];
     }
 
     /**
-     * @return array
+     * @return ResourceInterface
      */
     public function getParent()
     {
-        return $this->parent;
+        if ($this->config instanceof ResourceConfigInterface &&
+            $this->config->getResourceParent() instanceof ResourceInterface
+        ) {
+            return $this->config->getResourceParent();
+        }
+
+        return null;
+    }
+
+    /**
+     * @return string
+     */
+    public function getParentName()
+    {
+        if ($this->config instanceof ResourceConfigInterface &&
+            null !== $this->config->getParentName()
+        ) {
+            return $this->config->getParentName();
+        }
+
+        return $this->shortName;
+    }
+
+    /**
+     * @param $data
+     * @return mixed
+     */
+    public function getRouteKeyParams($data)
+    {
+        $routeKeyParams = [];
+        if ($this->config instanceof ResourceConfigInterface) {
+            $routeKeyParams = $this->config->getRouteKeyParams();
+        }
+
+        if (empty($routeKeyParams)) {
+            $parameterName = 'id'; //strtolower($this->getShortname()).
+            $routeKeyParams[$parameterName] = 'getId';
+        }
+
+        foreach ($routeKeyParams as $key => $value) {
+            $dataValue = $data->$value();
+            if (is_object($dataValue)) {
+                $dataValue = $dataValue->getId();
+            }
+            $routeKeyParams[$key] = $dataValue;
+        }
+
+        return $routeKeyParams;
+    }
+
+    /**
+     * @param string $version
+     *
+     * @return $this
+     */
+    public function setVersion($version)
+    {
+        $this->version = $version;
+
+        return $this;
     }
 }

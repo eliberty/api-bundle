@@ -30,7 +30,7 @@ class ApiRouter extends Router implements RequestMatcherInterface
     {
         parent::__construct($container, $resource, $options, $context);
         //http://urthen.github.io/2013/05/16/ways-to-version-your-api-part-2/
-        $this->acceptHeader = "/application\/vnd.eliberty.api.(v[-+]?(\d*[.])?\d+).+json/";
+        $this->acceptHeader = "/application\/vnd.eliberty.api.+json/";
     }
 
     /**
@@ -48,19 +48,20 @@ class ApiRouter extends Router implements RequestMatcherInterface
      */
     public function matchRequest(Request $request)
     {
-        $listOfAcceptHeaders = AcceptHeader::fromString($request->headers->get('Accept'))->all();
-        $version = 'v1';
-        foreach ($listOfAcceptHeaders as $listOfAcceptHeader) {
-            $result = preg_match($this->acceptHeader, $listOfAcceptHeader->getValue(), $versioning);
-            if ((bool)$result === true && isset($versioning[1])) {
-                $version = $versioning[1];
+        $version = "v1";
+
+        $acceptHeader = AcceptHeader::fromString($request->headers->get('Accept'))->all();
+        foreach ($acceptHeader as $acceptHeaderItem) {
+            if ($acceptHeaderItem->hasAttribute('version')) {
+                $version = $acceptHeaderItem->getAttribute('version');
+                break;
             }
         }
 
-        if (method_exists($this->getContext(), 'setApiVersion')) {
-            $this->getContext()->setApiVersion($version);
-        }
+        $this->getContext()->setApiVersion($version);
 
-        return parent::matchRequest($request);
+        return $this->match($request->getPathInfo());
+
+//        return parent::matchRequest($request);
     }
 }

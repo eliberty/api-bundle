@@ -11,8 +11,10 @@
 
 namespace Eliberty\ApiBundle\Hydra\Serializer;
 
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Routing\RouterInterface;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
+use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintViolationList;
 
 /**
@@ -47,8 +49,6 @@ class ErrorViolationListNormalizer implements NormalizerInterface
     public function normalize($violationList, $format = null, array $context = array())
     {
         if ($violationList instanceof \Exception) {
-            $message = $violationList->getMessage();
-
             if ($this->debug) {
                 $trace = $violationList->getTrace();
             }
@@ -63,7 +63,19 @@ class ErrorViolationListNormalizer implements NormalizerInterface
         ];
 
         foreach ($violationList as $violation) {
-            $data['violations'][$violation->getPropertyPath()] = $violation->getMessage();
+            $key = $violation->getPropertyPath();
+
+            $invalidValue = method_exists($violation->getRoot(), '__toString') ? $violation->getRoot()->__toString() :$violation->getInvalidValue() ;
+            if ($violation->getConstraint() instanceof UniqueEntity) {
+                $reflexion = new \ReflectionClass($violation->getRoot());
+                $key = strtolower($reflexion->getShortname());
+                $invalidValue = $violation->getRoot()->__toString();
+            }
+            $data['violations'][$key][] = [
+                'property' => $violation->getPropertyPath(),
+                'invalidValue' => $invalidValue,
+                'message' =>  $violation->getMessage()
+            ];
         }
 
         if (isset($trace)) {
@@ -72,6 +84,8 @@ class ErrorViolationListNormalizer implements NormalizerInterface
 
         return $data;
     }
+
+
 
     /**
      * {@inheritdoc}

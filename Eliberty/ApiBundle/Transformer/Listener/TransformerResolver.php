@@ -2,7 +2,13 @@
 namespace Eliberty\ApiBundle\Transformer\Listener;
 
 use Doctrine\ORM\Mapping\DefaultEntityListenerResolver;
+use Symfony\Bundle\FrameworkBundle\Routing\Router;
+use Eliberty\ApiBundle\Versioning\Router\ApiRouter;
+use League\Fractal\TransformerAbstract;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\AcceptHeader;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 class TransformerResolver
 {
@@ -12,7 +18,7 @@ class TransformerResolver
     private $container;
 
     /**
-     * @var
+     * @var array
      */
     private $mapping;
 
@@ -20,24 +26,25 @@ class TransformerResolver
      * @var string
      */
     private $version = 'v2';
+    /**
+     * @var Request
+     */
+    private $request;
 
     /**
-     * @param ContainerInterface $container
+     * @param RequestStack $requestStack
      */
-    public function __construct(ContainerInterface $container)
+    public function __construct(RequestStack $requestStack)
     {
-        $this->container = $container;
-        $this->mapping   = array();
-        $router = $container->get('router');
-//
-//        if (empty($router->getContext()->getApiVersion())) {
-//            $request = $container->get('request');
-//            $router->matchRequest($request);
-//        }
+        $this->mapping   = [];
+        $this->request = $requestStack->getCurrentRequest();
 
-        $versioning = $router->getContext()->getApiVersion();
-        if (!empty($versioning)) {
-            $this->version = $versioning;
+        $acceptHeader = AcceptHeader::fromString($this->request->headers->get('Accept'))->all();
+        foreach ($acceptHeader as $acceptHeaderItem) {
+            if ($acceptHeaderItem->hasAttribute('version')) {
+                $this->version = $acceptHeaderItem->getAttribute('version');
+                break;
+            }
         }
     }
 
@@ -54,12 +61,13 @@ class TransformerResolver
     }
 
     /**
-     * @param $service
-     * @param array $tags
+     * @param TransformerAbstract $transformer
+     * @param $serviceId
      */
-    public function addMapping($service)
+    public function add(TransformerAbstract $transformer, $serviceId)
     {
-        $this->mapping[$service] = $service;
+        $transformer->setRequest($this->request);
+        $this->mapping[$serviceId] = $transformer;
     }
 
     /**
@@ -71,7 +79,7 @@ class TransformerResolver
     {
         $serviceId = 'transformer.'.strtolower($entityName).'.'.$this->version;
         if (isset($this->mapping[$serviceId])) {
-            return $this->container->get($this->mapping[$serviceId]);
+            return $this->mapping[$serviceId];
         }
 
         throw new \Exception('transformer not found for '.$serviceId);

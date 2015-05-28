@@ -1,11 +1,7 @@
 parameters:
-#    eliberty_api.example.class: Eliberty\ApiBundle\Example
+    eliberty_api.normalizer.item.class: Eliberty\ApiBundle\JsonLd\Serializer\Normalizer
 
 services:
-#    eliberty_api.example:
-#        class: %eliberty_api.example.class%
-#        arguments: [@service_id, "plain_value", %parameter%]
-
         api.resource:
             class: Eliberty\ApiBundle\Api\Resource
             abstract: true
@@ -38,7 +34,7 @@ services:
                  - { name: serializer.normalizer }
 
         api.json_ld.normalizer.item:
-            class: Eliberty\ApiBundle\JsonLd\Serializer\Normalizer
+            class: %eliberty_api.normalizer.item.class%
             arguments:
                 - @api.resource_collection
                 - @api.data_provider
@@ -47,20 +43,21 @@ services:
                 - @api.json_ld.context_builder
                 - @property_accessor
                 - @api.transformer.helper
-                - @request
+                - @request_stack
+                - @doctrine.orm.entity_manager
                 - @logger
-            scope: request
             tags:
                 - { name: serializer.normalizer }
 
         api.ressource.transformer_resolver:
             class: Eliberty\ApiBundle\Transformer\Listener\TransformerResolver
             arguments:
-                - @service_container
-                - @router
+                - @request_stack
 
         api.resource_collection:
             class: Eliberty\ApiBundle\Api\ResourceCollection
+            arguments:
+                - @request_stack
             lazy: true
 
         api.operation_factory:
