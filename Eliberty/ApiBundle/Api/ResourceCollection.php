@@ -9,6 +9,7 @@ use Dunglas\ApiBundle\Api\ResourceInterface;
 use Dunglas\ApiBundle\Util\ClassInfo;
 use Eliberty\ApiBundle\Versioning\Router\ApiRouter;
 use Symfony\Component\HttpFoundation\AcceptHeader;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 
 
@@ -40,11 +41,14 @@ class ResourceCollection extends \ArrayObject implements ResourceCollectionInter
     public function __construct(RequestStack $requestStack)
     {
         $request = $requestStack->getCurrentRequest();
-        $acceptHeader = AcceptHeader::fromString($request->headers->get('Accept'))->all();
-        foreach ($acceptHeader as $acceptHeaderItem) {
-            if ($acceptHeaderItem->hasAttribute('version')) {
-                $this->version = $acceptHeaderItem->getAttribute('version');
-                break;
+        if ($request instanceof Request) {
+            $acceptHeader = AcceptHeader::fromString($request->headers->get('Accept'))->all();
+
+            foreach ($acceptHeader as $acceptHeaderItem) {
+                if ($acceptHeaderItem->hasAttribute('version')) {
+                    $this->version = $acceptHeaderItem->getAttribute('version');
+                    break;
+                }
             }
         }
     }

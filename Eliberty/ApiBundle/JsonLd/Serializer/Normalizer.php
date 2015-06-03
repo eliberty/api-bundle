@@ -36,6 +36,7 @@ use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 use Symfony\Component\Routing\RouterInterface;
 use Symfony\Component\Serializer\Exception\CircularReferenceException;
 use Symfony\Component\Serializer\Exception\InvalidArgumentException;
+use Symfony\Component\Serializer\Mapping\Factory\ClassMetadataFactoryInterface;
 use Symfony\Component\Serializer\NameConverter\NameConverterInterface;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Dunglas\ApiBundle\Api\ResourceCollection;
@@ -171,9 +172,7 @@ class Normalizer extends AbstractNormalizer
     {
         $dunglasResource = $this->guessResource($object, $context);
 
-        if (!$this->transformer) {
-            $this->transformer = $this->transformerHelper->getTransformer($dunglasResource->getShortName());
-        }
+        $this->transformer = $this->transformerHelper->getTransformer($dunglasResource->getShortName());
 
         if (!$this->fractal) {
             $this->fractal = new Manager();
@@ -209,6 +208,21 @@ class Normalizer extends AbstractNormalizer
     }
 
     /**
+     * @param object|string $attributesMetadata
+     * @return array|bool|\string[]|\Symfony\Component\Serializer\Mapping\AttributeMetadataInterface[]
+     */
+    public function getAllowedAttributes($attributesMetadata)
+    {
+        $allowedAttributes = [];
+        foreach ($attributesMetadata as $attributeName => $attributeMetatdata) {
+            if ($attributeMetatdata->isReadable()) {
+                $allowedAttributes[] = $attributeName;
+            }
+        }
+
+        return $allowedAttributes;
+    }
+    /**
      * {@inheritdoc}
      *
      * @throws InvalidArgumentException
@@ -220,12 +234,7 @@ class Normalizer extends AbstractNormalizer
 
         $attributesMetadata = $this->getMetadata($resource, $context)->getAttributes();
 
-        $allowedAttributes = [];
-        foreach ($attributesMetadata as $attributeName => $attributeMetatdata) {
-            if ($attributeMetatdata->isReadable()) {
-                $allowedAttributes[] = $attributeName;
-            }
-        }
+        $allowedAttributes = $this->getAllowedAttributes($attributesMetadata);
 
         $reflectionClass = new \ReflectionClass($class);
 
@@ -287,19 +296,13 @@ class Normalizer extends AbstractNormalizer
             if (isset($types[0])) {
                 $type = $types[0];
 
-                if (is_array($attributeValue)) {
-                    $values = new ArrayCollection();
-                    foreach ($attributeValue as $obj) {
-                        $values->add($this->denormalizeRelation($resource, $attributeMetatdata, $type->getClass(), $obj));
+                if ($class = $type->getClass()) {
+                    if (is_array($attributeValue) || is_object($attributeValue)) {
+                        //normalizeDataArrayCollection
+                        throw new \InvalidArgumentException('Invalid json message received for : '.$attributeName);
                     }
 
-                    $this->setValue($object, $attributeName, $values);
-
-                    continue;
-                }
-
-                if ($class = $type->getClass()) {
-                    if (is_array($attributeValue) || is_object($attributeValue) || $type->getClass() === 'Datetime') {
+                    if ($type->getClass() === 'Datetime') {
                         $this->setValue(
                             $object,
                             $attributeName,
@@ -307,15 +310,15 @@ class Normalizer extends AbstractNormalizer
                         );
 
                         continue;
-                    } else {
-                        $id                = $attributeValue;
-                        $shortname         = ucfirst(Inflector::singularize($attributeMetatdata->getName()));
-                        $attributeResource = $this->resourceCollection->getResourceForShortName($shortname);
-                        if (!$attributeResource instanceof ResourceInterface) {
-                            throw new \Exception('resource not found for shortname : '.$shortname);
-                        }
-                        $attributeValue = $this->objectManager->getRepository($attributeResource->getEntityClass())->find($id);
                     }
+
+                    $id                = $attributeValue;
+                    $shortname         = ucfirst(Inflector::singularize($attributeMetatdata->getName()));
+                    $attributeResource = $this->resourceCollection->getResourceForShortName($shortname);
+                    if (!$attributeResource instanceof ResourceInterface) {
+                        throw new \Exception('resource not found for shortname : '.$shortname);
+                    }
+                    $attributeValue = $this->objectManager->getRepository($attributeResource->getEntityClass())->find($id);
                 }
             }
 
@@ -323,6 +326,32 @@ class Normalizer extends AbstractNormalizer
         }
     }
 
+    /**
+     * @deprecicate
+     * @param $attributeValue
+     * @param $attributeName
+     * @param $object
+     * @param $resource
+     * @param $attributeMetatdata
+     * @param $type
+     */
+    public function normalizeDataArrayCollection(
+        $attributeValue,
+        $attributeName,
+        $object,
+        $resource,
+        $attributeMetatdata,
+        $type
+    ) {
+        if (is_array($attributeValue)) {
+            $values = new ArrayCollection();
+            foreach ($attributeValue as $obj) {
+                $values->add($this->denormalizeRelation($resource, $attributeMetatdata, $type->getClass(), $obj));
+            }
+            $this->setValue($object, $attributeName, $values);
+            throw new \InvalidArgumentException('Invalid json message received');
+        }
+    }
     /**
      * @param Request $request
      *
@@ -370,7 +399,7 @@ class Normalizer extends AbstractNormalizer
      *
      * @return ClassMetadata
      */
-    private function getMetadata(ResourceInterface $resource, array $context)
+    public function getMetadata(ResourceInterface $resource, array $context)
     {
         return $this->apiClassMetadataFactory->getMetadataFor(
             $resource->getEntityClass(),
@@ -483,5 +512,13 @@ class Normalizer extends AbstractNormalizer
     public function getObjectNormalizers()
     {
         return $this->objectNormalizers;
+    }
+
+    /**
+     * @return null|ClassMetadataFactoryInterface
+     */
+    public function getClassMetadataFactory()
+    {
+        return $this->apiClassMetadataFactory;
     }
 }

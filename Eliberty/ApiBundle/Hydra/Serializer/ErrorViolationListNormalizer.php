@@ -12,6 +12,7 @@
 namespace Eliberty\ApiBundle\Hydra\Serializer;
 
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
+use Symfony\Component\Form\FormInterface;
 use Symfony\Component\Routing\RouterInterface;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 use Symfony\Component\Validator\Constraint;
@@ -67,9 +68,9 @@ class ErrorViolationListNormalizer implements NormalizerInterface
 
             $invalidValue = method_exists($violation->getRoot(), '__toString') ? $violation->getRoot()->__toString() :$violation->getInvalidValue() ;
             if ($violation->getConstraint() instanceof UniqueEntity) {
-                $reflexion = new \ReflectionClass($violation->getRoot());
+//                if($violation->getRoot() instanceof FormInterface)
+                $reflexion = new \ReflectionClass($violation->getRoot()->getConfig()->getDataClass());
                 $key = strtolower($reflexion->getShortname());
-                $invalidValue = $violation->getRoot()->__toString();
             }
             $data['violations'][$key][] = [
                 'property' => $violation->getPropertyPath(),

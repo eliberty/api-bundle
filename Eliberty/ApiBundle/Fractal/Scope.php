@@ -54,7 +54,6 @@ class Scope extends BaseFractalScope
      */
     const HYDRA_PAGED_COLLECTION = 'hydra:PagedCollection';
 
-
     /**
      * @var Logger
      */

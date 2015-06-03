@@ -139,11 +139,11 @@ class Router implements RouterInterface
                 $baseContext->getHttpPort(),
                 $baseContext->getHttpsPort()
             ));
-//            try {
+            try {
                 return $this->router->generate($name, $parameters, $referenceType);
-//            } catch (\Exception $e) {
-//                var_dump($name);exit;
-//            }
+            } catch (\Exception $e) {
+                var_dump($name);exit;
+            }
 
         } finally {
             $this->router->setContext($baseContext);

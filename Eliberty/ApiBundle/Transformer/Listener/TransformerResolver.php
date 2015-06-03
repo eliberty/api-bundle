@@ -38,12 +38,13 @@ class TransformerResolver
     {
         $this->mapping   = [];
         $this->request = $requestStack->getCurrentRequest();
-
-        $acceptHeader = AcceptHeader::fromString($this->request->headers->get('Accept'))->all();
-        foreach ($acceptHeader as $acceptHeaderItem) {
-            if ($acceptHeaderItem->hasAttribute('version')) {
-                $this->version = $acceptHeaderItem->getAttribute('version');
-                break;
+        if ($this->request instanceof Request) {
+            $acceptHeader = AcceptHeader::fromString($this->request->headers->get('Accept'))->all();
+            foreach ($acceptHeader as $acceptHeaderItem) {
+                if ($acceptHeaderItem->hasAttribute('version')) {
+                    $this->version = $acceptHeaderItem->getAttribute('version');
+                    break;
+                }
             }
         }
     }

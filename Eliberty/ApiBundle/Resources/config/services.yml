@@ -115,5 +115,6 @@ services:
                 - @nelmio_api_doc.doc_comment_extractor
                 - []
                 - @api.transformer.helper
-                - @api.mapping.class_metadata_factory
+                - @api.json_ld.normalizer.item
                 - @api.resource_collection
+                - @form.registry

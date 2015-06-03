@@ -346,4 +346,12 @@ class Resource implements ResourceInterface
 
         return $this;
     }
+
+    /**
+     * @return string
+     */
+    public function getVersion()
+    {
+        return $this->version;
+    }
 }

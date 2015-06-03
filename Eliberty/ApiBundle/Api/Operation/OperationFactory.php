@@ -14,7 +14,7 @@ use Symfony\Component\Routing\Route;
  */
 class OperationFactory
 {
-    const ROUTE_NAME_PREFIX = 'eliberty_api_';
+    const ROUTE_NAME_PREFIX = 'api_';
     const DEFAULT_CONTROLLER = 'ElibertyApiBundle:Resource';
     /**
      * @var TransformerHelper
@@ -156,6 +156,8 @@ class OperationFactory
             }
         }
 
+//        $requirements ['"context.getApiVersion() === '".$apiVersion."'"']
+
         return new Operation(
             new Route(
                 $path,
@@ -169,7 +171,7 @@ class OperationFactory
                 [],
                 $methods
             ),
-            self::ROUTE_NAME_PREFIX.$routeName,
+            self::ROUTE_NAME_PREFIX.$resource->getVersion().'_'.$routeName,
             $context
         );
     }

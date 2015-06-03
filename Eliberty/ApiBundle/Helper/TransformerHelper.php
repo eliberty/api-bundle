@@ -144,9 +144,10 @@ class TransformerHelper
      * @param $shortname
      * @param $data
      * @param string $type
+     * @param array $jmsAttribute
      * @return array
      */
-    public function getOutputAttr($shortname, &$data, $type = 'context')
+    public function getOutputAttr($shortname, &$data, $type = 'context', $jmsAttribute = [])
     {
 
         $attributes             = $this->getAttribute($shortname);
@@ -159,16 +160,20 @@ class TransformerHelper
             }
         }
 
-        foreach ($attributes as $attributeName => $value) {
-            if (array_key_exists($attributeName, $transformerAttributes)) {
-                $attribute = $transformerAttributes[$attributeName];
-                $data[$attributeName] = $this->addAttribute($attribute, $shortname, $type);
+        foreach ($attributes as $key => $value) {
+            if (array_key_exists($key, $jmsAttribute) && !isset($data[$key])) {
+                $data[$key] = $jmsAttribute[$key];
+            }
+            if (array_key_exists($key, $transformerAttributes)) {
+                $attribute = $transformerAttributes[$key];
+                $data[$key] = $this->addAttribute($attribute, $shortname, $type);
             }
         }
 
+        ksort($data);
+
         $this->transformer = null;
 
-        return $data;
     }
 
     /**
