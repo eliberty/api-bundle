@@ -145,7 +145,7 @@ class ApiDocExtractor extends BaseApiDocExtractor
 
         $paramsRoute      = $this->container->get('request')->attributes->get('_route_params');
 
-        $this->versionApi = isset($paramsRoute['view']) ? $paramsRoute['view'] : 'v1';
+        $this->versionApi = isset($paramsRoute['version']) ? $paramsRoute['version'] : 'v1';
         $this->transformerHelper->setVersion($this->versionApi);
 
         foreach ($routes as $name => $route) {
@@ -467,9 +467,7 @@ class ApiDocExtractor extends BaseApiDocExtractor
         }
 
         if (count($annotation->getResponseMap()) > 0) {
-
             foreach ($annotation->getResponseMap() as $code => $modelName) {
-
                 if ('200' === (string)$code && isset($modelName['type']) && isset($modelName['model'])) {
                     /*
                      * Model was already parsed as the default `output` for this ApiDoc.
@@ -563,7 +561,7 @@ class ApiDocExtractor extends BaseApiDocExtractor
 
         if (false !== array_key_exists('collection', $tags)) {
             foreach ($dunglasResource->getFilters() as $filter) {
-                foreach ($filter->getProperties() as $key => $value) {
+                foreach ($filter->getDescription($dunglasResource) as $key => $value) {
                     $annotation->addFilter($key, [
                         'requirement' => '[a-zA-Z0-9-]+',
                         'description' => $key . ' filter',
