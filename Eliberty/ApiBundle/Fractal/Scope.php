@@ -101,12 +101,7 @@ class Scope extends BaseFractalScope
 
         if (!is_null($this->resource)) {
             foreach ($this->dunglasResource->getFilters() as $filter) {
-                if (!is_null($this->dunglasResource->getParent())) {
-                    if ($filter instanceof EmbedFilter) {
-                        $route = $this->getGenerateRoute($filter->getRouteName(), $filter->getParameters());
-                        break;
-                    }
-                } else if ($filter instanceof EmbedFilter) {
+                if ($filter instanceof EmbedFilter) {
                     $route = $this->getGenerateRoute($filter->getRouteName(), $filter->getParameters());
                     break;
                 }

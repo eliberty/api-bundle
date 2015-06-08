@@ -105,6 +105,10 @@ class Router implements RouterInterface
     public function generate($name, $parameters = [], $referenceType = self::ABSOLUTE_PATH)
     {
 
+if(array_key_exists('@context', $parameters)) {
+    var_dump('');
+
+}
         if (is_object($name)) {
             if ($name instanceof ResourceInterface) {
                 $name = $this->getCollectionRouteName($name);
@@ -142,7 +146,7 @@ class Router implements RouterInterface
             try {
                 return $this->router->generate($name, $parameters, $referenceType);
             } catch (\Exception $e) {
-                var_dump($name);exit;
+                var_dump($parameters);exit;
             }
 
         } finally {

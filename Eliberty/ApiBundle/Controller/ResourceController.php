@@ -12,21 +12,22 @@
 namespace Eliberty\ApiBundle\Controller;
 
 use Doctrine\Common\Inflector\Inflector;
-use Dunglas\ApiBundle\Doctrine\Orm\Filter;
+use Dunglas\ApiBundle\Doctrine\Orm\Paginator;
+use Dunglas\ApiBundle\Doctrine\Orm\SearchFilter as Filter;
 use Dunglas\ApiBundle\Event\Events;
+use Eliberty\ApiBundle\Doctrine\Orm\ArrayPaginator;
 use Nelmio\ApiDocBundle\Annotation\ApiDoc;
 use Dunglas\ApiBundle\Event\DataEvent;
 use Dunglas\ApiBundle\Exception\DeserializationException;
 use Dunglas\ApiBundle\Api\ResourceInterface;
 use Dunglas\ApiBundle\Model\PaginatorInterface;
 use Dunglas\ApiBundle\JsonLd\Response;
+use Pagerfanta\Adapter\ArrayAdapter;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-use Symfony\Component\Validator\ConstraintViolationList;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
 use Symfony\Component\Serializer\Exception\Exception;
 use Eliberty\ApiBundle\Doctrine\Orm\EmbedFilter;
-use FOS\RestBundle\Controller\Annotations;
 use Dunglas\ApiBundle\Controller\ResourceController as BaseResourceController;
 
 /**
@@ -114,11 +115,6 @@ class ResourceController extends BaseResourceController
      *      }
      * )
      *
-     * @Annotations\QueryParam(name="orderby",  default={"id":"asc"}, nullable=true, description="Way to sort the rows in the result set.")
-     * @Annotations\QueryParam(name="embed",  default="", nullable=true, description="Include resources within other resources.")
-     * @Annotations\QueryParam(name="page",  requirements="\d+", nullable=true, default="1", description="How many page start to return.")
-     * @Annotations\QueryParam(name="perpage",  requirements="\d+", nullable=true, default="10", description="How many object return per page.")
-     *
      * @param Request $request
      *
      * @return Response
@@ -144,13 +140,13 @@ class ResourceController extends BaseResourceController
      *
      * @param Request $request
      * @ApiDoc(
-     *         resource = true,
-     *         statusCodes = {
-     *              200 = "Returned when successful",
-     *              401 = "Returned when the User is not authorized to use this method",
-     *              400 = "Returned when the form has errors"
-     *         }
-     * )
+     *                         resource = true,
+     *                         statusCodes = {
+     *                         200 = "Returned when successful",
+     *                         401 = "Returned when the User is not authorized to use this method",
+     *                         400 = "Returned when the form has errors"
+     *                         }
+     *                         )
      *
      * @return Response
      *
@@ -164,18 +160,18 @@ class ResourceController extends BaseResourceController
 
         $this->get('event_dispatcher')->dispatch(Events::PRE_CREATE_VALIDATION, new DataEvent($resource, $object));
 
-        $objects = $this->get('api.json_ld.normalizer.item')->getObjectNormalizers();
+//        $objects = $this->get('api.json_ld.normalizer.item')->getObjectNormalizers();
 
         $violations = $this->get('validator')->validate($object, null, $resource->getValidationGroups());
-        foreach ($objects as $objToValidation) {
-            $violations->addAll(
-                $this->get('validator')->validate(
-                    $objToValidation->getObject(),
-                    null,
-                    $objToValidation->getValidationGroups()
-                )
-            );
-        }
+//        foreach ($objects as $objToValidation) {
+//            $violations->addAll(
+//                $this->get('validator')->validate(
+//                    $objToValidation->getObject(),
+//                    null,
+//                    $objToValidation->getValidationGroups()
+//                )
+//            );
+//        }
 
         return $this->FormResponse($object, $violations, $resource, Events::PRE_CREATE);
     }
@@ -339,7 +335,7 @@ class ResourceController extends BaseResourceController
      *     404 = "Returned when the element not found",
      *   },
      *   tags = {
-     *          "collection" = "#0040FF"
+     *          "embed" = "true"
      *      }
      * )
      *
@@ -365,22 +361,28 @@ class ResourceController extends BaseResourceController
 
         $filter = new EmbedFilter($managerRegister, $iriConverter, $propertyAccessor);
 
-        $filter->setParameters([
+        $params = !$request->request->has('embedParams')?[
             'embed' => $embed,
             'id'    => $id,
-        ]);
+        ] : $request->request->get('embedParams');
+
+        $filter->setParameters($params);
 
         $filter->setRouteName($request->get('_route'));
 
         $resourceEmbed->addFilter($filter);
 
-        $data = $this->get('api.data_provider')->getCollection(
-            $resourceEmbed,
-            $request
-        );
-        $this->get('event_dispatcher')->dispatch(Events::RETRIEVE_LIST, new DataEvent($resourceEmbed, $data));
+        $resource = $this->getResource($request);
 
-        return $this->getSuccessResponse($resourceEmbed, $data);
+        $object = $this->findOrThrowNotFound($resource, $id);
+
+        $data = $propertyAccessor->getValue($object, $embed);
+
+        $dataPaginator = new ArrayPaginator(new ArrayAdapter($data->toArray()), $request);
+
+        $this->get('event_dispatcher')->dispatch(Events::RETRIEVE_LIST, new DataEvent($resourceEmbed, $dataPaginator));
+
+        return $this->getSuccessResponse($resourceEmbed, $dataPaginator);
     }
 
     /**
@@ -408,9 +410,11 @@ class ResourceController extends BaseResourceController
     }
 
     /**
-     * @param Request $request
+     * @param Request           $request
      * @param ResourceInterface $resource
+     *
      * @return object
+     *
      * @throws DeserializationException
      */
     protected function getEntity(Request $request, ResourceInterface $resource)

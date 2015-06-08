@@ -11,13 +11,20 @@
 
 namespace Eliberty\ApiBundle\Doctrine\Orm;
 
-use Dunglas\ApiBundle\Doctrine\Orm\Filter;
+
+use Doctrine\ORM\QueryBuilder;
+use Dunglas\ApiBundle\Api\ResourceInterface;
+use Dunglas\ApiBundle\Doctrine\Orm\SearchFilter;
+use Doctrine\Common\Persistence\ManagerRegistry;
+use Dunglas\ApiBundle\Api\IriConverterInterface;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 
 /**
  * Class EmbedFilter
  * @package Eliberty\ApiBundle\Doctrine\Orm
  */
-class EmbedFilter extends Filter
+class EmbedFilter extends SearchFilter
 {
     /**
      * @var string

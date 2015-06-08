@@ -15,12 +15,13 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Persistence\ObjectManager;
 use Doctrine\Common\Util\Inflector;
 use Dunglas\ApiBundle\JsonLd\Serializer\DateTimeNormalizer;
+use Dunglas\ApiBundle\Mapping\Loader\ValidatorMetadataLoader;
 use Eliberty\ApiBundle\Api\Resource;
 use Eliberty\ApiBundle\Fractal\Manager;
 use Eliberty\ApiBundle\Helper\TransformerHelper;
 use Dunglas\ApiBundle\Api\ResourceCollectionInterface;
 use Dunglas\ApiBundle\Api\ResourceInterface;
-use Dunglas\ApiBundle\Api\ResourceResolver;
+use Dunglas\ApiBundle\Api\ResourceResolverTrait;
 use Dunglas\ApiBundle\JsonLd\ContextBuilder;
 use Dunglas\ApiBundle\Mapping\ClassMetadataFactory;
 use Dunglas\ApiBundle\Mapping\AttributeMetadata;
@@ -48,7 +49,7 @@ use Symfony\Component\Validator\ValidatorInterface;
  */
 class Normalizer extends AbstractNormalizer
 {
-    use ResourceResolver;
+    use ResourceResolverTrait;
 
     /**
      * @var string
@@ -112,6 +113,7 @@ class Normalizer extends AbstractNormalizer
      */
     private $denormalizingObjects;
 
+
     /**
      * @param ResourceCollectionInterface $resourceCollection
      * @param DataProviderInterface       $dataProvider
@@ -122,6 +124,7 @@ class Normalizer extends AbstractNormalizer
      * @param TransformerHelper           $transformerHelper
      * @param RequestStack                $requestStack
      * @param ObjectManager               $objectManager
+     * @param ValidatorMetadataLoader     $validatorMetadataLoader
      * @param Logger                      $logger
      * @param NameConverterInterface      $nameConverter
      *
@@ -151,7 +154,7 @@ class Normalizer extends AbstractNormalizer
         $this->logger                  = $logger;
         $this->transformerHelper       = $transformerHelper;
         $this->objectManager           = $objectManager;
-        $this->denormalizingObjects = new ArrayCollection();
+        $this->denormalizingObjects    = new ArrayCollection();
     }
 
     /**
@@ -215,7 +218,7 @@ class Normalizer extends AbstractNormalizer
     {
         $allowedAttributes = [];
         foreach ($attributesMetadata as $attributeName => $attributeMetatdata) {
-            if ($attributeMetatdata->isReadable()) {
+            if ($attributeMetatdata->isReadable() && $attributeMetatdata->isRequired()) {
                 $allowedAttributes[] = $attributeName;
             }
         }
@@ -504,14 +507,6 @@ class Normalizer extends AbstractNormalizer
             $attributeName,
             $currentResource->getEntityClass()
         ));
-    }
-
-    /**
-     * @return ArrayCollection
-     */
-    public function getObjectNormalizers()
-    {
-        return $this->objectNormalizers;
     }
 
     /**

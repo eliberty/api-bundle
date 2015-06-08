@@ -7,6 +7,7 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\Common\Inflector\Inflector;
 use Doctrine\Common\Util\ClassUtils;
 use Eliberty\ApiBundle\Api\Resource as DunglasResource;
+use Eliberty\ApiBundle\Api\Resource;
 use Eliberty\ApiBundle\Api\ResourceCollection;
 use Eliberty\ApiBundle\Helper\TransformerHelper;
 use Eliberty\ApiBundle\JsonLd\Serializer\Normalizer;
@@ -16,6 +17,7 @@ use Nelmio\ApiDocBundle\DataTypes;
 use Nelmio\ApiDocBundle\Parser\JmsMetadataParser;
 use Nelmio\ApiDocBundle\Parser\ParserInterface;
 use Nelmio\ApiDocBundle\Parser\PostParserInterface;
+use Nelmio\ApiDocBundle\Parser\ValidationParser;
 use Symfony\Component\Form\FormRegistryInterface;
 use Symfony\Component\Form\ResolvedFormTypeInterface;
 use Symfony\Component\Routing\Route;
@@ -103,15 +105,16 @@ class ApiDocExtractor extends BaseApiDocExtractor
         Normalizer $normailzer,
         ResourceCollection $resourceCollection,
         FormRegistryInterface $registry
-    ) {
-        $this->container         = $container;
-        $this->router            = $router;
-        $this->reader            = $reader;
-        $this->commentExtractor  = $commentExtractor;
-        $this->handlers          = $handlers;
-        $this->transformerHelper = $transformerHelper;
-        $this->resourceCollection  = $resourceCollection;
-        $this->normailzer = $normailzer;
+    )
+    {
+        $this->container          = $container;
+        $this->router             = $router;
+        $this->reader             = $reader;
+        $this->commentExtractor   = $commentExtractor;
+        $this->handlers           = $handlers;
+        $this->transformerHelper  = $transformerHelper;
+        $this->resourceCollection = $resourceCollection;
+        $this->normailzer         = $normailzer;
 
         $this->transformerHelper->setClassMetadataFactory($normailzer->getClassMetadataFactory());
         parent::__construct($container, $router, $reader, $commentExtractor, $handlers);
@@ -133,7 +136,7 @@ class ApiDocExtractor extends BaseApiDocExtractor
         $resources       = array();
         $excludeSections = $this->container->getParameter('nelmio_api_doc.exclude_sections');
 
-        $paramsRoute = $this->container->get('request')->attributes->get('_route_params');
+        $paramsRoute      = $this->container->get('request')->attributes->get('_route_params');
         $this->versionApi = isset($paramsRoute['version']) ? $paramsRoute['version'] : 'v1';
         $this->transformerHelper->setVersion($this->versionApi);
 
@@ -161,14 +164,14 @@ class ApiDocExtractor extends BaseApiDocExtractor
                     $path = $route->getPath();
                     if (false === strstr($path, '{embed}')) {
                         $dunglasResource = $this->resourceCollection->getResourceForShortName($route->getDefault('_resource'));
-                        $array[] = ['annotation' => $this->extractData($annotation, $route, $method, $dunglasResource)];
+                        $array[]         = ['annotation' => $this->extractData($annotation, $route, $method, $dunglasResource)];
                         continue;
                     }
 
                     $availableIncludes = $this->transformerHelper->getAvailableIncludes($route->getDefault('_resource'));
                     foreach ($availableIncludes as $include) {
                         $route->setPath(str_replace('{embed}', $include, $path));
-                        $name = Inflector::singularize($include);
+                        $name            = Inflector::singularize($include);
                         $dunglasResource = $this->resourceCollection->getResourceForShortName(ucfirst($name));
                         $route->addDefaults(['_resource' => $dunglasResource->getShortName()]);
                         $array[] = ['annotation' => $this->extractData($annotation, $route, $method, $dunglasResource)];
@@ -228,33 +231,39 @@ class ApiDocExtractor extends BaseApiDocExtractor
     /**
      * @param $normalizedInput
      * @param null $resource
+     * @param Resource $dunglasResource
      * @return array
      */
-    public function getParametersParser($normalizedInput, $resource = null)
+    public function getParametersParser($normalizedInput, $resource = null, DunglasResource $dunglasResource, ApiDoc $apiDoc, $type = 'Input')
     {
+        if($resource === 'Order' && $apiDoc->getMethod() === 'POST') {
+            var_dump('');
+        }
         $supportedParsers = [];
         $parameters       = [];
+
         foreach ($this->getParsers($normalizedInput) as $parser) {
             if ($parser->supports($normalizedInput)) {
                 $supportedParsers[] = $parser;
-                $attributes = $parser->parse($normalizedInput);
+                $attributes         = $parser->parse($normalizedInput);
                 if ($parser instanceof JmsMetadataParser) {
                     foreach ($attributes as $key => $value) {
-                        if ($key === 'id' && !empty($value)) {
-                            $parameters['id']  = $value;
+                        if ($type !== 'Input' && $key === 'id' && !empty($value)) {
+                            $parameters['id'] = $value;
                         }
                         if (isset($parameters[$key]) && isset($value['description'])) {
                             $parameters[$key]['description'] = $value['description'];
                         }
                     }
 
-                    if (!is_null($resource)) {
+                    if (!is_null($resource) && $type !== 'Input') {
                         $this->transformerHelper->getOutputAttr($resource, $parameters, 'doc', $attributes);
                     }
 
                     continue;
                 }
-                $parameters         = $this->mergeParameters($parameters, $attributes);
+
+                $parameters = $this->mergeParameters($parameters, $attributes);
             }
         }
 
@@ -266,6 +275,19 @@ class ApiDocExtractor extends BaseApiDocExtractor
                 );
             }
         }
+
+        if ($type === 'Input' && !empty($dunglasResource->getValidationGroups()) && !in_array($apiDoc->getMethod(), ['GET', 'DELETE'])) {
+            $attributesMetadata = $this->normailzer->getMetadata($dunglasResource, [])->getAttributes();
+            $allowedAttributes  = $this->normailzer->getAllowedAttributes($attributesMetadata);
+            $dataResponse       = [];
+            foreach ($allowedAttributes as $key => $value) {
+                if (isset($parameters[$value])) {
+                    $dataResponse[$value] = $parameters[$value];
+                }
+            }
+            $parameters = $dataResponse;
+        }
+
 
         return $parameters;
     }
@@ -279,34 +301,42 @@ class ApiDocExtractor extends BaseApiDocExtractor
     protected function processFormParams($formName, array $formParams, DunglasResource $dunglasResource)
     {
         if (!is_null($formParams) && isset($formParams[$formName]['children'])) {
-            $parameters = $formParams[$formName]['children'];
-            $entityClass = $dunglasResource->getEntityClass();
+            $parameters         = $formParams[$formName]['children'];
+            $entityClass        = $dunglasResource->getEntityClass();
             $metadataAttributes = $this->normailzer->getClassMetadataFactory()->getMetadataFor(new $entityClass)->getAttributes();
             array_walk($parameters, function ($val, $key) use (&$parameters, $metadataAttributes) {
 
                 $format = isset($parameters[$key]['format']) ? $parameters[$key]['format'] : null;
+                $metatdataKey = strtolower($key);
 
-                $metatdata = isset($metadataAttributes[strtolower($key)]) ? $metadataAttributes[strtolower($key)] : null;
-
-                if (is_string($format) && is_object(json_decode($format))) {
-                    $parameters[$key]['format'] = '['.implode('|', array_keys(json_decode($format, true))).']';
+                if (isset($metadataAttributes[$key])) {
+                    $metatdataKey = $key;
                 }
 
-                if (!is_null($metatdata) && count($metatdata->getTypes())> 0) {
-                    $property = $metatdata->getTypes()[0];
-                    $parameters[$key]['format'] = $property->getType();
+                $metatdata = isset($metadataAttributes[$metatdataKey]) ? $metadataAttributes[$metatdataKey] : null;
+
+                if (is_string($format) && is_object(json_decode($format))) {
+                    $parameters[$key]['format'] = '[' . implode('|', array_keys(json_decode($format, true))) . ']';
+                }
+
+                if (!is_null($metatdata) && count($metatdata->getTypes()) > 0) {
+                    $property                   = $metatdata->getTypes()[0];
+
+                    if (isset($parameters[$key]['format']) && empty($parameters[$key]['format'])) {
+                        $parameters[$key]['format'] = $property->getType();
+                    }
 
                     if ($parameters[$key]['dataType'] === 'boolean') {
                         $parameters[$key]['format'] = '0/1';
                     }
 
                     if ($property->getType() === 'object' && $parameters[$key]['dataType'] !== 'boolean') {
-                        $parameters[$key]['dataType']   = 'integer';
+                        $parameters[$key]['dataType'] = 'integer';
                         //substr($property->getClass(), strrpos($property->getClass(), '\\') + 1);
                     }
 
                     if ($property->getClass() instanceof Collection) {
-                        $parameters[$key]['dataType'] = 'array of '.$property->getType();
+                        $parameters[$key]['dataType'] = 'array of ' . $property->getType();
                     }
                 }
             });
@@ -372,13 +402,13 @@ class ApiDocExtractor extends BaseApiDocExtractor
             $entityClassInput = $entityClassOutput = $this->transformerHelper->getEntityClass($resource);
         }
 
-        $this->addFilters($resource, $annotation);
+        $annotation = $this->addFilters($resource, $annotation, $dunglasResource, $route);
         if ('GET' === $annotation->getMethod()) {
             $entityClassInput = null;
         }
 
-        $formName = 'api_v2_'.strtolower($dunglasResource->getShortName());
-        if ($this->registry->hasType($formName)) {
+        $formName = 'api_v2_' . strtolower($dunglasResource->getShortName());
+        if ($hasFormtype = $this->registry->hasType($formName)) {
             $type = $this->registry->getType($formName);
             if ($type instanceof ResolvedFormTypeInterface) {
                 $entityClassInput = get_class($type->getInnerType());
@@ -388,11 +418,12 @@ class ApiDocExtractor extends BaseApiDocExtractor
         // input (populates 'parameters' for the formatters)
         if (null !== $input = $entityClassInput) {
 
-            $normalizedInput  = $this->normalizeClassParameter($input);
+            $normalizedInput = $this->normalizeClassParameter($input, $dunglasResource);
 
-            $parameters = $this->getParametersParser($normalizedInput);
-
-            $parameters = $this->processFormParams($formName, $parameters, $dunglasResource);
+            $parameters = $this->getParametersParser($normalizedInput, $resource, $dunglasResource, $annotation);
+            if ($hasFormtype) {
+                $parameters = $this->processFormParams($formName, $parameters, $dunglasResource);
+            }
 
             $parameters = $this->clearClasses($parameters);
             $parameters = $this->generateHumanReadableTypes($parameters);
@@ -403,7 +434,7 @@ class ApiDocExtractor extends BaseApiDocExtractor
                 }
             }
 
-            if (in_array($annotation->getMethod(), ['PUT','PATCH'])) {
+            if (in_array($annotation->getMethod(), ['PUT', 'PATCH'])) {
                 // All parameters are optional with PUT (update)
                 array_walk($parameters, function ($val, $key) use (&$parameters) {
                     $parameters[$key]['required'] = false;
@@ -417,9 +448,9 @@ class ApiDocExtractor extends BaseApiDocExtractor
         // output (populates 'response' for the formatters)
         if (null !== $output = $entityClassOutput) {
 
-            $normalizedOutput = $this->normalizeClassParameter($output);
+            $normalizedOutput = $this->normalizeClassParameter($output, $dunglasResource);
 
-            $response = $this->getParametersParser($normalizedOutput, $resource);
+            $response = $this->getParametersParser($normalizedOutput, $resource, $dunglasResource, $annotation, 'Output');
 
             $response = $this->clearClasses($response);
             $response = $this->generateHumanReadableTypes($response);
@@ -439,7 +470,7 @@ class ApiDocExtractor extends BaseApiDocExtractor
                     continue;
                 }
 
-                $normalizedModel = $this->normalizeClassParameter($modelName);
+                $normalizedModel = $this->normalizeClassParameter($modelName, $dunglasResource);
 
                 $parameters       = array();
                 $supportedParsers = array();
@@ -470,41 +501,73 @@ class ApiDocExtractor extends BaseApiDocExtractor
         return $annotation;
     }
 
+    protected function normalizeClassParameter($input, DunglasResource $resource)
+    {
+        $dataResponse = parent::normalizeClassParameter($input);
+
+        $dataResponse['groups'] = $resource->getValidationGroups();
+
+        return $dataResponse;
+
+    }
+
     /**
      * @param $resource
      * @param ApiDoc $annotation
      * @throws \Exception
      */
-    private function addFilters($resource, ApiDoc $annotation)
+    private function addFilters($resource, ApiDoc $annotation, Resource $dunglasResource, Route $route)
     {
+        $data = $annotation->toArray();
+        $tags = isset($data['tags']) ? $data['tags'] : [];
         //filter embed
         if ('DELETE' !== $annotation->getMethod()) {
             $availableIncludes = $this->transformerHelper->getAvailableIncludes($resource);
             $defaultIncludes   = $this->transformerHelper->getDefaultIncludes($resource);
-            $annotation->addFilter('embed', [
-                'requirement' => '\t',
-                'description' => 'Include resources within other resources.',
-                'available'   => is_array($availableIncludes) ? implode(',', $availableIncludes) : $availableIncludes,
-                'default'     => is_array($defaultIncludes) ? implode(',', $defaultIncludes) : $defaultIncludes
-            ]);
+
+            if (false === array_key_exists('embed', $tags)) {
+                $annotation->addFilter('embed', [
+                    'requirement' => '\t',
+                    'description' => 'Include resources within other resources.',
+                    'available'   => is_array($availableIncludes) ? implode(',', $availableIncludes) : $availableIncludes,
+                    'default'     => is_array($defaultIncludes) ? implode(',', $defaultIncludes) : $defaultIncludes
+                ]);
+            } else {
+                unset($data['requirements']['embed']);
+                unset($data['tags']['embed']);
+                $embed       = array_pop(explode('/', $route->getPath()));
+                $singularize = Inflector::singularize($embed);
+                if ($embed !== $singularize) {
+                    $data['tags']['collection'] = "#0040FF";
+                }
+
+                foreach ($data['requirements'] as $key => $value) {
+                    $data['requirements'][$key] = array_merge(['name' => $key], $value);
+                }
+                $annotation = new ApiDoc($data);
+                $annotation->setRoute($route);
+                $tags = isset($annotation->toArray()['tags']) ? $annotation->toArray()['tags'] : [];
+            }
         }
 
-        $data = $annotation->toArray();
-        if (isset($data['tags']) && false !== array_search('collection', $data['tags'])) {
-            foreach ($resource->getFilters() as $filter) {
-                $annotation->addFilter('perpage', [
-                    'requirement' => '\d+',
-                    'description' => 'How many resource return per page.',
-                    'default'     => 30
-                ]);
+
+        if (false !== array_key_exists('collection', $tags)) {
+            foreach ($dunglasResource->getFilters() as $filter) {
+                foreach ($filter->getProperties() as $key => $value) {
+                    $annotation->addFilter($key, [
+                        'requirement' => '[a-zA-Z0-9-]+',
+                        'description' => $key . ' filter',
+                        'default'     => ''
+                    ]);
+                }
             }
 
 
             //filter perpage
             $annotation->addFilter('perpage', [
                 'requirement' => '\d+',
-                'description' => 'How many resource return per page.',
-                'default'     => 30
+                'description' => 'How many object return per page.',
+                'default'     => 10
             ]);
 
             //filter perpage
@@ -518,12 +581,10 @@ class ApiDocExtractor extends BaseApiDocExtractor
             $annotation->addFilter('orderby', [
                 'requirement' => '\t',
                 'description' => 'Way to sort the rows in the result set.',
-                'default'     => urldecode('{"id":"asc"}')
+                'default'     => '{"id":"asc"}'
             ]);
         }
 
-        //return $annotation;
+        return $annotation;
     }
-
-
 }

@@ -13,6 +13,7 @@ namespace Eliberty\ApiBundle\Hydra\Serializer;
 
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Form\FormInterface;
+use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 use Symfony\Component\Routing\RouterInterface;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 use Symfony\Component\Validator\Constraint;
@@ -33,15 +34,21 @@ class ErrorViolationListNormalizer implements NormalizerInterface
      * @var bool
      */
     private $debug;
+    /**
+     * @var PropertyAccessorInterface
+     */
+    private $propertyAccessor;
 
     /**
      * @param RouterInterface $router
-     * @param bool            $debug
+     * @param bool $debug
+     * @param PropertyAccessorInterface $propertyAccessor
      */
-    public function __construct(RouterInterface $router, $debug)
+    public function __construct(RouterInterface $router, $debug, PropertyAccessorInterface $propertyAccessor)
     {
         $this->router = $router;
         $this->debug = $debug;
+        $this->propertyAccessor = $propertyAccessor;
     }
 
     /**
@@ -65,11 +72,13 @@ class ErrorViolationListNormalizer implements NormalizerInterface
 
         foreach ($violationList as $violation) {
             $key = $violation->getPropertyPath();
-
-            $invalidValue = method_exists($violation->getRoot(), '__toString') ? $violation->getRoot()->__toString() :$violation->getInvalidValue() ;
+            $invalidValue = $violation->getInvalidValue();
+            if (method_exists($violation->getRoot(), '__toString')) {
+                $invalidValue = $this->propertyAccessor->getValue($violation->getRoot(), $violation->getPropertyPath());
+            }
             if ($violation->getConstraint() instanceof UniqueEntity) {
-//                if($violation->getRoot() instanceof FormInterface)
-                $reflexion = new \ReflectionClass($violation->getRoot()->getConfig()->getDataClass());
+                $class = method_exists($violation->getRoot(), 'getConfig')?$violation->getRoot()->getConfig():$violation->getRoot();
+                $reflexion = new \ReflectionClass($class);
                 $key = strtolower($reflexion->getShortname());
             }
             $data['violations'][$key][] = [

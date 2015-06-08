@@ -6,7 +6,7 @@ use Dunglas\ApiBundle\Api\ResourceCollection as BaseResourceCollection;
 
 use Dunglas\ApiBundle\Api\ResourceCollectionInterface;
 use Dunglas\ApiBundle\Api\ResourceInterface;
-use Dunglas\ApiBundle\Util\ClassInfo;
+use Dunglas\ApiBundle\Util\ClassInfoTrait;
 use Eliberty\ApiBundle\Versioning\Router\ApiRouter;
 use Symfony\Component\HttpFoundation\AcceptHeader;
 use Symfony\Component\HttpFoundation\Request;
@@ -19,7 +19,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
  */
 class ResourceCollection extends \ArrayObject implements ResourceCollectionInterface
 {
-    use ClassInfo;
+    use ClassInfoTrait;
 
     /**
      * @var array
@@ -54,9 +54,22 @@ class ResourceCollection extends \ArrayObject implements ResourceCollectionInter
     }
 
     /**
-     * @param ResourceInterface $resource
+     * @param array $resources
+     * @internal param ResourceInterface $resource
      */
-    public function add(ResourceInterface $resource)
+    public function init(array $resources)
+    {
+        foreach ($resources as $resource) {
+            if ($resource->hasOperations()) {
+                $this->addResource($resource);
+            }
+        }
+    }
+
+    /**
+     * @param Resource $resource
+     */
+    public function addResource($resource)
     {
         $entityClass = $resource->getEntityClass();
         if (isset($this->entityClassIndex[$this->version][$entityClass])) {
@@ -82,7 +95,6 @@ class ResourceCollection extends \ArrayObject implements ResourceCollectionInter
             $this->entityClassIndex[$this->version][$alias] = $resource;
         }
     }
-
     /**
      * @param object|string $entityClass
      * @return ResourceInterface|null

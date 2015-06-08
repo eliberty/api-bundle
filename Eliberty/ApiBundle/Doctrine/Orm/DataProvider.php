@@ -14,6 +14,7 @@ namespace Eliberty\ApiBundle\Doctrine\Orm;
 use Doctrine\Common\Persistence\ManagerRegistry;
 use Doctrine\ORM\Tools\Pagination\Paginator as DoctrineOrmPaginator;
 use Dunglas\ApiBundle\Api\ResourceInterface;
+use Dunglas\ApiBundle\Doctrine\Orm\FilterInterface;
 use Dunglas\ApiBundle\Doctrine\Orm\Paginator;
 use Dunglas\ApiBundle\Model\DataProviderInterface;
 use Symfony\Component\HttpFoundation\Request;

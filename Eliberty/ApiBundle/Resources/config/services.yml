@@ -30,6 +30,7 @@ services:
             arguments:
                  - @api.router
                  - %kernel.debug%
+                 - @property_accessor
             tags:
                  - { name: serializer.normalizer }
 

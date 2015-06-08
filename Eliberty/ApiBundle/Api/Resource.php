@@ -126,11 +126,13 @@ class Resource implements ResourceInterface
     }
 
     /**
-     * {@inheritdoc}
+     * Initializes filters.
+     *
+     * @param array $filters
      */
-    public function addFilter(FilterInterface $filter)
+    public function initFilters(array $filters)
     {
-        $this->filters[] = $filter;
+        $this->filters = $filters;
     }
 
     /**
@@ -139,6 +141,11 @@ class Resource implements ResourceInterface
     public function getFilters()
     {
         return $this->filters;
+    }
+
+    public function addFilter (FilterInterface $filter)
+    {
+        $this->filters[] = $filter;
     }
 
     /**
@@ -325,7 +332,7 @@ class Resource implements ResourceInterface
         }
 
         foreach ($routeKeyParams as $key => $value) {
-            $dataValue = $data->$value();
+            $dataValue = $this->getPropertyValue($data, $value);
             if (is_object($dataValue)) {
                 $dataValue = $dataValue->getId();
             }
@@ -333,6 +340,32 @@ class Resource implements ResourceInterface
         }
 
         return $routeKeyParams;
+    }
+
+    /**
+     * @param $object
+     * @param $methode
+     * @throws \Exception
+     */
+    public function getPropertyValue($object, $methode)
+    {
+        try {
+            if (method_exists($object, $methode)) {
+                return $object->$methode();
+            }
+
+            $parrentGetter = 'get' . $this->getShortName();
+            if (!is_null($this->getParent())) {
+                $parrentGetter = 'get' . $this->getParent()->getShortName();
+            }
+
+            $parentData = $object->$parrentGetter();
+
+            return $parentData->$methode();
+
+        } catch (\Exception $e) {
+            throw new \Exception($e->getMessage());
+        }
     }
 
     /**
@@ -353,5 +386,39 @@ class Resource implements ResourceInterface
     public function getVersion()
     {
         return $this->version;
+    }
+
+    /**
+     * Initializes collection operations.
+     *
+     * @param OperationInterface[] $collectionOperations
+     */
+    public function initCollectionOperations(array $collectionOperations)
+    {
+        $this->collectionOperations = $collectionOperations;
+    }
+
+    /**
+     * Initializes item operations.
+     *
+     * @param OperationInterface[] $itemOperations
+     */
+    public function initItemOperations(array $itemOperations)
+    {
+        $this->itemOperations = $itemOperations;
+    }
+
+    /**
+     * if resource has operation
+     */
+    public function hasOperations()
+    {
+        $dataResponse = false;
+
+        if (!empty($this->itemOperations) || !empty($this->collectionOperations)) {
+            $dataResponse = true;
+        }
+
+        return $dataResponse;
     }
 }
