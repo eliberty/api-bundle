@@ -232,13 +232,12 @@ class ApiDocExtractor extends BaseApiDocExtractor
      * @param $normalizedInput
      * @param null $resource
      * @param Resource $dunglasResource
+     * @param ApiDoc $apiDoc
+     * @param string $type
      * @return array
      */
     public function getParametersParser($normalizedInput, $resource = null, DunglasResource $dunglasResource, ApiDoc $apiDoc, $type = 'Input')
     {
-        if($resource === 'Order' && $apiDoc->getMethod() === 'POST') {
-            var_dump('');
-        }
         $supportedParsers = [];
         $parameters       = [];
 
@@ -376,7 +375,7 @@ class ApiDocExtractor extends BaseApiDocExtractor
      * @param DunglasResource $dunglasResource
      * @return ApiDoc
      */
-    protected function extractData(ApiDoc $annotation, Route $route, \ReflectionMethod $method, DunglasResource $dunglasResource)
+    protected function extractData(ApiDoc $annotation, Route $route, \ReflectionMethod $method, DunglasResource $dunglasResource = null)
     {
         // create a new annotation
         $annotation = clone $annotation;
@@ -501,7 +500,7 @@ class ApiDocExtractor extends BaseApiDocExtractor
         return $annotation;
     }
 
-    protected function normalizeClassParameter($input, DunglasResource $resource)
+    protected function normalizeClassParameter($input, DunglasResource $resource = null)
     {
         $dataResponse = parent::normalizeClassParameter($input);
 
@@ -514,7 +513,9 @@ class ApiDocExtractor extends BaseApiDocExtractor
     /**
      * @param $resource
      * @param ApiDoc $annotation
-     * @throws \Exception
+     * @param Resource|Resource $dunglasResource
+     * @param Route $route
+     * @return ApiDoc
      */
     private function addFilters($resource, ApiDoc $annotation, Resource $dunglasResource, Route $route)
     {
@@ -535,7 +536,8 @@ class ApiDocExtractor extends BaseApiDocExtractor
             } else {
                 unset($data['requirements']['embed']);
                 unset($data['tags']['embed']);
-                $embed       = array_pop(explode('/', $route->getPath()));
+                $path = explode('/', $route->getPath());
+                $embed       = array_pop($path);
                 $singularize = Inflector::singularize($embed);
                 if ($embed !== $singularize) {
                     $data['tags']['collection'] = "#0040FF";

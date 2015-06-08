@@ -212,9 +212,11 @@ class Normalizer extends AbstractNormalizer
 
     /**
      * @param object|string $attributesMetadata
+     * @param array $context
+     * @param bool $attributesAsString
      * @return array|bool|\string[]|\Symfony\Component\Serializer\Mapping\AttributeMetadataInterface[]
      */
-    public function getAllowedAttributes($attributesMetadata)
+    public function getAllowedAttributes($attributesMetadata, array $context = null, $attributesAsString = false)
     {
         $allowedAttributes = [];
         foreach ($attributesMetadata as $attributeName => $attributeMetatdata) {
