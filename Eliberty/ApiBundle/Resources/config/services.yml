@@ -1,6 +1,6 @@
 parameters:
     eliberty_api.normalizer.item.class: Eliberty\ApiBundle\JsonLd\Serializer\Normalizer
-
+    eliberty_api.doctrine.orm.data_provider.class: Eliberty\ApiBundle\Doctrine\Orm\DataProvider
 services:
         api.resource:
             class: Eliberty\ApiBundle\Api\Resource
@@ -14,7 +14,7 @@ services:
                  - @api.router
 
         api.doctrine.orm.data_provider:
-            class: Eliberty\ApiBundle\Doctrine\Orm\DataProvider
+            class: %eliberty_api.doctrine.orm.data_provider.class%
             arguments:
                  - @doctrine
                  - %api.collection.order%

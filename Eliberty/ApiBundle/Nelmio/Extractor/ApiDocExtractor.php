@@ -145,7 +145,7 @@ class ApiDocExtractor extends BaseApiDocExtractor
 
         $paramsRoute      = $this->container->get('request')->attributes->get('_route_params');
 
-        $this->versionApi = isset($paramsRoute['version']) ? $paramsRoute['version'] : 'v1';
+        $this->versionApi = isset($paramsRoute['view']) ? $paramsRoute['view'] : 'v1';
         $this->transformerHelper->setVersion($this->versionApi);
 
         foreach ($routes as $name => $route) {
