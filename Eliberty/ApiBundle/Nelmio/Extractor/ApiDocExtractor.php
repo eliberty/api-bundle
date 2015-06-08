@@ -18,6 +18,7 @@ use Nelmio\ApiDocBundle\Parser\JmsMetadataParser;
 use Nelmio\ApiDocBundle\Parser\ParserInterface;
 use Nelmio\ApiDocBundle\Parser\PostParserInterface;
 use Nelmio\ApiDocBundle\Parser\ValidationParser;
+use Symfony\Bundle\FrameworkBundle\Controller\ControllerNameParser;
 use Symfony\Component\Form\FormRegistryInterface;
 use Symfony\Component\Form\ResolvedFormTypeInterface;
 use Symfony\Component\Routing\Route;
@@ -89,7 +90,9 @@ class ApiDocExtractor extends BaseApiDocExtractor
      * @param RouterInterface $router
      * @param Reader $reader
      * @param DocCommentExtractor $commentExtractor
+     * @param ControllerNameParser $controllerNameParser
      * @param array $handlers
+     * @param array $annotationsProviders
      * @param TransformerHelper $transformerHelper
      * @param Normalizer $normailzer
      * @param ResourceCollection $resourceCollection
@@ -100,25 +103,28 @@ class ApiDocExtractor extends BaseApiDocExtractor
         RouterInterface $router,
         Reader $reader,
         DocCommentExtractor $commentExtractor,
+        ControllerNameParser $controllerNameParser,
         array $handlers,
+        array $annotationsProviders,
         TransformerHelper $transformerHelper,
         Normalizer $normailzer,
         ResourceCollection $resourceCollection,
         FormRegistryInterface $registry
-    )
-    {
+    ) {
         $this->container          = $container;
         $this->router             = $router;
-        $this->reader             = $reader;
         $this->commentExtractor   = $commentExtractor;
+        $this->reader             = $reader;
+        $this->annotationsProviders = $annotationsProviders;
         $this->handlers           = $handlers;
         $this->transformerHelper  = $transformerHelper;
         $this->resourceCollection = $resourceCollection;
         $this->normailzer         = $normailzer;
 
         $this->transformerHelper->setClassMetadataFactory($normailzer->getClassMetadataFactory());
-        parent::__construct($container, $router, $reader, $commentExtractor, $handlers);
+        parent::__construct($container, $router, $reader, $commentExtractor, $controllerNameParser, $handlers, $annotationsProviders);
         $this->registry = $registry;
+        $this->controllerNameParser = $controllerNameParser;
     }
 
     /**
@@ -138,7 +144,8 @@ class ApiDocExtractor extends BaseApiDocExtractor
         $excludeSections = $this->container->getParameter('nelmio_api_doc.exclude_sections');
 
         $paramsRoute      = $this->container->get('request')->attributes->get('_route_params');
-        $this->versionApi = isset($paramsRoute['version']) ? $paramsRoute['version'] : 'v1';
+
+        $this->versionApi = isset($paramsRoute['view']) ? $paramsRoute['view'] : 'v1';
         $this->transformerHelper->setVersion($this->versionApi);
 
         foreach ($routes as $name => $route) {
