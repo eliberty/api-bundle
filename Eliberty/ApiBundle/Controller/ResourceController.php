@@ -160,18 +160,7 @@ class ResourceController extends BaseResourceController
 
         $this->get('event_dispatcher')->dispatch(Events::PRE_CREATE_VALIDATION, new DataEvent($resource, $object));
 
-//        $objects = $this->get('api.json_ld.normalizer.item')->getObjectNormalizers();
-
         $violations = $this->get('validator')->validate($object, null, $resource->getValidationGroups());
-//        foreach ($objects as $objToValidation) {
-//            $violations->addAll(
-//                $this->get('validator')->validate(
-//                    $objToValidation->getObject(),
-//                    null,
-//                    $objToValidation->getValidationGroups()
-//                )
-//            );
-//        }
 
         return $this->FormResponse($object, $violations, $resource, Events::PRE_CREATE);
     }

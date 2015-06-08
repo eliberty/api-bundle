@@ -128,9 +128,10 @@ class ApiDocExtractor extends BaseApiDocExtractor
      *
      * @param array $routes array of Route-objects for which the annotations should be extracted
      *
+     * @param $view
      * @return array
      */
-    public function extractAnnotations(array $routes)
+    public function extractAnnotations(array $routes, $view = parent::DEFAULT_VIEW)
     {
         $array           = array();
         $resources       = array();
