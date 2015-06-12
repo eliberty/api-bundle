@@ -103,6 +103,10 @@ class Resource implements ResourceInterface
      */
     public function hasEventListener($key)
     {
+        if (is_null($this->config) || empty($this->config->getListener())) {
+            return false;
+        }
+
         return isset($this->config->getListener()[$key]);
     }
 
