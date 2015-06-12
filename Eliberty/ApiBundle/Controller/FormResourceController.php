@@ -27,9 +27,10 @@ abstract class FormResourceController extends ResourceController
      *
      * @param mixed $id
      *
+     * @param string $eventName
      * @return Response
      */
-    public function handleUpdateRequest($id)
+    public function handleUpdateRequest($id, $eventName = Events::PRE_UPDATE)
     {
         $resource = $this->getResource($this->container->get('request'));
 
@@ -39,17 +40,17 @@ abstract class FormResourceController extends ResourceController
 
         $violations = new ConstraintViolationList($this->constraintViolation($form->getErrors(true)));
 
-        return $this->formResponse($object, $violations, $resource, Events::PRE_UPDATE);
+        return $this->formResponse($object, $violations, $resource, $eventName);
     }
 
     /**
      * Create new.
      *
-     * @param mixed $_ [optional] Arguments will be passed to createEntity method
      *
+     * @param $eventName
      * @return Response
      */
-    public function handleCreateRequest($_ = null)
+    public function handleCreateRequest($eventName = Events::PRE_CREATE)
     {
         $request = $this->container->get('request');
         $resource = $this->getResource($request);
@@ -60,7 +61,7 @@ abstract class FormResourceController extends ResourceController
 
         $violations = new ConstraintViolationList($this->constraintViolation($form->getErrors(true)));
 
-        return $this->formResponse($entity, $violations, $resource, Events::PRE_CREATE);
+        return $this->formResponse($entity, $violations, $resource, $eventName);
     }
 
     /**
@@ -98,7 +99,7 @@ abstract class FormResourceController extends ResourceController
      */
     protected function fixRequestAttributes()
     {
-        $apiVersion = $this->get('router')->getContext()->getApiVersion();
+//        $apiVersion = $this->get('router')->getContext()->getApiVersion();
         $request    = $this->container->get('request');
 
         $data = $request->request->all();

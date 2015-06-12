@@ -115,16 +115,43 @@ class ApiDocExtractor extends BaseApiDocExtractor
         $this->router             = $router;
         $this->commentExtractor   = $commentExtractor;
         $this->reader             = $reader;
-        $this->annotationsProviders = $annotationsProviders;
         $this->handlers           = $handlers;
         $this->transformerHelper  = $transformerHelper;
         $this->resourceCollection = $resourceCollection;
         $this->normailzer         = $normailzer;
 
         $this->transformerHelper->setClassMetadataFactory($normailzer->getClassMetadataFactory());
+        $paramsRoute      = $this->container->get('request')->attributes->get('_route_params');
+        $this->versionApi = isset($paramsRoute['version']) ? $paramsRoute['version'] : 'v2';
+
+        if (strtolower($this->versionApi) === 'v1') {
+            $annotationsProviders = [];
+        }
+
+        $this->annotationsProviders = $annotationsProviders;
+
         parent::__construct($container, $router, $reader, $commentExtractor, $controllerNameParser, $handlers, $annotationsProviders);
         $this->registry = $registry;
         $this->controllerNameParser = $controllerNameParser;
+    }
+
+    /**
+     * Return a list of route to inspect for ApiDoc annotation
+     * You can extend this method if you don't want all the routes
+     * to be included.
+     *
+     * @return Route[] An array of routes
+     */
+    public function getRoutes()
+    {
+        $routes = [];
+        foreach ($this->router->getRouteCollection()->all() as $key => $route) {
+            if (strpos($key, 'api_'.$this->versionApi) !== false) {
+                $routes[$key] = $route;
+            }
+        }
+
+        return $routes;
     }
 
     /**
@@ -139,13 +166,14 @@ class ApiDocExtractor extends BaseApiDocExtractor
      */
     public function extractAnnotations(array $routes, $view = parent::DEFAULT_VIEW)
     {
+
         $array           = array();
         $resources       = array();
         $excludeSections = $this->container->getParameter('nelmio_api_doc.exclude_sections');
 
-        $paramsRoute      = $this->container->get('request')->attributes->get('_route_params');
+        if (strtolower($this->versionApi) === 'v1')
+            return parent::extractAnnotations($routes, $view);
 
-        $this->versionApi = isset($paramsRoute['view']) ? $paramsRoute['view'] : 'v1';
         $this->transformerHelper->setVersion($this->versionApi);
 
         foreach ($routes as $name => $route) {
@@ -385,6 +413,10 @@ class ApiDocExtractor extends BaseApiDocExtractor
      */
     protected function extractData(ApiDoc $annotation, Route $route, \ReflectionMethod $method, DunglasResource $dunglasResource = null)
     {
+        if (strtolower($this->versionApi) === 'v1') {
+            return parent::extractData($annotation, $route, $method);
+        }
+
         // create a new annotation
         $annotation = clone $annotation;
 
@@ -508,6 +540,10 @@ class ApiDocExtractor extends BaseApiDocExtractor
 
     protected function normalizeClassParameter($input, DunglasResource $resource = null)
     {
+        if (strtolower($this->versionApi) === 'v1') {
+            return parent::normalizeClassParameter($input);
+        }
+
         $dataResponse = parent::normalizeClassParameter($input);
 
         $dataResponse['groups'] = $resource->getValidationGroups();
@@ -594,5 +630,28 @@ class ApiDocExtractor extends BaseApiDocExtractor
         }
 
         return $annotation;
+    }
+
+    /**
+     * Populates the `dataType` properties in the parameter array if empty. Recurses through children when necessary.
+     *
+     * @param  array $array
+     * @return array
+     */
+    protected function generateHumanReadableTypes(array $array)
+    {
+        foreach ($array as $name => $info) {
+
+            if (empty($info['dataType'])) {
+                $subType = isset($info['subType']) ? $info['subType'] : null;
+                $array[$name]['dataType'] = $this->generateHumanReadableType($info['actualType'], $subType);
+            }
+
+            if (isset($info['children'])) {
+                $array[$name]['children'] = $this->generateHumanReadableTypes($info['children']);
+            }
+        }
+
+        return $array;
     }
 }

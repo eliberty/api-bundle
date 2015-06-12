@@ -121,3 +121,4 @@ services:
                 - @api.json_ld.normalizer.item
                 - @api.resource_collection
                 - @form.registry
+

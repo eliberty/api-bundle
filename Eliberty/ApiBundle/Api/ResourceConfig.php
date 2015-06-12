@@ -44,6 +44,11 @@ class ResourceConfig implements ResourceConfigInterface
     private $options;
 
     /**
+     * @var array
+     */
+    protected $listener = [];
+
+    /**
      * @param array $alias
      * @param ResourceInterface $resourceParent
      * @param null $options
@@ -79,9 +84,20 @@ class ResourceConfig implements ResourceConfigInterface
             $this->routeKeyParams = $this->options['routerKey'];
         }
 
+        if (isset($this->options['listener'])) {
+            $this->listener = $this->options['listener'];
+        }
+
         return $this;
     }
 
+    /**
+     * @return array
+     */
+    public function getListener()
+    {
+        return $this->listener;
+    }
 
     /**
      * @param ResourceInterface $resourceParent

@@ -36,6 +36,11 @@ use Dunglas\ApiBundle\Controller\ResourceController as BaseResourceController;
 class ResourceController extends BaseResourceController
 {
     /**
+     * enable send event because is delagate to the handler
+     */
+    const NONE = "None";
+
+    /**
      * @var ResourceInterface
      */
     private $resource;
@@ -264,7 +269,15 @@ class ResourceController extends BaseResourceController
         $resource = $this->getResource($request);
         $object   = $this->findOrThrowNotFound($resource, $id);
 
-        $this->get('event_dispatcher')->dispatch(Events::PRE_DELETE, new DataEvent($resource, $object));
+        $eventName = Events::PRE_DELETE;
+        $event =  new DataEvent($resource, $object);
+        if ($resource->hasEventListener($eventName)) {
+            $eventName = $resource->getListener($eventName);
+            $eventClass = $resource->getListener('eventClass');
+            $event =  new $eventClass($object);
+        }
+
+        $this->get('event_dispatcher')->dispatch($eventName, $event);
 
         return new Response(null, 204);
     }
@@ -377,26 +390,33 @@ class ResourceController extends BaseResourceController
     /**
      * @param $object
      * @param ConstraintViolationListInterface $violations
-     * @param ResourceInterface                $resource
-     * @param string                           $event
-     *
+     * @param ResourceInterface $resource
+     * @param $eventName
      * @return Response
      */
     protected function formResponse(
         $object,
         ConstraintViolationListInterface $violations,
         ResourceInterface $resource,
-        $event
+        $eventName
     ) {
         if (0 === count($violations)) {
-            // Validation succeed
-            $this->get('event_dispatcher')->dispatch($event, new DataEvent($resource, $object));
-
+            if ($eventName !== self::NONE) {
+                $event = new DataEvent($resource, $object);
+                if ($resource->hasEventListener($eventName)) {
+                    $eventName  = $resource->getListener($eventName);
+                    $eventClass = $resource->getListener('eventClass');
+                    $event      = new $eventClass($object);
+                }
+                // Validation succeed
+                $this->get('event_dispatcher')->dispatch($eventName, $event);
+            }
             return $this->getSuccessResponse($resource, $object, 201);
         }
 
         return $this->getErrorResponse($violations);
     }
+
 
     /**
      * @param Request           $request

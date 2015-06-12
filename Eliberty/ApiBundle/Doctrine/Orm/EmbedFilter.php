@@ -14,9 +14,10 @@ namespace Eliberty\ApiBundle\Doctrine\Orm;
 
 use Doctrine\ORM\QueryBuilder;
 use Dunglas\ApiBundle\Api\ResourceInterface;
-use Dunglas\ApiBundle\Doctrine\Orm\SearchFilter;
+
 use Doctrine\Common\Persistence\ManagerRegistry;
 use Dunglas\ApiBundle\Api\IriConverterInterface;
+use Dunglas\ApiBundle\Doctrine\Orm\Filter\SearchFilter;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 

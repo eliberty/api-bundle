@@ -86,6 +86,28 @@ class Resource implements ResourceInterface
     }
 
     /**
+     * @return array
+     */
+    public function getListener($key = null)
+    {
+        if (is_null($key)) {
+            return $this->config->getListener();
+        }
+
+        return $this->hasEventListener($key) ? $this->config->getListener()[$key] : null;
+    }
+
+    /**
+     * @param null $key
+     * @return bool
+     */
+    public function hasEventListener($key)
+    {
+        return isset($this->config->getListener()[$key]);
+    }
+
+
+    /**
      * {@inheritdoc}
      */
     public function addCollectionOperation(OperationInterface $operation)
@@ -334,9 +356,9 @@ class Resource implements ResourceInterface
         foreach ($routeKeyParams as $key => $value) {
             $dataValue = $this->getPropertyValue($data, $value);
             if (is_object($dataValue)) {
-                $dataValue = $dataValue->getId();
+                $dataValue = !is_null($dataValue->getId()) ? $dataValue->getId() : 0;
             }
-            $routeKeyParams[$key] = $dataValue;
+            $routeKeyParams[$key] = !is_null($dataValue) ? $dataValue : 0;
         }
 
         return $routeKeyParams;
