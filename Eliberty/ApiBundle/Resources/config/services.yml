@@ -120,5 +120,6 @@ services:
                 - @api.transformer.helper
                 - @api.json_ld.normalizer.item
                 - @api.resource_collection
+                - @doctrine.orm.entity_manager
                 - @form.registry
 

@@ -65,7 +65,7 @@ class BaseTransformer extends TransformerAbstract
     /**
      * @var array
      */
-    private $embeds = [];
+    protected $embeds = [];
 
     /**
      * List of the url parameter for embed.
@@ -92,6 +92,12 @@ class BaseTransformer extends TransformerAbstract
      * @var string
      */
     protected $entityClass;
+
+    /**
+     * check if user have overwride the default value
+     * @var bool
+     */
+    public $overwrideDefaultIncludes = false;
 
     /**
      * Constructor.
@@ -124,30 +130,32 @@ class BaseTransformer extends TransformerAbstract
     {
         $this->initTransformer($transformer);
 
-        if (!isset($this->embeds[$this->getEmbed()]) || null === $this->embeds[$this->getEmbed()]) {
-            return $this->collection($resource, $transformer);
-        }
+        return $this->collection($resource, $transformer);
 
-        $optionEmbed = isset($this->embeds[$this->getEmbed()]) ? $this->embeds[$this->getEmbed()] : null;
-
-        $collection = new Pagerfanta(new ArrayAdapter($resource->toArray()));
-
-        $limit = isset($optionEmbed['perpage']) ? $optionEmbed['perpage'] : 10;
-
-        $collection->setMaxPerPage($limit);
-
-        $page = isset($optionEmbed['page']) && ($optionEmbed['page'] <= $collection->getNbPages()) ?
-            $optionEmbed['page'] : 1;
-
-        $collection->setCurrentPage($page);
-
-        $resource = $this->collection($collection, $transformer);
-
-        $adapter = $this->getAdapter($collection, $this->uri, $optionEmbed, $this->currentEmbed);
-
-        $resource->setPaginator($adapter);
-
-        return $resource;
+//        if (!isset($this->embeds[$this->getEmbed()]) || null === $this->embeds[$this->getEmbed()]) {
+//            return $this->collection($resource, $transformer);
+//        }
+//
+//        $optionEmbed = isset($this->embeds[$this->getEmbed()]) ? $this->embeds[$this->getEmbed()] : null;
+//
+//        $collection = new Pagerfanta(new ArrayAdapter($resource->toArray()));
+//
+//        $limit = isset($optionEmbed['perpage']) ? $optionEmbed['perpage'] : 10;
+//
+//        $collection->setMaxPerPage($limit);
+//
+//        $page = isset($optionEmbed['page']) && ($optionEmbed['page'] <= $collection->getNbPages()) ?
+//            $optionEmbed['page'] : 1;
+//
+//        $collection->setCurrentPage($page);
+//
+//        $resource = $this->collection($collection, $transformer);
+//
+//        $adapter = $this->getAdapter($collection, $this->uri, $optionEmbed, $this->currentEmbed);
+//
+//        $resource->setPaginator($adapter);
+//
+//        return $resource;
     }
 
     /**
@@ -356,7 +364,7 @@ class BaseTransformer extends TransformerAbstract
     {
         if ($this->request) {
             $this->requestEmbed = $this->request->get('embed');
-            $this->embeds       = $this->getEmbeds($this->requestEmbed);
+            $this->setEmbeds($this->getEmbeds($this->requestEmbed));
         }
 
         return $this;
@@ -368,6 +376,21 @@ class BaseTransformer extends TransformerAbstract
     public function setEmbed($embed)
     {
         $this->currentEmbed = $embed;
+    }
+
+    /**
+     * @param $embeds
+     */
+    public function setEmbeds($embeds)
+    {
+        $this->embeds = $embeds;
+        foreach ($embeds as $key => $params) {
+            $parentKey = str_replace($this->currentResourceKey.'.', '', $key);
+            if (array_search($parentKey, $this->availableIncludes)) {
+                $this->defaultIncludes[] = $parentKey;
+                $this->overwrideDefaultIncludes = true;
+            }
+        }
     }
 
     /**
