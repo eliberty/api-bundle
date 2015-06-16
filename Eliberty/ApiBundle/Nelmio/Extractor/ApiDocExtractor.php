@@ -135,7 +135,8 @@ class ApiDocExtractor extends BaseApiDocExtractor
         $this->transformerHelper->setClassMetadataFactory($normailzer->getClassMetadataFactory());
 
         $request = $this->container->get('request');
-        $paramsRoute      = !is_null($request) ? $request->attributes->get('_route_params') : "v2";
+        $paramsRoute      = $router->match($request->getPathInfo());
+
         $this->versionApi = isset($paramsRoute['version']) ? $paramsRoute['version'] : 'v2';
 
         if (strtolower($this->versionApi) === 'v1') {
