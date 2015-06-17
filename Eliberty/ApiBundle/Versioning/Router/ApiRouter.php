@@ -6,6 +6,7 @@ use Symfony\Bundle\FrameworkBundle\Routing\Router;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\AcceptHeader;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\Exception\MethodNotAllowedException;
 use Symfony\Component\Routing\Exception\ResourceNotFoundException;
 use Symfony\Component\Routing\Matcher\RequestMatcherInterface;
@@ -15,6 +16,10 @@ use Symfony\Component\Routing\Matcher\RequestMatcherInterface;
  */
 class ApiRouter extends Router implements RequestMatcherInterface
 {
+    /**
+     * @var RequestStack
+     */
+    protected $requestStack;
     /**
      * @var string
      */
@@ -31,6 +36,7 @@ class ApiRouter extends Router implements RequestMatcherInterface
         parent::__construct($container, $resource, $options, $context);
         //http://urthen.github.io/2013/05/16/ways-to-version-your-api-part-2/
         $this->acceptHeader = "/application\/vnd.eliberty.api.+json/";
+        $this->requestStack = $container->get('request_stack');
     }
 
     /**
@@ -49,7 +55,7 @@ class ApiRouter extends Router implements RequestMatcherInterface
     public function matchRequest(Request $request)
     {
         $version = "v1";
-
+        $request = $this->requestStack->getCurrentRequest();
         $acceptHeader = AcceptHeader::fromString($request->headers->get('Accept'))->all();
         foreach ($acceptHeader as $acceptHeaderItem) {
             if ($acceptHeaderItem->hasAttribute('version')) {
@@ -62,6 +68,6 @@ class ApiRouter extends Router implements RequestMatcherInterface
 
         return $this->match($request->getPathInfo());
 
-//        return parent::matchRequest($request);
+        //return parent::matchRequest($request);
     }
 }
