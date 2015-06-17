@@ -1,9 +1,9 @@
 <?php
 
 /*
- * This file is part of the DunglasJsonLdApiBundle package.
+ * This file is part of the ElibertyBundle package.
  *
- * (c) Kévin Dunglas <dunglas@gmail.com>
+ * (c) philippe Vesin <pvesin@eliberty.fr>
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -17,7 +17,6 @@ use Dunglas\ApiBundle\Api\ResourceInterface;
 
 use Doctrine\Common\Persistence\ManagerRegistry;
 use Dunglas\ApiBundle\Api\IriConverterInterface;
-use Dunglas\ApiBundle\Doctrine\Orm\Filter\SearchFilter;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 
@@ -84,5 +83,13 @@ class EmbedFilter extends SearchFilter
         return isset($this->parameters['embed'])?$this->parameters['embed']:'';
     }
 
+    /**
+     * @return array|null
+     */
+    public function getProperties()
+    {
+        $property = parent::getProperties();
 
+        return !is_null($property) ? $this->properties : [];
+    }
 }

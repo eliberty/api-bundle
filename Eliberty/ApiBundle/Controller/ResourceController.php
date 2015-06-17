@@ -11,7 +11,10 @@
 
 namespace Eliberty\ApiBundle\Controller;
 
+use Doctrine\Common\Collections\Criteria;
 use Doctrine\Common\Inflector\Inflector;
+use Doctrine\ORM\PersistentCollection;
+use Dunglas\ApiBundle\Doctrine\Orm\Filter\FilterInterface;
 use Dunglas\ApiBundle\Doctrine\Orm\Paginator;
 use Dunglas\ApiBundle\Doctrine\Orm\SearchFilter as Filter;
 use Dunglas\ApiBundle\Event\Events;
@@ -378,7 +381,34 @@ class ResourceController extends BaseResourceController
 
         $object = $this->findOrThrowNotFound($resource, $id);
 
-        $data = $propertyAccessor->getValue($object, $embed);
+        $data = $propertyAccessor->getValue($object, $resourceEmbed->shortName);
+
+        if ($data instanceof PersistentCollection) {
+            $orderBy      = $request->get('orderby', null);
+            $orderBy  = $orderBy ? (array) json_decode(str_replace('=', ':', $orderBy)) : ["id" => Criteria::ASC];
+
+            $criteria = Criteria::create()
+                ->orderBy($orderBy);
+
+            foreach ($resourceEmbed->getFilters() as $filter) {
+                if ($filter instanceof FilterInterface) {
+                    foreach ($filter->getProperties() as $name => $precision) {
+                        $dataRequest = $request->get($name, null);
+                        if (!is_null($dataRequest)) {
+                            $expCriterial = Criteria::expr();
+                            $classMeta =  $this->get('doctrine.orm.entity_manager')->getClassMetadata($resourceEmbed->getEntityClass());
+                            if ($classMeta->hasAssociation($name)) {
+                                $whereCriteria = $expCriterial->in($name, [$dataRequest]);
+                            } else {
+                                $whereCriteria = $precision === 'exact' ? $expCriterial->equal($name, $dataRequest) : $expCriterial->contains($name, $dataRequest);
+                            }
+                            $criteria->where($whereCriteria);
+                        }
+                    }
+                }
+            }
+            $data = $data->matching($criteria);
+        }
 
         $dataPaginator = new ArrayPaginator(new ArrayAdapter($data->toArray()), $request);
 

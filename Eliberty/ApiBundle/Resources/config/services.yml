@@ -123,3 +123,11 @@ services:
                 - @doctrine.orm.entity_manager
                 - @form.registry
 
+        api.doctrine.orm.search_filter:
+            class: Eliberty\ApiBundle\Doctrine\Orm\SearchFilter
+            public: false
+            abstract: true
+            arguments:
+                - @doctrine
+                - @api.iri_converter
+                - @property_accessor

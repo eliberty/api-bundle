@@ -1,5 +1,12 @@
 <?php
-
+/*
+ * This file is part of the ElibertyApiBundle package.
+ *
+ * (c) Vesin Philippe <pvesin@eliberty.fr>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
 namespace Eliberty\ApiBundle\Api;
 
 use Dunglas\ApiBundle\Api\Filter\FilterInterface;
@@ -43,7 +50,7 @@ class Resource implements ResourceInterface
     /**
      * @var string|null
      */
-    protected $shortName;
+    public $shortName;
 
     /**
      * @var ResourceConfigInterface

@@ -114,13 +114,14 @@ class Router implements RouterInterface
                         $parameters['id'] = $this->propertyAccessor->getValue($name, 'id');
                     }
 
-                    if (null !== $resource->getParent()) {
+                    if (null !== $resource->getParent() && !isset($parameters[$resource->getParentName()])) {
                         $parentResource = $resource->getParent();
                         $parentObject = $this->propertyAccessor->getValue(
                             $name,
                             $resource->getParentName()
                         );
-                        $parameters = array_merge($parameters, $parentResource->getRouteKeyParams($parentObject));
+                        $parentParams = $parentResource->getRouteKeyParams($parentObject);
+                        $parameters = array_merge($parentParams, $parameters);
                     }
                     $name = $this->getItemRouteName($resource);
                 }
