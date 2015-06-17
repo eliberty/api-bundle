@@ -95,6 +95,21 @@ class DataProvider implements DataProviderInterface
      */
     public function getCollection(ResourceInterface $resource, Request $request)
     {
+        $queryBuilder = $this->getQueryBuilderForCollection($resource, $request);
+
+        return new Paginator(new DoctrineOrmPaginator($queryBuilder));
+    }
+
+    /**
+     * created querybuilder
+     *
+     * @param ResourceInterface $resource
+     * @param Request $request
+     * @return mixed
+     */
+    public function getQueryBuilderForCollection(ResourceInterface $resource, Request $request)
+    {
+
         $entityClass = $resource->getEntityClass();
 
         $manager = $this->managerRegistry->getManagerForClass($resource->getEntityClass());
@@ -106,7 +121,6 @@ class DataProvider implements DataProviderInterface
         if ($this->enableClientRequestItemsPerPage && $requestedItemsPerPage = $request->get($this->itemsPerPageParameter)) {
             $itemsPerPage = (int) $requestedItemsPerPage;
         }
-
         $queryBuilder = $repository
             ->createQueryBuilder('o')
             ->setFirstResult(($page - 1) * $itemsPerPage)
@@ -128,7 +142,7 @@ class DataProvider implements DataProviderInterface
             }
         }
 
-        return new Paginator(new DoctrineOrmPaginator($queryBuilder));
+        return $queryBuilder;
     }
 
     /**
