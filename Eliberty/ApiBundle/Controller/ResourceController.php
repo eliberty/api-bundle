@@ -358,6 +358,8 @@ class ResourceController extends BaseResourceController
         $embedShortname = ucwords(Inflector::singularize($embed));
         $resourceEmbed  = $this->get('api.resource_collection')->getResourceForShortName($embedShortname);
 
+        $em = $this->get('doctrine.orm.entity_manager');
+
         $iriConverter = $this->get('api.iri_converter');
 
         $managerRegister = $this->get('doctrine');
@@ -381,7 +383,11 @@ class ResourceController extends BaseResourceController
 
         $object = $this->findOrThrowNotFound($resource, $id);
 
-        $data = $propertyAccessor->getValue($object, $resourceEmbed->shortName);
+        $parentClassMeta =  $em->getClassMetadata($resource->getEntityClass());
+
+        $propertyName = $parentClassMeta->hasAssociation($embed) ? $embed : $resourceEmbed->shortName;
+
+        $data = $propertyAccessor->getValue($object, $propertyName);
 
         if ($data instanceof PersistentCollection) {
             $orderBy      = $request->get('orderby', null);
@@ -396,8 +402,8 @@ class ResourceController extends BaseResourceController
                         $dataRequest = $request->get($name, null);
                         if (!is_null($dataRequest)) {
                             $expCriterial = Criteria::expr();
-                            $classMeta =  $this->get('doctrine.orm.entity_manager')->getClassMetadata($resourceEmbed->getEntityClass());
-                            if ($classMeta->hasAssociation($name)) {
+                            $embedClassMeta =  $em->getClassMetadata($resourceEmbed->getEntityClass());
+                            if ($embedClassMeta->hasAssociation($name)) {
                                 $whereCriteria = $expCriterial->in($name, [$dataRequest]);
                             } else {
                                 $whereCriteria = $precision === 'exact' ? $expCriterial->equal($name, $dataRequest) : $expCriterial->contains($name, $dataRequest);
