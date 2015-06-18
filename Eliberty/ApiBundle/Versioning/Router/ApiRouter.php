@@ -55,6 +55,7 @@ class ApiRouter extends Router implements RequestMatcherInterface
     public function matchRequest(Request $request)
     {
         $version = "v1";
+
         $request = $this->requestStack->getCurrentRequest();
         $acceptHeader = AcceptHeader::fromString($request->headers->get('Accept'))->all();
         foreach ($acceptHeader as $acceptHeaderItem) {
@@ -64,7 +65,12 @@ class ApiRouter extends Router implements RequestMatcherInterface
             }
         }
 
-        $this->getContext()->setApiVersion($version);
+        /*
+         * @TODO check if always necessary
+         */
+        $context = new RequestContext($request->getUri(), $request->getMethod());
+        $context->setApiVersion($version);
+        $this->setContext($context);
 
         return $this->match($request->getPathInfo());
 
