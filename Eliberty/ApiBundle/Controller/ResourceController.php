@@ -390,9 +390,11 @@ class ResourceController extends BaseResourceController
         $data = $propertyAccessor->getValue($object, $propertyName);
 
         if ($data instanceof PersistentCollection) {
+            $embedClassMeta =  $em->getClassMetadata($resourceEmbed->getEntityClass());
+            $embedIdentifiers = $embedClassMeta->getIdentifier();
+            $embedIdentifier = is_array($embedIdentifiers) && count($embedIdentifiers) > 0 ? array_shift($embedIdentifiers) : 'id';
             $orderBy      = $request->get('orderby', null);
-            $orderBy  = $orderBy ? (array) json_decode(str_replace('=', ':', $orderBy)) : ["id" => Criteria::ASC];
-
+            $orderBy  = $orderBy ? (array) json_decode(str_replace('=', ':', $orderBy)) : [$embedIdentifier => Criteria::ASC];
             $criteria = Criteria::create()
                 ->orderBy($orderBy);
 
@@ -402,7 +404,6 @@ class ResourceController extends BaseResourceController
                         $dataRequest = $request->get($name, null);
                         if (!is_null($dataRequest)) {
                             $expCriterial = Criteria::expr();
-                            $embedClassMeta =  $em->getClassMetadata($resourceEmbed->getEntityClass());
                             if ($embedClassMeta->hasAssociation($name)) {
                                 $whereCriteria = $expCriterial->in($name, [$dataRequest]);
                             } else {

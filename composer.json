@@ -15,7 +15,8 @@
         "nelmio/cors-bundle": "1.4.0",
         "nelmio/api-doc-bundle": "2.9.0",
         "league/fractal": "0.12.*@dev",
-        "dunglas/api-bundle": "1.0.0-beta"
+        "dunglas/api-bundle": "1.0.0-beta",
+        "white-october/pagerfanta-bundle": "v1.0.2"
     },
     "extra": {
     },
