@@ -54,6 +54,10 @@ class ApiRouter extends Router implements RequestMatcherInterface
      */
     public function matchRequest(Request $request)
     {
+        if (is_null($this->requestStack->getCurrentRequest())) {
+            return parent::matchRequest($request);
+        }
+
         $version = "v1";
 
         $request = $this->requestStack->getCurrentRequest();
@@ -69,11 +73,11 @@ class ApiRouter extends Router implements RequestMatcherInterface
          * @TODO check if always necessary
          */
         $context = $this->getContext();
+
         $context->setMethod($request->getMethod());
         $context->setApiVersion($version);
 
         return $this->match($request->getPathInfo());
 
-        //return parent::matchRequest($request);
     }
 }
