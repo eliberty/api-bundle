@@ -96,6 +96,11 @@ class ApiDocExtractor extends BaseApiDocExtractor
     protected $attributesValidationParser = [];
 
     /**
+     * @var array|mixed
+     */
+    protected $nelmioDocStandardVersion = [];
+
+    /**
      * @param ContainerInterface $container
      * @param RouterInterface $router
      * @param Reader $reader
@@ -132,23 +137,42 @@ class ApiDocExtractor extends BaseApiDocExtractor
         $this->resourceCollection = $resourceCollection;
         $this->normailzer         = $normailzer;
 
-        $this->transformerHelper->setClassMetadataFactory($normailzer->getClassMetadataFactory());
+        $nelmioDocStandard = $this->container->hasParameter('nelmio.extractor.standard.api.version');
 
-        $request = $this->container->get('request');
-        $paramsRoute      = $router->match($request->getPathInfo());
-
-        $this->versionApi = isset($paramsRoute['version']) ? $paramsRoute['version'] : 'v2';
-
-        if (strtolower($this->versionApi) === 'v1') {
-            $annotationsProviders = [];
+        if ($nelmioDocStandard) {
+            $this->nelmioDocStandardVersion = $this->container->getParameter('nelmio.extractor.standard.api.version');
         }
 
+        $this->transformerHelper->setClassMetadataFactory($normailzer->getClassMetadataFactory());
+
         $this->annotationsProviders = $annotationsProviders;
+        $this->setVersionApiDoc();
+
+        if (in_array(strtolower($this->versionApi), $this->nelmioDocStandardVersion)) {
+            $annotationsProviders = [];
+        }
 
         parent::__construct($container, $router, $reader, $commentExtractor, $controllerNameParser, $handlers, $annotationsProviders);
         $this->registry = $registry;
         $this->controllerNameParser = $controllerNameParser;
         $this->entityManager = $entityManager;
+    }
+
+    /**
+     * set version of api doc
+     */
+    protected function setVersionApiDoc()
+    {
+        $request = $this->container->get('request');
+        $paramsRoute      = $this->router->match($request->getPathInfo());
+
+        $this->versionApi = isset($paramsRoute['version']) ? $paramsRoute['version'] : null;
+        if (isset($paramsRoute['view']) && is_null($this->versionApi)) {
+            $this->versionApi = $paramsRoute['view'];
+        }
+        if (is_null($this->versionApi)) {
+            $this->versionApi = 'v2';
+        }
     }
 
     /**
@@ -187,8 +211,9 @@ class ApiDocExtractor extends BaseApiDocExtractor
         $resources       = array();
         $excludeSections = $this->container->getParameter('nelmio_api_doc.exclude_sections');
 
-        if (strtolower($this->versionApi) === 'v1')
+        if (in_array(strtolower($this->versionApi), $this->nelmioDocStandardVersion)) {
             return parent::extractAnnotations($routes, $view);
+        }
 
         $this->transformerHelper->setVersion($this->versionApi);
 
@@ -437,7 +462,7 @@ class ApiDocExtractor extends BaseApiDocExtractor
      */
     protected function extractData(ApiDoc $annotation, Route $route, \ReflectionMethod $method, DunglasResource $dunglasResource = null)
     {
-        if (strtolower($this->versionApi) === 'v1') {
+        if (in_array(strtolower($this->versionApi), $this->nelmioDocStandardVersion)) {
             return parent::extractData($annotation, $route, $method);
         }
 
@@ -572,7 +597,7 @@ class ApiDocExtractor extends BaseApiDocExtractor
 
     protected function normalizeClassParameter($input, DunglasResource $resource = null)
     {
-        if (strtolower($this->versionApi) === 'v1') {
+        if (in_array(strtolower($this->versionApi), $this->nelmioDocStandardVersion)) {
             return parent::normalizeClassParameter($input);
         }
 
