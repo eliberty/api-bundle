@@ -34,10 +34,9 @@ class ApiRouter extends Router implements RequestMatcherInterface
     public function __construct(ContainerInterface $container, $resource, array $options = array(), RequestContext $context = null)
     {
         parent::__construct($container, $resource, $options, $context);
-        //http://urthen.github.io/2013/05/16/ways-to-version-your-api-part-2/
         $this->acceptHeader = "/application\/vnd.eliberty.api.+json/";
         $this->requestStack = $container->get('request_stack');
-//        $this->getContext()->setApiVersion('v1');
+
     }
 
     /**
@@ -46,7 +45,18 @@ class ApiRouter extends Router implements RequestMatcherInterface
     public function match($pathinfo)
     {
         $this->setApiVersion();
-        return $this->getMatcher()->match($pathinfo);
+        return parent::match($pathinfo);
+    }
+
+    /**
+     * @param Request $request
+     * @return array
+     */
+    public function matchRequest(Request $request)
+    {
+        $this->setApiVersion();
+
+        return parent::matchRequest($request);
     }
 
     /**
@@ -54,6 +64,10 @@ class ApiRouter extends Router implements RequestMatcherInterface
      */
     public function setApiVersion()
     {
+        if (!is_null($this->getContext()->getApiVersion())) {
+            return false;
+        }
+
         $version = "v1";
 
         $request = $this->requestStack->getCurrentRequest();
