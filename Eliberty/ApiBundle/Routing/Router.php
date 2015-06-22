@@ -242,7 +242,7 @@ class Router implements RouterInterface
                if (!is_null($parentScope->getDunglasResource()->getEmbedOperation())) {
                    $parentParameters = $parentScope->getDunglasResource()->getRouteKeyParams($parentScope->getData());
                    $parameters['embed'] = $this->getScope()->getSingleIdentifier();
-                   $parameters['id'] = $parentParameters['id'];
+                   $parameters['id'] = isset($parentParameters['id']) ? $parentParameters['id'] : $parentScope->getData()->getId();
                    return $parentScope->getDunglasResource()->getEmbedOperation()->getRouteName();
                }
            }
