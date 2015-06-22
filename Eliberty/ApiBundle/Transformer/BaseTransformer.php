@@ -158,68 +158,68 @@ class BaseTransformer extends TransformerAbstract
 //        return $resource;
     }
 
-    /**
-     * @param $collection
-     * @param $uri
-     * @param array $optionEmbed
-     *
-     * @return PagerfantaPaginatorAdapter
-     */
-    public function getAdapter($collection, $uri, $optionEmbed = [])
-    {
-        $currentEmbed = $this->getEmbed();
-
-        $adapter = new PagerfantaPaginatorAdapter($collection, function ($page) use ($uri, $optionEmbed, $currentEmbed) {
-            $i      = 0;
-            $search = $replace = $currentEmbed;
-            foreach ($optionEmbed as $property => $value) {
-                if ($i === 0) {
-                    $replace = $replace.'{';
-                    $search  = $search.'{';
-                }
-                $i++;
-
-                //find the last carac for build new option
-                $endStr  = (count($optionEmbed) !== $i) ? ',' : '}';
-                $search  = $search.'"'.trim($property).'"='.trim($value).$endStr;
-                $prefixe = $replace.'"'.trim($property).'"=';
-
-                $replace = ($property === 'page') ?
-                    $prefixe.$page.$endStr :
-                    $prefixe.trim($value).$endStr;
-            }
-
-            if (empty($optionEmbed)) {
-                $search = $search.'{}';
-            }
-
-            //check if property page not existing add
-            if (!isset($optionEmbed['page'])) {
-                $replace = $replace !== $currentEmbed ?
-                    str_replace('}', ',"page"='.$page.'}', $replace) :
-                    $replace.'{"page"='.$page.'}';
-            }
-
-            //delete white space into uri
-            $uriBaseTrim = str_replace(' ', '', $uri);
-            //check if i find data int uri
-            $isFind = preg_match('/[=|,]'.$search.'[,|{|&]/', $uriBaseTrim, $matches);
-
-            //if embed is find
-            if ((bool) $isFind && !empty($matches)) {
-                $currentMatch   = array_shift($matches);
-                $prefixeReplace = substr($currentMatch, 0, 1);
-                $sufixeReplace  = substr($currentMatch, (strlen($currentMatch) - 1), 1);
-                $uriBaseTrim    = str_replace($currentMatch, $prefixeReplace.$replace.$sufixeReplace, $uriBaseTrim);
-
-                return urldecode($uriBaseTrim);
-            }
-
-            return urldecode(str_replace($search, $replace, $uriBaseTrim));
-        });
-
-        return $adapter;
-    }
+//    /**
+//     * @param $collection
+//     * @param $uri
+//     * @param array $optionEmbed
+//     *
+//     * @return PagerfantaPaginatorAdapter
+//     */
+//    public function getAdapter($collection, $uri, $optionEmbed = [])
+//    {
+//        $currentEmbed = $this->getEmbed();
+//
+//        $adapter = new PagerfantaPaginatorAdapter($collection, function ($page) use ($uri, $optionEmbed, $currentEmbed) {
+//            $i      = 0;
+//            $search = $replace = $currentEmbed;
+//            foreach ($optionEmbed as $property => $value) {
+//                if ($i === 0) {
+//                    $replace = $replace.'{';
+//                    $search  = $search.'{';
+//                }
+//                $i++;
+//
+//                //find the last carac for build new option
+//                $endStr  = (count($optionEmbed) !== $i) ? ',' : '}';
+//                $search  = $search.'"'.trim($property).'"='.trim($value).$endStr;
+//                $prefixe = $replace.'"'.trim($property).'"=';
+//
+//                $replace = ($property === 'page') ?
+//                    $prefixe.$page.$endStr :
+//                    $prefixe.trim($value).$endStr;
+//            }
+//
+//            if (empty($optionEmbed)) {
+//                $search = $search.'{}';
+//            }
+//
+//            //check if property page not existing add
+//            if (!isset($optionEmbed['page'])) {
+//                $replace = $replace !== $currentEmbed ?
+//                    str_replace('}', ',"page"='.$page.'}', $replace) :
+//                    $replace.'{"page"='.$page.'}';
+//            }
+//
+//            //delete white space into uri
+//            $uriBaseTrim = str_replace(' ', '', $uri);
+//            //check if i find data int uri
+//            $isFind = preg_match('/[=|,]'.$search.'[,|{|&]/', $uriBaseTrim, $matches);
+//
+//            //if embed is find
+//            if ((bool) $isFind && !empty($matches)) {
+//                $currentMatch   = array_shift($matches);
+//                $prefixeReplace = substr($currentMatch, 0, 1);
+//                $sufixeReplace  = substr($currentMatch, (strlen($currentMatch) - 1), 1);
+//                $uriBaseTrim    = str_replace($currentMatch, $prefixeReplace.$replace.$sufixeReplace, $uriBaseTrim);
+//
+//                return urldecode($uriBaseTrim);
+//            }
+//
+//            return urldecode(str_replace($search, $replace, $uriBaseTrim));
+//        });
+//
+//        return $adapter;
+//    }
 
     /**
      * Create a new item resource object.
@@ -321,7 +321,6 @@ class BaseTransformer extends TransformerAbstract
      */
     protected function getEmbedsWithParentEmbed($splitEmbedOption)
     {
-
         foreach ($splitEmbedOption as $embed => $options) {
             $scopeEmbed = explode('.', $embed);
             if (count($scopeEmbed) === 1) {
@@ -348,7 +347,7 @@ class BaseTransformer extends TransformerAbstract
     public function setRequest(Request $request = null)
     {
         $this->request = $request;
-        $this->setParamRequestEmbed();
+        //$this->setParamRequestEmbed();
 
         if (null !== $request) {
             $this->uri     = $this->request->getPathInfo();
@@ -363,7 +362,7 @@ class BaseTransformer extends TransformerAbstract
     public function setParamRequestEmbed()
     {
         if ($this->request) {
-            $this->requestEmbed = $this->request->get('embed');
+            $this->requestEmbed = $this->request->query->get('embed');
             $this->setEmbeds($this->getEmbeds($this->requestEmbed));
         }
 
