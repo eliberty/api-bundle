@@ -18,6 +18,8 @@ use Dunglas\ApiBundle\Doctrine\Orm\Filter\FilterInterface;
 use Dunglas\ApiBundle\Doctrine\Orm\Paginator;
 use Dunglas\ApiBundle\Doctrine\Orm\SearchFilter as Filter;
 use Dunglas\ApiBundle\Event\Events;
+use Eliberty\ApiBundle\Api\ResourceConfig;
+use Eliberty\ApiBundle\Api\ResourceConfigInterface;
 use Eliberty\ApiBundle\Doctrine\Orm\ArrayPaginator;
 use Nelmio\ApiDocBundle\Annotation\ApiDoc;
 use Dunglas\ApiBundle\Event\DataEvent;
@@ -386,6 +388,11 @@ class ResourceController extends BaseResourceController
         $parentClassMeta =  $em->getClassMetadata($resource->getEntityClass());
 
         $propertyName = $parentClassMeta->hasAssociation($embed) ? $embed : $resourceEmbed->shortName;
+
+        if (!is_null($resource->getEmbedAlias($embed))) {
+            $propertyName = $resource->getEmbedAlias($embed);
+        }
+
 
         $data = $propertyAccessor->getValue($object, $propertyName);
 

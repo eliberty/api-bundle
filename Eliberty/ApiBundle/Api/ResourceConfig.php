@@ -46,9 +46,14 @@ class ResourceConfig implements ResourceConfigInterface
 
     /**
      * @var []
-     * key (shortname => string, parentName => string, routerKey => [])
+     * key (shortname => string, parentName => string, routerKey => [], 'embeds' => []')
      */
     private $options;
+
+    /**
+     * @var []
+     */
+    private $embeds;
 
     /**
      * @var array
@@ -93,6 +98,10 @@ class ResourceConfig implements ResourceConfigInterface
 
         if (isset($this->options['listener'])) {
             $this->listener = $this->options['listener'];
+        }
+
+        if (isset($this->options['embeds'])) {
+            $this->embeds = $this->options['embeds'];
         }
 
         return $this;
@@ -161,5 +170,16 @@ class ResourceConfig implements ResourceConfigInterface
     public function getRouteKeyParams()
     {
         return $this->routeKeyParams;
+    }
+
+    /**
+     * @param $alias
+     * @return null
+     */
+    public function getEmbedAlias($alias) {
+        if ($this->embeds[$alias]) {
+            return $this->embeds[$alias];
+        }
+        return null;
     }
 }

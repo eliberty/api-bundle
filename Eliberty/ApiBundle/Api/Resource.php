@@ -337,6 +337,18 @@ class Resource implements ResourceInterface
     }
 
     /**
+     * @return array
+     */
+    public function getEmbedAlias($embed)
+    {
+        if ($this->config instanceof ResourceConfigInterface) {
+            return $this->config->getEmbedAlias($embed);
+        }
+
+        return null;
+    }
+
+    /**
      * @return ResourceInterface
      */
     public function getParent()
