@@ -36,6 +36,10 @@ class Scope extends BaseFractalScope
     protected $dunglasResource;
 
     /**
+     * @var TransformerAbstract
+     */
+    protected $transformer;
+    /**
      * @var array
      */
     protected $data;
@@ -112,7 +116,12 @@ class Scope extends BaseFractalScope
                     $dunglasParentResource = $this->dunglasResource->getParent();
                     $parameters = $dunglasParentResource->getRouteKeyParams($this->getParent()->getData());
                 }
-                $route = $this->getGenerateRoute($this->dunglasResource, $parameters);
+                try {
+                    $route = $this->getGenerateRoute($this->dunglasResource, $parameters);
+                } catch (\Exception $e) {
+                   // var_dump($e);exit;
+                    $route = $e->getMessage();
+                }
             }
             $data['@id'] = $route;
         }
@@ -146,6 +155,13 @@ class Scope extends BaseFractalScope
         $data = array_merge($data, $this->serializeResource($serializer, $rawData));
 
         return $data;
+    }
+
+    /**
+     * check if scope has parent
+     */
+    protected function hasParent() {
+        return ($this->parent instanceof Scope);
     }
 
     /**
@@ -238,7 +254,7 @@ class Scope extends BaseFractalScope
      */
     protected function fireTransformer($transformer, $data)
     {
-
+        $this->transformer = $transformer;
         $includedData = [];
         $transformedData = [];
 
@@ -358,6 +374,8 @@ class Scope extends BaseFractalScope
      */
     protected function getGenerateRoute($data, $params = [])
     {
+        $this->manager->getRouter()->setScope($this);
+
         return $this->manager->getRouter()->generate($data, $params);
     }
 
@@ -390,7 +408,7 @@ class Scope extends BaseFractalScope
     }
 
     /**
-     * @return mixed
+     * @return scope
      */
     public function getParent()
     {
@@ -410,6 +428,15 @@ class Scope extends BaseFractalScope
     }
 
     /**
+     * @return DunglasResource
+     */
+    public function getDunglasResource()
+    {
+        return $this->dunglasResource;
+    }
+
+
+    /**
      * Determine if a transformer has any available includes.
      *
      * @internal
@@ -425,5 +452,13 @@ class Scope extends BaseFractalScope
         }
 
         return parent::transformerHasIncludes($transformer);
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getSingleIdentifier() {
+        $identifiers = explode('.', $this->getIdentifier());
+        return array_pop($identifiers);
     }
 }

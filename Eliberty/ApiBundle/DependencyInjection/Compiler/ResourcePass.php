@@ -44,12 +44,12 @@ class ResourcePass implements CompilerPassInterface
                 ]]);
             }
 
-            if (!$resourceDefinition->hasMethodCall('addCollectionOperation')) {
-                $resourceDefinition->addMethodCall('initCollectionOperations', [[
-                    $this->createOperation($container, $serviceId, 'GET', true),
-                    $this->createOperation($container, $serviceId, 'POST', true),
-                ]]);
-            }
+//            if (!$resourceDefinition->hasMethodCall('addCollectionOperation')) {
+//                $resourceDefinition->addMethodCall('initCollectionOperations', [[
+//                    //$this->createOperation($container, $serviceId, 'GET', true),
+//                    //$this->createOperation($container, $serviceId, 'POST', true),
+//                ]]);
+//            }
 
             //$resourceCollectionDefinition->addMethodCall('addResource', [new Reference($serviceId)]);
         }

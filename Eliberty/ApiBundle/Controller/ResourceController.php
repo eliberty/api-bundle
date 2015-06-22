@@ -415,13 +415,12 @@ class ResourceController extends BaseResourceController
                 }
             }
             $data = $data->matching($criteria);
+            $data = new ArrayPaginator(new ArrayAdapter($data->toArray()), $request);
         }
 
-        $dataPaginator = new ArrayPaginator(new ArrayAdapter($data->toArray()), $request);
+        $this->get('event_dispatcher')->dispatch(Events::RETRIEVE_LIST, new DataEvent($resourceEmbed, $data));
 
-        $this->get('event_dispatcher')->dispatch(Events::RETRIEVE_LIST, new DataEvent($resourceEmbed, $dataPaginator));
-
-        return $this->getSuccessResponse($resourceEmbed, $dataPaginator);
+        return $this->getSuccessResponse($resourceEmbed, $data);
     }
 
     /**

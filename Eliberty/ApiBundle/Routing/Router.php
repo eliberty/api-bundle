@@ -11,10 +11,12 @@
 
 namespace Eliberty\ApiBundle\Routing;
 
-use Doctrine\Common\Util\Inflector;
+use Doctrine\Common\Inflector\Inflector;
 use Dunglas\ApiBundle\Api\ResourceCollectionInterface;
 use Dunglas\ApiBundle\Api\ResourceInterface;
+use Eliberty\ApiBundle\Api\Resource;
 use Eliberty\ApiBundle\Doctrine\Orm\MappingsFilter;
+use Eliberty\ApiBundle\Fractal\Scope;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 use Symfony\Component\Routing\RequestContext;
@@ -43,6 +45,11 @@ class Router implements RouterInterface
      * @var PropertyAccessorInterface
      */
     private $propertyAccessor;
+
+    /**
+     * @var Scope
+     */
+    protected $scope;
 
     public function __construct(
         RouterInterface $router,
@@ -79,6 +86,26 @@ class Router implements RouterInterface
         $this->router->getRouteCollection();
     }
 
+    /**
+     * @return Scope
+     */
+    public function getScope()
+    {
+        return $this->scope;
+    }
+
+    /**
+     * @param Scope $scope
+     *
+     * @return $this
+     */
+    public function setScope($scope)
+    {
+        $this->scope = $scope;
+
+        return $this;
+    }
+
     /*
      * {@inheritdoc}
      */
@@ -99,32 +126,15 @@ class Router implements RouterInterface
         }
     }
 
-    /*
-     * {@inheritdoc}
+    /**
+     * generate route embed
      */
-    public function generate($name, $parameters = [], $referenceType = self::ABSOLUTE_PATH)
-    {
+    public function embedGenerateRoute($name, $parameters = [], $referenceType = self::ABSOLUTE_PATH) {
         if (is_object($name)) {
             if ($name instanceof ResourceInterface) {
                 $name = $this->getCollectionRouteName($name);
             } else {
-                if ($resource = $this->resourceCollection->getResourceForEntity($name)) {
-                    $parameters = $resource->getRouteKeyParams($name);
-                    if (empty($parameters)) {
-                        $parameters['id'] = $this->propertyAccessor->getValue($name, 'id');
-                    }
-
-                    if (null !== $resource->getParent() && !isset($parameters[$resource->getParentName()])) {
-                        $parentResource = $resource->getParent();
-                        $parentObject = $this->propertyAccessor->getValue(
-                            $name,
-                            $resource->getParentName()
-                        );
-                        $parentParams = $parentResource->getRouteKeyParams($parentObject);
-                        $parameters = array_merge($parentParams, $parameters);
-                    }
-                    $name = $this->getItemRouteName($resource);
-                }
+                $parameters = $this->getParamsByResource($name, true);
             }
         }
 
@@ -142,7 +152,42 @@ class Router implements RouterInterface
             try {
                 return $this->router->generate($name, $parameters, $referenceType);
             } catch (\Exception $e) {
-                var_dump($parameters);exit;
+                throw new \Exception($e->getMessage(), $e->getCode());
+            }
+
+        } finally {
+            $this->router->setContext($baseContext);
+        }
+    }
+
+    /*
+     * {@inheritdoc}
+     */
+    public function generate($name, $parameters = [], $referenceType = self::ABSOLUTE_PATH)
+    {
+        if (is_object($name)) {
+            if ($name instanceof ResourceInterface) {
+                $name = $this->getCollectionRouteName($name, $parameters);
+            } else {
+                $parameters = $this->getParamsByResource($name);
+            }
+        }
+
+        $baseContext = $this->router->getContext();
+
+        try {
+            $this->router->setContext(new RequestContext(
+                '',
+                'GET',
+                $baseContext->getHost(),
+                $baseContext->getScheme(),
+                $baseContext->getHttpPort(),
+                $baseContext->getHttpsPort()
+            ));
+            try {
+                return $this->router->generate($name, $parameters, $referenceType);
+            } catch (\Exception $e) {
+                throw new \Exception($e->getMessage(), $e->getCode());
             }
 
         } finally {
@@ -151,21 +196,64 @@ class Router implements RouterInterface
     }
 
     /**
+     * return params route
+     * @param $name
+     * @param bool $embed
+     * @return array
+     */
+    protected function getParamsByResource(&$name, $embed = false)
+    {
+        $parentResource = null;
+        if ($resource = $this->resourceCollection->getResourceForEntity($name)) {
+            $parameters = $resource->getRouteKeyParams($name);
+            if (empty($parameters)) {
+                $parameters['id'] = $this->propertyAccessor->getValue($name, 'id');
+            }
+
+            if (null !== $resource->getParent() && !isset($parameters[$resource->getParentName()])) {
+                $parentResource = $resource->getParent();
+                $parentObject = $this->propertyAccessor->getValue(
+                    $name,
+                    Inflector::singularize($resource->getParentName())
+                );
+                $parentParams = $parentResource->getRouteKeyParams($parentObject);
+                $parameters = array_merge($parentParams, $parameters);
+            }
+            $name = ($embed && $parentResource instanceof Resource)  ? $this->getEmbedRouteName($parentResource) : $this->getItemRouteName($resource);
+        }
+
+        return $parameters;
+    }
+
+    /**
      * Gets the collection route name for a resource.
      *
      * @param ResourceInterface $resource
      *
+     * @param $parameters
      * @return string
      */
-    private function getCollectionRouteName(ResourceInterface $resource)
+    private function getCollectionRouteName(ResourceInterface $resource, &$parameters)
     {
+        $operations = $resource->getCollectionOperations();
+        if ($this->getScope() instanceof Scope) {
+           if ($this->getScope()->getParent() instanceof Scope) {
+               $parentScope = $this->getScope()->getParent();
+               if (!is_null($parentScope->getDunglasResource()->getEmbedOperation())) {
+                   $parentParameters = $parentScope->getDunglasResource()->getRouteKeyParams($parentScope->getData());
+                   $parameters['embed'] = $this->getScope()->getSingleIdentifier();
+                   $parameters['id'] = $parentParameters['id'];
+                   return $parentScope->getDunglasResource()->getEmbedOperation()->getRouteName();
+               }
+           }
+        }
+
         $this->initRouteCache($resource);
 
         if (isset($this->routeCache[$resource]['collectionRouteName'])) {
             return $this->routeCache[$resource]['collectionRouteName'];
         }
 
-        $operations = $resource->getCollectionOperations();
         foreach ($operations as $operation) {
             if (in_array('GET', $operation->getRoute()->getMethods())) {
                 $data = $this->routeCache[$resource];
@@ -176,6 +264,8 @@ class Router implements RouterInterface
             }
         }
     }
+
+
 
     /**
      * Gets the item route name for a resource.
@@ -220,5 +310,25 @@ class Router implements RouterInterface
         if (!$this->routeCache->contains($resource)) {
             $this->routeCache[$resource] = [];
         }
+    }
+
+    /**
+     * @return boolean
+     */
+    public function isIsCollectionEmbed()
+    {
+        return $this->isCollectionEmbed;
+    }
+
+    /**
+     * @param boolean $isCollectionEmbed
+     *
+     * @return $this
+     */
+    public function setIsCollectionEmbed($isCollectionEmbed)
+    {
+        $this->isCollectionEmbed = $isCollectionEmbed;
+
+        return $this;
     }
 }

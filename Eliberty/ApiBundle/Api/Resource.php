@@ -12,6 +12,7 @@ namespace Eliberty\ApiBundle\Api;
 use Dunglas\ApiBundle\Api\Filter\FilterInterface;
 use Dunglas\ApiBundle\Api\Operation\OperationInterface;
 use Dunglas\ApiBundle\Api\ResourceInterface;
+use Doctrine\Common\Inflector\Inflector;
 
 /**
  * Class Resource
@@ -51,6 +52,11 @@ class Resource implements ResourceInterface
      * @var string|null
      */
     public $shortName;
+    /**
+     * embed operation
+     * @var Operation
+     */
+    protected $embedOperation;
 
     /**
      * @var ResourceConfigInterface
@@ -147,8 +153,18 @@ class Resource implements ResourceInterface
      */
     public function addEmbedOperation(OperationInterface $operation)
     {
+        $this->embedOperation = $operation;
         $this->itemOperations[] = $operation;
     }
+
+    /**
+     * @return Operation
+     */
+    public function getEmbedOperation()
+    {
+        return $this->embedOperation;
+    }
+
 
     /**
      * {@inheritdoc}
@@ -389,7 +405,7 @@ class Resource implements ResourceInterface
 
             $parrentGetter = 'get' . $this->getShortName();
             if (!is_null($this->getParent())) {
-                $parrentGetter = 'get' . $this->getParent()->getShortName();
+                $parrentGetter = 'get' . Inflector::singularize($this->getParent()->getShortName());
             }
 
             $parentData = $object->$parrentGetter();
