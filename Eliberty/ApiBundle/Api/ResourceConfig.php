@@ -177,7 +177,7 @@ class ResourceConfig implements ResourceConfigInterface
      * @return null
      */
     public function getEmbedAlias($alias) {
-        if ($this->embeds[$alias]) {
+        if (isset($this->embeds[$alias])) {
             return $this->embeds[$alias];
         }
         return null;
