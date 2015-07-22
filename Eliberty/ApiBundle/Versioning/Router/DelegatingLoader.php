@@ -41,6 +41,7 @@ class DelegatingLoader extends BaseDelegatingLoader
             if (!empty($output_array) && isset($output_array[1])) {
                 $apiVersion = $output_array[1];
                 $route->setCondition("context.getApiVersion() === '".$apiVersion."'");
+                $route->setMethods(array_merge($route->getMethods(), ['OPTIONS']));
             }
         }
 
