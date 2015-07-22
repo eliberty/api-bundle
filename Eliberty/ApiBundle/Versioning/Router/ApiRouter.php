@@ -72,7 +72,7 @@ class ApiRouter extends Router implements RequestMatcherInterface
         foreach ($acceptHeader as $acceptHeaderItem) {
             if ($acceptHeaderItem->hasAttribute('version')) {
                 $version = $acceptHeaderItem->getAttribute('version');
-                break;
+               break;
             }
         }
 

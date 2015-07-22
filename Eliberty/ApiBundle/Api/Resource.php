@@ -154,7 +154,7 @@ class Resource implements ResourceInterface
     public function addEmbedOperation(OperationInterface $operation)
     {
         $this->embedOperation = $operation;
-        $this->itemOperations[] = $operation;
+        //$this->itemOperations[] = $operation;
     }
 
     /**
