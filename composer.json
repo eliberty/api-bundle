@@ -12,7 +12,6 @@
     ],
     "require": {
         "php": ">=5.5.0",
-        "nelmio/cors-bundle": "1.4.0",
         "nelmio/api-doc-bundle": "2.9.0",
         "league/fractal": "0.12.*@dev",
         "dunglas/api-bundle": "1.0.0-beta.2",
