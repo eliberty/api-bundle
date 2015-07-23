@@ -65,6 +65,10 @@ class ApiRouter extends Router implements RequestMatcherInterface
     public function setApiVersion()
     {
 
+        if (!is_null($this->getContext()->getApiVersion())) {
+            return false;
+        }
+
         $version = "v1";
 
         $request = $this->requestStack->getCurrentRequest();
@@ -72,16 +76,14 @@ class ApiRouter extends Router implements RequestMatcherInterface
         foreach ($acceptHeader as $acceptHeaderItem) {
             if ($acceptHeaderItem->hasAttribute('version')) {
                 $version = $acceptHeaderItem->getAttribute('version');
-               break;
+                break;
             }
         }
 
         /*
          * @TODO check if always necessary
          */
-        $context = $this->getContext();
-        $context->setMethod($request->getMethod());
-        $context->setApiVersion($version);
-        $this->setContext($context);
+        $this->getContext()->setMethod($request->getMethod());
+        $this->getContext()->setApiVersion($version);
     }
 }

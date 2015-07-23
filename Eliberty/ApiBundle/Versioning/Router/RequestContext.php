@@ -8,7 +8,7 @@ class RequestContext extends BaseRequestContext
     /**
      * @var string
      */
-    private $apiVersion;
+    private $apiVersion = null;
 
     /**
      * Set the requested API version
