@@ -131,3 +131,12 @@ services:
                 - @doctrine
                 - @api.iri_converter
                 - @property_accessor
+
+        api.route_loader:
+            class: Eliberty\ApiBundle\Routing\ApiLoader
+            public: false
+            arguments:
+                - @api.resource_collection
+                - @kernel
+            tags:
+                - { name: routing.loader }
