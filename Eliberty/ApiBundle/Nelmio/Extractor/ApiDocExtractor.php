@@ -186,7 +186,7 @@ class ApiDocExtractor extends BaseApiDocExtractor
     {
         $routes = [];
         foreach ($this->router->getRouteCollection()->all() as $key => $route) {
-            if (strpos($key, 'api_'.$this->versionApi) !== false) {
+            if (strpos($key, 'api_'.$this->versionApi) !== false ) {
                 $routes[$key] = $route;
             }
         }
@@ -462,6 +462,14 @@ class ApiDocExtractor extends BaseApiDocExtractor
      */
     protected function extractData(ApiDoc $annotation, Route $route, \ReflectionMethod $method, DunglasResource $dunglasResource = null)
     {
+        //remove methode OPTIONS
+        $methods = $route->getMethods();
+        $optionIndex = array_search('OPTIONS', $methods);
+        if ($optionIndex !== false) {
+            unset($methods[$optionIndex]);
+            $route->setMethods($methods);
+        }
+
         if (in_array(strtolower($this->versionApi), $this->nelmioDocStandardVersion)) {
             return parent::extractData($annotation, $route, $method);
         }
