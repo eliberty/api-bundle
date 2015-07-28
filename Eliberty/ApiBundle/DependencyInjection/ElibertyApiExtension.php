@@ -25,5 +25,9 @@ class ElibertyApiExtension extends Extension
 
         $loader = new Loader\YamlFileLoader($container, new FileLocator(__DIR__.'/../Resources/config'));
         $loader->load('services.yml');
+
+        if (array_key_exists('NelmioApiDocBundle', $container->getParameter('kernel.bundles'))) {
+            $loader->load('apidoc.yml');
+        }
     }
 }
