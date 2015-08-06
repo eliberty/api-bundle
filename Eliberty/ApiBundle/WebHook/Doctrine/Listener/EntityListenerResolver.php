@@ -1,51 +1,68 @@
 <?php
 namespace Eliberty\ApiBundle\WebHook\Doctrine\Listener;
 
-use Doctrine\ORM\Mapping\DefaultEntityListenerResolver;
-use Symfony\Component\DependencyInjection\ContainerInterface;
+use Doctrine\ORM\Mapping\EntityListenerResolver as baseEntityListenerResolver;
 
-class EntityListenerResolver extends DefaultEntityListenerResolver
+/**
+ * Class EntityListenerResolver
+ * @package Eliberty\ApiBundle\WebHook\Doctrine\Listener
+ */
+class EntityListenerResolver implements baseEntityListenerResolver
 {
-    /**
-     * @var ContainerInterface
-     */
-    private $container;
 
     /**
      * @var
      */
-    private $mapping;
+    private $instances = [];
+
 
     /**
-     * @param ContainerInterface $container
+     * {@inheritdoc}
      */
-    public function __construct(ContainerInterface $container)
+    public function clear($className = null)
     {
-        $this->container = $container;
-        $this->mapping = array();
+        if ($className === null) {
+            $this->instances = array();
+
+            return;
+        }
+
+        if (isset($this->instances[$className = trim($className, '\\')])) {
+            unset($this->instances[$className]);
+        }
     }
 
     /**
-     * @param $className
+     * {@inheritdoc}
+     */
+    public function register($object)
+    {
+        if ( ! is_object($object)) {
+            throw new \InvalidArgumentException(sprintf('An object was expected, but got "%s".', gettype($object)));
+        }
+
+        $this->instances[get_class($object)] = $object;
+    }
+
+    /**
      * @param $service
+     * @param $class
      */
-    public function addMapping($className, $service)
+    public function addMapping($service, $class)
     {
-        $this->mapping[$className] = $service;
+        $this->instances[$class] = $service;
 
     }
 
     /**
-     * @param string $className
-     * @return object
+     * {@inheritdoc}
      */
     public function resolve($className)
     {
-
-        if (isset($this->mapping[$className]) && $this->container->has($this->mapping[$className])) {
-            return $this->container->get($this->mapping[$className]);
+        if (isset($this->instances[$className = trim($className, '\\')])) {
+            return $this->instances[$className];
         }
 
-        return parent::resolve($className);
+        return $this->instances[$className] = new $className();
     }
 }

@@ -89,7 +89,7 @@ class Scope extends BaseFractalScope
         // Don't use hydra:Collection in sub levels
         $context['json_ld_sub_level'] = true;
 
-        $this->dunglasResource = $this->getDunglasRessource();
+        $this->dunglasResource = $this->getDunglasResource();
 
         list($rawData, $rawIncludedData) = $this->executeResourceTransformers();
 
@@ -177,10 +177,12 @@ class Scope extends BaseFractalScope
         // Don't use hydra:Collection in sub levels
         $context['json_ld_sub_level'] = true;
 
-        $this->dunglasResource = $this->getDunglasRessource();
+        $this->dunglasResource = $this->getDunglasResource();
 
         $data = [];
-        $data['@context'] = $this->getContext($this->dunglasResource);
+        if ($this->dunglasResource instanceof DunglasResource) {
+            $data['@context'] = $this->getContext($this->dunglasResource);
+        }
 
         if (!$this->resource->getTransformer()->isChild()) {
             $data['@embed'] = implode(',', $this->resource->getTransformer()->getAvailableIncludes());
@@ -219,9 +221,18 @@ class Scope extends BaseFractalScope
     /**
      * @throws \Exception
      */
-    protected function getDunglasRessource()
+    public function getDunglasResource()
     {
-        $resource = $this->manager->getResourceCollection()->getResourceForShortName($this->getEntityName());
+        if (!is_null($this->dunglasResource)) {
+            return $this->dunglasResource;
+        }
+
+        $version = null;
+        if ($this->parent instanceof Scope && $this->parent->getDunglasResource() instanceof DunglasResource) {
+            $version = $this->parent->getDunglasResource()->getVersion();
+        }
+
+        $resource = $this->manager->getResourceCollection()->getResourceForShortName($this->getEntityName(), $version);
         if (null === $resource) {
             throw new \Exception('resource not found for entityname : '.$this->getEntityName());
         }
@@ -266,7 +277,9 @@ class Scope extends BaseFractalScope
 //            $this->dunglasResource->getEntityClass()
 //        );
         //$transformedData['@type'] =  ($iri = $classMetadata->getIri()) ? $iri : $this->getEntityName();
-        $transformedData['@type'] = $this->getEntityName();
+        if (!empty($this->getEntityName())) {
+            $transformedData['@type'] = $this->getEntityName();
+        }
 
         if (is_callable($transformer)) {
             $transformedData = array_merge($transformedData, call_user_func($transformer, $data));
@@ -428,15 +441,6 @@ class Scope extends BaseFractalScope
     }
 
     /**
-     * @return DunglasResource
-     */
-    public function getDunglasResource()
-    {
-        return $this->dunglasResource;
-    }
-
-
-    /**
      * Determine if a transformer has any available includes.
      *
      * @internal
@@ -461,4 +465,18 @@ class Scope extends BaseFractalScope
         $identifiers = explode('.', $this->getIdentifier());
         return array_pop($identifiers);
     }
+
+    /**
+     * @param DunglasResource $dunglasResource
+     *
+     * @return $this
+     */
+    public function setDunglasResource($dunglasResource)
+    {
+        $this->dunglasResource = $dunglasResource;
+
+        return $this;
+    }
+
+
 }

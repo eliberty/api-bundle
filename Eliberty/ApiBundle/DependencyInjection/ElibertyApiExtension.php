@@ -28,6 +28,8 @@ class ElibertyApiExtension extends Extension
 
         if (array_key_exists('NelmioApiDocBundle', $container->getParameter('kernel.bundles'))) {
             $loader->load('apidoc.yml');
+        } else {
+            $loader->load('api_prod.yml');
         }
     }
 }
