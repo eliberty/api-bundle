@@ -173,7 +173,9 @@ class Router implements RouterInterface
     protected function getParamsByResource(&$name, $type = 'item')
     {
         $parentResource = null;
-        if ($resource = $this->resourceCollection->getResourceForEntity($name)) {
+        $parameters = [];
+        $version = $this->getScope()->getDunglasResource()->getVersion();
+        if ($resource = $this->resourceCollection->getResourceForEntity($name, $version)) {
             $parameters = $resource->getRouteKeyParams($name);
             if (empty($parameters)) {
                 $parameters['id'] = $this->propertyAccessor->getValue($name, 'id');
