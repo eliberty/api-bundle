@@ -29,7 +29,7 @@ class WebHookListener implements EventSubscriberInterface
     /**
      * @var array
      */
-    private $configuration = [
+    protected $configuration = [
 //        'Acme\DemoBundle\Entity\Contact' => [
 //            'Listener' => 'Acme\DemoBundle\Doctrine\Listener\Entity\ContactListener',
 //            'Transformer' => 'Acme\DemoBundle\Transformer\Api\V1\ContactTransformer',
@@ -60,19 +60,19 @@ class WebHookListener implements EventSubscriberInterface
     /**
      * @var array
      */
-    private $updateData = [];
+    protected $updateData = [];
 
     /**
      * @var array
      */
-    private $persistData = [];
+    protected $persistData = [];
 
     /**
      * Logger.
      *
      * @var LoggerInterface
      */
-    private $logger;
+    protected $logger;
 
     /**
      * @var EntityManager
@@ -81,11 +81,11 @@ class WebHookListener implements EventSubscriberInterface
     /**
      * @var ResourceCollection
      */
-    private $resourceCollection;
+    protected $resourceCollection;
     /**
      * @var RequestStack
      */
-    private $requestStack;
+    protected $requestStack;
 
     /**
      * @param EntityManager $em
