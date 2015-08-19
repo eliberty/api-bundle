@@ -78,42 +78,49 @@ class ResourceCollection extends \ArrayObject implements ResourceCollectionInter
      */
     public function addResource($resource)
     {
+        $version = $resource->getVersion();
         $entityClass = $resource->getEntityClass();
-        if (isset($this->entityClassIndex[$this->version][$entityClass])) {
+        if (isset($this->entityClassIndex[$version][$entityClass])) {
             throw new \InvalidArgumentException(sprintf('A Resource class already exists for "%s".', $entityClass));
         }
 
         $shortName = $resource->getShortName();
-        if (isset($this->shortNameIndex[$this->version][$shortName])) {
+        if (isset($this->shortNameIndex[$version][$shortName])) {
             throw new \InvalidArgumentException(sprintf('A Resource class with the short name "%s" already exists.', $shortName));
         }
 
         $this->append($resource);
 
-        $this->entityClassIndex[$this->version][$entityClass] = $resource;
+        $this->entityClassIndex[$version][$entityClass] = $resource;
 
-        $this->shortNameIndex[$this->version][$shortName] = $resource;
+        $this->shortNameIndex[$version][$shortName] = $resource;
 
         foreach ($resource->getAlias() as $alias) {
             if (!class_exists($alias)) {
-                $this->shortNameIndex[$this->version][$alias] = $resource;
+                $this->shortNameIndex[$version][$alias] = $resource;
                 continue;
             }
-            $this->entityClassIndex[$this->version][$alias] = $resource;
+            $this->entityClassIndex[$version][$alias] = $resource;
         }
     }
+
     /**
      * @param object|string $entityClass
+     * @param null $version
      * @return ResourceInterface|null
      */
-    public function getResourceForEntity($entityClass)
+    public function getResourceForEntity($entityClass, $version = null)
     {
         if (is_object($entityClass)) {
             $entityClass = $this->getObjectClass($entityClass);
         }
 
-        if (isset($this->entityClassIndex[$this->version][$entityClass])) {
-            return $this->entityClassIndex[$this->version][$entityClass];
+        if (is_null($version)) {
+            $version = $this->version;
+        }
+
+        if (isset($this->entityClassIndex[$version][$entityClass])) {
+            return $this->entityClassIndex[$version][$entityClass];
         }
 
         return null;
@@ -122,12 +129,17 @@ class ResourceCollection extends \ArrayObject implements ResourceCollectionInter
 
     /**
      * @param string $shortName
+     * @param null $version
      * @return ResourceInterface|null
      */
-    public function getResourceForShortName($shortName)
+    public function getResourceForShortName($shortName, $version = null)
     {
-        if (isset($this->shortNameIndex[$this->version][$shortName])) {
-            return $this->shortNameIndex[$this->version][$shortName];
+        if (is_null($version)) {
+            $version = $this->version;
+        }
+
+        if (isset($this->shortNameIndex[$version][$shortName])) {
+            return $this->shortNameIndex[$version][$shortName];
         }
 
         return null;

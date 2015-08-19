@@ -21,8 +21,8 @@ class WebHookBaseListener
      * @param EventDispatcherInterface $eventDispatcher
      * @param LoggerInterface $logger
      */
-    public function __construct(EventDispatcherInterface $eventDispatcher, LoggerInterface $logger) {
-
+    public function __construct($eventDispatcher, $logger)
+    {
         $this->logger = $logger;
         $this->eventDispatcher = $eventDispatcher;
     }

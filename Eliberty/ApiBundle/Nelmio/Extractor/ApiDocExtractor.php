@@ -170,6 +170,7 @@ class ApiDocExtractor extends BaseApiDocExtractor
         if (isset($paramsRoute['view']) && is_null($this->versionApi)) {
             $this->versionApi = $paramsRoute['view'];
         }
+
         if (is_null($this->versionApi)) {
             $this->versionApi = 'v2';
         }
@@ -240,7 +241,7 @@ class ApiDocExtractor extends BaseApiDocExtractor
 
                     $path = $route->getPath();
                     if (false === strstr($path, '{embed}')) {
-                        $dunglasResource = $this->resourceCollection->getResourceForShortName($route->getDefault('_resource'));
+                        $dunglasResource = $this->resourceCollection->getResourceForShortName($route->getDefault('_resource'), $this->versionApi);
                         $array[]         = ['annotation' => $this->extractData($annotation, $route, $method, $dunglasResource)];
                         continue;
                     }
@@ -249,7 +250,7 @@ class ApiDocExtractor extends BaseApiDocExtractor
                     foreach ($availableIncludes as $include) {
                         $route->setPath(str_replace('{embed}', $include, $path));
                         $name            = Inflector::singularize($include);
-                        $dunglasResource = $this->resourceCollection->getResourceForShortName(ucfirst($name));
+                        $dunglasResource = $this->resourceCollection->getResourceForShortName(ucfirst($name), $this->versionApi);
                         $route->addDefaults(['_resource' => $dunglasResource->getShortName()]);
                         $array[] = ['annotation' => $this->extractData($annotation, $route, $method, $dunglasResource)];
                     }

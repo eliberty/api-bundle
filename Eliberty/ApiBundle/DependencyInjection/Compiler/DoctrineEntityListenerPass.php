@@ -3,18 +3,24 @@ namespace Eliberty\ApiBundle\DependencyInjection\Compiler;
 
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Reference;
 
+/**
+ * Class DoctrineEntityListenerPass
+ * @package Eliberty\ApiBundle\DependencyInjection\Compiler
+ */
 class DoctrineEntityListenerPass implements CompilerPassInterface
 {
+    /**
+     * @param ContainerBuilder $container
+     */
     public function process(ContainerBuilder $container)
     {
         $definition = $container->getDefinition('webhook.doctrine.entity_listener_resolver');
-
-        $services = $container->findTaggedServiceIds('doctrine.entity_listener');
-        foreach ($services as $service => $attributes) {
+        foreach ($container->findTaggedServiceIds('doctrine.entity_listener') as $serviceId => $tags) {
             $definition->addMethodCall(
                 'addMapping',
-                array($container->getDefinition($service)->getClass(), $service)
+                [new Reference($serviceId), $container->getDefinition($serviceId)->getClass()]
             );
         }
     }
