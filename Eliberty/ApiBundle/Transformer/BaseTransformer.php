@@ -516,4 +516,32 @@ class BaseTransformer extends TransformerAbstract
         $scope->setData($data);
         return parent::callIncludeMethod($scope, $includeName, $data);
     }
+
+    /**
+     * get the multi language for a entity and field
+     */
+    protected function getMutliLanguages($object, $field)
+    {
+        $dataResponse = [];
+
+        $defaultLocal = [$this->request->getDefaultLocale()];
+        $languages = $this->request->getLanguages();
+
+        $languages = array_merge($languages, $defaultLocal);
+
+        if (!$this->request->headers->get('e-languages-available', 0)) {
+            return $this->em->getClassMetadata(get_class($object))->getFieldValue($object, $field);
+        }
+
+        foreach ($languages as $lang) {
+            if (strlen($lang) > 2) {
+                continue;
+            }
+            $this->request->setLocale($lang);
+            $dataResponse[$lang] = $this->em->getClassMetadata(get_class($object))->getFieldValue($object, $field);
+        }
+
+        return $dataResponse;
+    }
+
 }
