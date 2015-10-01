@@ -440,23 +440,23 @@ class Scope extends BaseFractalScope
         return $this;
     }
 
-    /**
-     * Determine if a transformer has any available includes.
-     *
-     * @internal
-     *
-     * @param TransformerAbstract|callable $transformer
-     *
-     * @return bool
-     */
-    protected function transformerHasIncludes($transformer)
-    {
-        if ($this->getParent() instanceof Scope) {
-            return $transformer->overwrideDefaultIncludes;
-        }
-
-        return parent::transformerHasIncludes($transformer);
-    }
+//    /**
+//     * Determine if a transformer has any available includes.
+//     *
+//     * @internal
+//     *
+//     * @param TransformerAbstract|callable $transformer
+//     *
+//     * @return bool
+//     */
+//    protected function transformerHasIncludes($transformer)
+//    {
+////        if ($this->getParent() instanceof Scope) {
+////            return $transformer->overwrideDefaultIncludes;
+////        }
+//
+//        return parent::transformerHasIncludes($transformer);
+//    }
 
     /**
      * @return mixed
