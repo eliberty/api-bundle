@@ -27,12 +27,16 @@ class ApiRouter extends Router implements RequestMatcherInterface
 
     /**
      * @param ContainerInterface $container
-     * @param mixed              $resource
-     * @param array              $options
+     * @param mixed $resource
+     * @param array $options
      * @param RequestContext $context
      */
-    public function __construct(ContainerInterface $container, $resource, array $options = array(), RequestContext $context = null)
-    {
+    public function __construct(
+        ContainerInterface $container,
+        $resource,
+        array $options = array(),
+        RequestContext $context = null
+    ) {
         parent::__construct($container, $resource, $options, $context);
         $this->acceptHeader = "/application\/vnd.eliberty.api.+json/";
         $this->requestStack = $container->get('request_stack');
@@ -45,6 +49,7 @@ class ApiRouter extends Router implements RequestMatcherInterface
     public function match($pathinfo)
     {
         $this->setApiVersion();
+
         return parent::match($pathinfo);
     }
 
@@ -72,6 +77,24 @@ class ApiRouter extends Router implements RequestMatcherInterface
         $version = "v1";
 
         $request = $this->requestStack->getCurrentRequest();
+
+        $version = $this->getVersionByAcceptHeaders($request, $version);
+        $version = $this->getVersionByAccessControlRequestHeaders($request, $version);
+
+        /*
+         * @TODO check if always necessary
+         */
+        $this->getContext()->setMethod($request->getMethod());
+        $this->getContext()->setApiVersion($version);
+    }
+
+    /**
+     * @param Request $request
+     * @param $version
+     * @return mixed
+     */
+    public function getVersionByAcceptHeaders(Request $request, $version)
+    {
         $acceptHeader = AcceptHeader::fromString($request->headers->get('Accept'))->all();
         foreach ($acceptHeader as $acceptHeaderItem) {
             if ($acceptHeaderItem->hasAttribute('version')) {
@@ -80,10 +103,27 @@ class ApiRouter extends Router implements RequestMatcherInterface
             }
         }
 
-        /*
-         * @TODO check if always necessary
-         */
-        $this->getContext()->setMethod($request->getMethod());
-        $this->getContext()->setApiVersion($version);
+        return $version;
+    }
+
+    /**
+     * @param Request $request
+     * @param $version
+     * @return mixed
+     */
+    public function getVersionByAccessControlRequestHeaders(Request $request, $version)
+    {
+        if ($request->headers->has('Access-Control-Request-Headers')) {
+            $accessControlRequestHeaders = $request->headers->get('Access-Control-Request-Headers');
+
+            if (
+                preg_match('/e-api-v\d/', $accessControlRequestHeaders, $matches) &&
+                preg_match('/v\d/', $matches[0], $matches2)
+            ) {
+                $version = array_shift($matches2);
+            }
+        }
+
+        return $version;
     }
 }
