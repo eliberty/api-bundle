@@ -77,8 +77,9 @@ services:
         class: Eliberty\ApiBundle\JsonLd\ContextBuilder
         arguments:
             - @api.router
-            - @api.mapping.class_metadata_factory
+            - @event_dispatcher
             - @api.resource_collection
+            - @api.mapping.class_metadata_factory
             - @api.transformer.helper
 
     api.transformer.helper:
@@ -86,13 +87,14 @@ services:
         arguments:
             - @api.ressource.transformer_resolver
 
-    api.iri_converter:
-        class: Dunglas\ApiBundle\Api\IriConverter
-        arguments:
-            - @api.resource_collection
-            - @api.data_provider
-            - @api.router
-            - @property_accessor
+#    api.iri_converter:
+#        class: Dunglas\ApiBundle\Api\IriConverter
+#        arguments:
+#            - @api.resource_collection
+#            - @api.data_provider
+#            - @api.mapping.class_metadata_factory
+#            - @api.router
+#            - @property_accessor
 
     webhook.doctrine.entity_listener_resolver:
         class: Eliberty\ApiBundle\WebHook\Doctrine\Listener\EntityListenerResolver
