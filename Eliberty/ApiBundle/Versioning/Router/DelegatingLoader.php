@@ -45,6 +45,11 @@ class DelegatingLoader extends BaseDelegatingLoader
                  * @TODO check if always necessary
                  */
                 $route->setMethods(array_merge($route->getMethods(), ['OPTIONS']));
+            } elseif ("fos_oauth_server_token" == $key) {
+                /*
+                 * @TODO check if always necessary
+                 */
+                $route->setMethods(array_merge($route->getMethods(), ['OPTIONS']));
             }
         }
 

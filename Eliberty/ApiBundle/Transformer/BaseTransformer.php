@@ -2,12 +2,16 @@
 
 namespace Eliberty\ApiBundle\Transformer;
 
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\ORM\Mapping\ClassMetadata;
+use Doctrine\ORM\PersistentCollection;
 use League\Fractal\Scope;
 use Doctrine\ORM\EntityManager;
 use Eliberty\ApiBundle\Fractal\Pagination\PagerfantaPaginatorAdapter;
 use League\Fractal\TransformerAbstract;
 use Pagerfanta\Adapter\ArrayAdapter;
 use Pagerfanta\Pagerfanta;
+use Doctrine\Common\Collections\Criteria;
 use Doctrine\Common\Collections\Collection;
 use League\Fractal\Resource\Item;
 use Symfony\Component\HttpFoundation\Request;
@@ -98,6 +102,11 @@ class BaseTransformer extends TransformerAbstract
      * @var bool
      */
     public $overwrideDefaultIncludes = false;
+
+    /**
+     * @var Array
+     */
+    public $objectTranslations = [];
 
     /**
      * Constructor.
@@ -515,5 +524,83 @@ class BaseTransformer extends TransformerAbstract
     {
         $scope->setData($data);
         return parent::callIncludeMethod($scope, $includeName, $data);
+    }
+
+    /**
+     *  get the multi language for a entity and field
+     * @param $object
+     * @param $field
+     * @return array|mixed
+     */
+    protected function getMutliLanguages($object, $field)
+    {
+        if (!$this->request->headers->get('e-languages-available', 0)) {
+            return $this->getDefaultTranslation($object, $field);
+        }
+
+        if (!isset($this->objectTranslations[$object->getId()])){
+            $this->objectTranslations[$object->getId()] = new \Doctrine\Common\Collections\ArrayCollection();
+        }
+
+        $dataResponse = [];
+        $translations = $this->getTranslationsFields($object, $field);
+        
+        foreach ($translations as $trans) {
+            $dataResponse[$trans->getLocale()] = $trans->getContent();
+        }
+
+        return empty($dataResponse) ? $this->getDefaultTranslation($object, $field) : $dataResponse;
+    }
+
+    /**
+     * @param $object
+     * @param $field
+     * @return mixed
+     */
+    public function getDefaultTranslation($object, $field) {
+        return $this->em->getClassMetadata(get_class($object))->getFieldValue($object, $field);
+    }
+
+    /**
+     * @param $object
+     * @param $field
+     * @return mixed
+     */
+    public function getTranslationsFields($object, $field)
+    {
+
+        if ($this->objectTranslations[$object->getId()]->count() > 0) {
+            return $this->getCurrentTranslation($object, $field);
+        }
+
+
+        $repoTranslation = $this->em->getRepository('Gedmo\\Translatable\\Entity\\Translation');
+        $languages = array_merge(
+            $this->request->getLanguages(),
+            [
+                $this->request->getDefaultLocale()
+            ]
+        );
+
+        $elements = $repoTranslation->findBy([
+            'foreignKey'  => $object->getId(),
+            'objectClass' => get_class($object),
+            'locale'      => $languages
+        ]);
+
+        foreach($elements as $element){
+            $this->objectTranslations[$object->getId()]->add($element);
+        }
+
+        return $this->getCurrentTranslation($object, $field);
+    }
+
+    /**
+     * @return Collection
+     */
+    public function getCurrentTranslation($object, $field) {
+        $criteria = Criteria::create()->where(Criteria::expr()->eq("field", $field));
+
+        return $this->objectTranslations[$object->getId()]->matching($criteria);
     }
 }
