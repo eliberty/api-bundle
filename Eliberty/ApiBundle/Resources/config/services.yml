@@ -136,3 +136,11 @@ services:
         tags:
             - { name: doctrine.entity_listener }
 
+
+    eliberty.api.doctrine.orm.inlist_filter:
+        class: Eliberty\ApiBundle\Doctrine\Orm\Filter\InListFilter
+        abstract: true
+        arguments:
+            - @doctrine
+            - @api.iri_converter
+            - @property_accessor
