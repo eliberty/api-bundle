@@ -248,18 +248,19 @@ class BaseTransformer extends TransformerAbstract
             ->setParentEmbed($this->getEmbed());
     }
 
+
     /**
      * @param \Datetime $datetime
      *
      * @return null|string
      */
-    protected function dateFormat(\Datetime $datetime = null)
+    protected function dateFormat(\Datetime $datetime = null, $format = \DateTime::ISO8601)
     {
         if (null === $datetime) {
-            return;
+            return null;
         }
 
-        return $datetime->format(\DateTime::ISO8601);
+        return $datetime->format($format);
     }
 
     /////Embed/////
