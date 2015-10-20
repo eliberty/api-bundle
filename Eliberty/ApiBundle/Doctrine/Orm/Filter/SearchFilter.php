@@ -9,7 +9,7 @@
  * file that was distributed with this source code.
  */
 
-namespace Eliberty\ApiBundle\Doctrine\Orm;
+namespace Eliberty\ApiBundle\Doctrine\Orm\Filter;
 
 use Doctrine\Common\Persistence\ManagerRegistry;
 use Doctrine\ORM\QueryBuilder;
@@ -37,29 +37,21 @@ class SearchFilter extends AbstractFilter
     const STRATEGY_PARTIAL = 'partial';
 
     /**
-     * @var IriConverterInterface
-     */
-    private $iriConverter;
-    /**
      * @var PropertyAccessorInterface
      */
     private $propertyAccessor;
 
     /**
      * @param ManagerRegistry           $managerRegistry
-     * @param IriConverterInterface     $iriConverter
      * @param PropertyAccessorInterface $propertyAccessor
      * @param null|array                $properties       Null to allow filtering on all properties with the exact strategy or a map of property name with strategy.
      */
     public function __construct(
         ManagerRegistry $managerRegistry,
-        IriConverterInterface $iriConverter,
         PropertyAccessorInterface $propertyAccessor,
         array $properties = null
     ) {
         parent::__construct($managerRegistry, $properties);
-
-        $this->iriConverter = $iriConverter;
         $this->propertyAccessor = $propertyAccessor;
     }
 
@@ -70,6 +62,30 @@ class SearchFilter extends AbstractFilter
     public function getProperties()
     {
         return $this->properties;
+    }
+
+    /**
+     * @param Request $request
+     * @return array|mixed
+     */
+    public function getRequestProperties(Request $request)
+    {
+        $requestProperties = [];
+        if (empty($this->properties)) {
+            return $requestProperties;
+        }
+
+        foreach ($this->properties as $name => $precision) {
+            $dataRequest = $request->get($name, null);
+            if (!is_null($dataRequest)) {
+                $requestProperties[$name] = [
+                    'precision' => $precision,
+                    'value' => $dataRequest
+                    ]
+                ;
+            }
+        }
+        return $requestProperties;
     }
 
     /**
@@ -89,11 +105,6 @@ class SearchFilter extends AbstractFilter
             $propertyValue = $partial ? sprintf('%%%s%%', $value) : $value;
 
             if (isset($fieldNames[$property])) {
-                if ('id' === $property) {
-                    $value = $this->getFilterValueFromUrl($value);
-                }
-
-                $propertyType = $metadata->getTypeOfField($property);
                 $equalityString = $partial ? 'LOWER(o.%1$s) LIKE :%1$s' : 'o.%1$s = :%1$s';
 
                 $queryBuilder
@@ -103,8 +114,6 @@ class SearchFilter extends AbstractFilter
             } elseif ($metadata->isSingleValuedAssociation($property)
                 || $metadata->isCollectionValuedAssociation($property)
             ) {
-                $value = $this->getFilterValueFromUrl($value);
-
                 $queryBuilder
                     ->join(sprintf('o.%s', $property), $property)
                     ->andWhere(sprintf('%1$s.id = :%1$s', $property))
@@ -146,25 +155,5 @@ class SearchFilter extends AbstractFilter
         }
 
         return $description;
-    }
-
-    /**
-     * Gets the ID from an URI or a raw ID.
-     *
-     * @param string $value
-     *
-     * @return string
-     */
-    private function getFilterValueFromUrl($value)
-    {
-        try {
-            if ($item = $this->iriConverter->getItemFromIri($value)) {
-                return $this->propertyAccessor->getValue($item, 'id');
-            }
-        } catch (\InvalidArgumentException $e) {
-            // Do nothing, return the raw value
-        }
-
-        return $value;
     }
 }

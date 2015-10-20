@@ -10,6 +10,7 @@ use Doctrine\DBAL\Types\Type;
 use Dunglas\ApiBundle\Doctrine\Orm\Filter\AbstractFilter;
 use Doctrine\ORM\QueryBuilder;
 use Dunglas\ApiBundle\Api\ResourceInterface;
+use Eliberty\ApiBundle\Doctrine\Orm\Filter\SearchFilter;
 use Symfony\Component\HttpFoundation\Request;
 use Dunglas\ApiBundle\Api\IriConverterInterface;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
@@ -18,35 +19,8 @@ use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 /**
  * Class IsNullFilter
  */
-class IsNullFilter extends AbstractFilter
+class IsNullFilter extends SearchFilter
 {
-    /**
-     * @var IriConverterInterface
-     */
-    private $iriConverter;
-    /**
-     * @var PropertyAccessorInterface
-     */
-    private $propertyAccessor;
-
-    /**
-     * @param ManagerRegistry           $managerRegistry
-     * @param IriConverterInterface     $iriConverter
-     * @param PropertyAccessorInterface $propertyAccessor
-     * @param null|array                $properties       Null to allow filtering on all properties with the exact strategy or a map of property name with strategy.
-     */
-    public function __construct(
-        ManagerRegistry $managerRegistry,
-        IriConverterInterface $iriConverter,
-        PropertyAccessorInterface $propertyAccessor,
-        array $properties = null
-    ) {
-        parent::__construct($managerRegistry, $properties);
-
-        $this->iriConverter = $iriConverter;
-        $this->propertyAccessor = $propertyAccessor;
-    }
-
     /**
      * @param ResourceInterface $resource
      * @param QueryBuilder      $queryBuilder
@@ -69,61 +43,5 @@ class IsNullFilter extends AbstractFilter
                 ;
             }
         }
-    }
-
-    /**
-     * @param ResourceInterface $resource
-     *
-     * @return array
-     */
-    public function getDescription(ResourceInterface $resource)
-    {
-        $description = [];
-        $metadata = $this->getClassMetadata($resource);
-
-        foreach ($metadata->getFieldNames() as $fieldName) {
-            $found = isset($this->properties[$fieldName]);
-            if ($found || null === $this->properties) {
-                $description[$fieldName] = [
-                    'property' => $fieldName,
-                    'type' => $metadata->getTypeOfField($fieldName),
-                    'required' => false,
-                    'strategy' => $found ? $this->properties[$fieldName] : self::STRATEGY_EXACT,
-                ];
-            }
-        }
-
-        foreach ($metadata->getAssociationNames() as $associationName) {
-            if ($this->isPropertyEnabled($associationName)) {
-                $description[$associationName] = [
-                    'property' => $associationName,
-                    'type' => 'iri',
-                    'required' => false,
-                    'strategy' => self::STRATEGY_EXACT,
-                ];
-            }
-        }
-
-        return $description;
-    }
-
-    /**
-     * Gets the ID from an URI or a raw ID.
-     *
-     * @param string $value
-     *
-     * @return string
-     */
-    private function getFilterValueFromUrl($value)
-    {
-        try {
-            if ($item = $this->iriConverter->getItemFromIri($value)) {
-                return $this->propertyAccessor->getValue($item, 'id');
-            }
-        } catch (\InvalidArgumentException $e) {
-            // Do nothing, return the raw value
-        }
-
-        return $value;
     }
 }
