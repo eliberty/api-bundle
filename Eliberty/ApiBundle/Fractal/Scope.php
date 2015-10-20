@@ -227,17 +227,36 @@ class Scope extends BaseFractalScope
             return $this->dunglasResource;
         }
 
+        return $this->findDunglasResource($this->getEntityName());
+    }
+
+    /**
+     * @param $entityName
+     * @return mixed
+     * @throws \Exception
+     */
+    protected function findDunglasResource($entityName) {
+        $resource = $this->manager->getResourceCollection()->getResourceForShortName(
+            $entityName,
+            $this->getApiVersion()
+        );
+        if (null === $resource) {
+            throw new \Exception('resource not found for entityname : '.$entityName);
+        }
+
+        return $resource;
+    }
+
+    /**
+     * @throws \Exception
+     */
+    protected function getApiVersion() {
         $version = null;
         if ($this->parent instanceof Scope && $this->parent->getDunglasResource() instanceof DunglasResource) {
             $version = $this->parent->getDunglasResource()->getVersion();
         }
 
-        $resource = $this->manager->getResourceCollection()->getResourceForShortName($this->getEntityName(), $version);
-        if (null === $resource) {
-            throw new \Exception('resource not found for entityname : '.$this->getEntityName());
-        }
-
-        return $resource;
+        return $version;
     }
 
     /**
@@ -305,6 +324,7 @@ class Scope extends BaseFractalScope
      * @param $currentPage
      * @param $paginatedUrl
      * @param $baseUrl
+     * @return bool
      */
     protected function getPreviewPage(&$data, $object, $currentPage, $paginatedUrl, $baseUrl)
     {
@@ -326,6 +346,7 @@ class Scope extends BaseFractalScope
      * @param $currentPage
      * @param $lastPage
      * @param $paginatedUrl
+     * @return bool
      */
     protected function getNextPage(&$data, $object, $currentPage, $lastPage, $paginatedUrl)
     {
@@ -451,20 +472,39 @@ class Scope extends BaseFractalScope
      */
     protected function transformerHasIncludes($transformer)
     {
-        if ($this->getParent() instanceof Scope) {
-            return $transformer->overwrideDefaultIncludes;
+        $parentScope = $this->getParent();
+
+        if (!$parentScope instanceof Scope) {
+            return parent::transformerHasIncludes($transformer);
         }
 
-        return parent::transformerHasIncludes($transformer);
+        if ($parentScope->getParent() instanceof Scope) {
+            $embedsRequest = array_keys($transformer->getRequestEmbeds());
+            $transformer->setDefaultIncludes([]);
+
+            return in_array(strtolower($this->getIdentifierWithoutSourceIdentifier()), $embedsRequest);
+        }
+
+        return true;
     }
 
     /**
+     * @param string $position
      * @return mixed
      */
-    public function getSingleIdentifier() {
+    public function getSingleIdentifier($position = 'desc') {
         $identifiers = explode('.', $this->getIdentifier());
-        return array_pop($identifiers);
+        return ('desc' === $position) ? array_pop($identifiers) : array_shift($identifiers);
     }
+
+    /**
+     * @return string
+     */
+    public function getIdentifierWithoutSourceIdentifier() {
+        return str_replace($this->getSingleIdentifier('asc').'.', '', $this->getIdentifier());
+    }
+
+
 
     /**
      * @param DunglasResource $dunglasResource
