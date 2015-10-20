@@ -199,7 +199,7 @@ class Normalizer extends AbstractNormalizer
             ->setCurrentScope($rootScope)
             ->setEmbed($dunglasResource->getShortName());
 
-        return $rootScope->toArray();
+        return $rootScope->toArray();;
     }
 
     /**
@@ -381,7 +381,12 @@ class Normalizer extends AbstractNormalizer
         }
 
         if ($this->request->headers->get('e-embed-available', 0)) {
-            $embeds = implode(',', $this->transformer->getAvailableIncludes());
+            if (is_null($embeds)) {
+                $embeds = implode(',', $this->transformer->getAvailableIncludes());
+            } else {
+                $arrayEmbed = array_merge(explode(',', $embeds), $this->transformer->getAvailableIncludes());
+                $embeds = implode(',', $arrayEmbed);
+            }
         }
 
         $datas = [];

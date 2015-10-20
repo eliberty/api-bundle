@@ -9,6 +9,7 @@ use Dunglas\ApiBundle\Api\ResourceInterface;
 use Dunglas\ApiBundle\Mapping\ClassMetadataFactory;
 use Eliberty\ApiBundle\Helper\TransformerHelper;
 use Eliberty\ApiBundle\Transformer\Listener\TransformerResolver;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Routing\RouterInterface;
 
 /**
@@ -24,35 +25,32 @@ class ContextBuilder extends BaseContextBuilder
     const OWL_NS = 'http://www.w3.org/2002/07/owl#';
 
     /**
-     * @var RouterInterface
+     * @var TransformerHelper
      */
-    private $router;
+    protected $transformerHelper;
+
     /**
      * @var ClassMetadataFactory
      */
     private $classMetadataFactory;
-    /**
-     * @var ResourceCollectionInterface
-     */
-    private $resourceCollection;
 
     /**
      * @param RouterInterface $router
-     * @param ClassMetadataFactory $classMetadataFactory
+     * @param EventDispatcherInterface $eventDispatcher
      * @param ResourceCollectionInterface $resourceCollection
+     * @param ClassMetadataFactory $classMetadataFactory
      * @param TransformerHelper $transformerHelper
      */
     public function __construct(
         RouterInterface $router,
-        ClassMetadataFactory $classMetadataFactory,
+        EventDispatcherInterface $eventDispatcher,
         ResourceCollectionInterface $resourceCollection,
+        ClassMetadataFactory $classMetadataFactory,
         TransformerHelper $transformerHelper
     ) {
-        $this->router = $router;
         $this->classMetadataFactory = $classMetadataFactory;
-        $this->resourceCollection = $resourceCollection;
         $this->transformerHelper = $transformerHelper;
-        parent::__construct($router, $this->classMetadataFactory, $resourceCollection);
+        parent::__construct($router, $eventDispatcher, $resourceCollection);
     }
 
 

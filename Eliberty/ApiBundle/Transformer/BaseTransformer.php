@@ -140,95 +140,15 @@ class BaseTransformer extends TransformerAbstract
         $this->initTransformer($transformer);
 
         return $this->collection($resource, $transformer);
-
-//        if (!isset($this->embeds[$this->getEmbed()]) || null === $this->embeds[$this->getEmbed()]) {
-//            return $this->collection($resource, $transformer);
-//        }
-//
-//        $optionEmbed = isset($this->embeds[$this->getEmbed()]) ? $this->embeds[$this->getEmbed()] : null;
-//
-//        $collection = new Pagerfanta(new ArrayAdapter($resource->toArray()));
-//
-//        $limit = isset($optionEmbed['perpage']) ? $optionEmbed['perpage'] : 10;
-//
-//        $collection->setMaxPerPage($limit);
-//
-//        $page = isset($optionEmbed['page']) && ($optionEmbed['page'] <= $collection->getNbPages()) ?
-//            $optionEmbed['page'] : 1;
-//
-//        $collection->setCurrentPage($page);
-//
-//        $resource = $this->collection($collection, $transformer);
-//
-//        $adapter = $this->getAdapter($collection, $this->uri, $optionEmbed, $this->currentEmbed);
-//
-//        $resource->setPaginator($adapter);
-//
-//        return $resource;
     }
 
-//    /**
-//     * @param $collection
-//     * @param $uri
-//     * @param array $optionEmbed
-//     *
-//     * @return PagerfantaPaginatorAdapter
-//     */
-//    public function getAdapter($collection, $uri, $optionEmbed = [])
-//    {
-//        $currentEmbed = $this->getEmbed();
-//
-//        $adapter = new PagerfantaPaginatorAdapter($collection, function ($page) use ($uri, $optionEmbed, $currentEmbed) {
-//            $i      = 0;
-//            $search = $replace = $currentEmbed;
-//            foreach ($optionEmbed as $property => $value) {
-//                if ($i === 0) {
-//                    $replace = $replace.'{';
-//                    $search  = $search.'{';
-//                }
-//                $i++;
-//
-//                //find the last carac for build new option
-//                $endStr  = (count($optionEmbed) !== $i) ? ',' : '}';
-//                $search  = $search.'"'.trim($property).'"='.trim($value).$endStr;
-//                $prefixe = $replace.'"'.trim($property).'"=';
-//
-//                $replace = ($property === 'page') ?
-//                    $prefixe.$page.$endStr :
-//                    $prefixe.trim($value).$endStr;
-//            }
-//
-//            if (empty($optionEmbed)) {
-//                $search = $search.'{}';
-//            }
-//
-//            //check if property page not existing add
-//            if (!isset($optionEmbed['page'])) {
-//                $replace = $replace !== $currentEmbed ?
-//                    str_replace('}', ',"page"='.$page.'}', $replace) :
-//                    $replace.'{"page"='.$page.'}';
-//            }
-//
-//            //delete white space into uri
-//            $uriBaseTrim = str_replace(' ', '', $uri);
-//            //check if i find data int uri
-//            $isFind = preg_match('/[=|,]'.$search.'[,|{|&]/', $uriBaseTrim, $matches);
-//
-//            //if embed is find
-//            if ((bool) $isFind && !empty($matches)) {
-//                $currentMatch   = array_shift($matches);
-//                $prefixeReplace = substr($currentMatch, 0, 1);
-//                $sufixeReplace  = substr($currentMatch, (strlen($currentMatch) - 1), 1);
-//                $uriBaseTrim    = str_replace($currentMatch, $prefixeReplace.$replace.$sufixeReplace, $uriBaseTrim);
-//
-//                return urldecode($uriBaseTrim);
-//            }
-//
-//            return urldecode(str_replace($search, $replace, $uriBaseTrim));
-//        });
-//
-//        return $adapter;
-//    }
+    /**
+     * @return string
+     */
+    public function getCurrentEmbed()
+    {
+        return $this->currentEmbed;
+    }
 
     /**
      * Create a new item resource object.
@@ -259,6 +179,12 @@ class BaseTransformer extends TransformerAbstract
 
 
     /**
+     * @return array
+     */
+    public function getRequestEmbeds() {
+        return $this->embeds;
+    }
+    /**
      * @param \Datetime $datetime
      *
      * @return null|string
@@ -272,7 +198,7 @@ class BaseTransformer extends TransformerAbstract
         return $datetime->format($format);
     }
 
-    /////Embed/////
+    /////Embed//////////////////////////////////////////////////////////////////////
 
     /**
      * @param $requestEmbed
@@ -479,7 +405,7 @@ class BaseTransformer extends TransformerAbstract
         return !is_null($this->parentEmbed);
     }
 
-    //transformer abstract fractal
+    /////Transformer abstract fractal//////////////////////////////////////////////////////////////////////
     /**
      * This method is fired to loop through available includes, see if any of
      * them are requested and permitted for this scope.
@@ -527,6 +453,8 @@ class BaseTransformer extends TransformerAbstract
         return parent::callIncludeMethod($scope, $includeName, $data);
     }
 
+    /////Gestion des langs//////////////////////////////////////////////////////////////////////
+
     /**
      *  get the multi language for a entity and field
      * @param $object
@@ -545,7 +473,7 @@ class BaseTransformer extends TransformerAbstract
 
         $dataResponse = [];
         $translations = $this->getTranslationsFields($object, $field);
-        
+
         foreach ($translations as $trans) {
             $dataResponse[$trans->getLocale()] = $trans->getContent();
         }

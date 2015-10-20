@@ -1,9 +1,9 @@
 <?php
 
 /*
- * This file is part of the DunglasApiBundle package.
+ * This file is part of the ElibertyDunglasApiBundle package.
  *
- * (c) Kévin Dunglas <dunglas@gmail.com>
+ * (c) Vesin philippe <pvesin@eliberty.fr>
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -18,7 +18,7 @@ use Dunglas\ApiBundle\JsonLd\EntrypointBuilder as BaseEntrypointBuilder;
 /**
  * API Entrypoint builder.
  *
- * @author Kévin Dunglas <dunglas@gmail.com>
+ * @author Vesin philippe <pvesin@eliberty.fr>
  */
 class EntrypointBuilder extends BaseEntrypointBuilder
 {
@@ -36,6 +36,11 @@ class EntrypointBuilder extends BaseEntrypointBuilder
      */
     protected $router;
 
+    /**
+     * @param ResourceCollectionInterface $resourceCollection
+     * @param IriConverterInterface $iriConverter
+     * @param RouterInterface $router
+     */
     public function __construct(
         ResourceCollectionInterface $resourceCollection,
         IriConverterInterface $iriConverter,
