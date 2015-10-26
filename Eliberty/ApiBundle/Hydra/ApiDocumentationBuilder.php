@@ -19,10 +19,13 @@ use Dunglas\ApiBundle\Hydra\ApiDocumentationBuilderInterface;
 use Dunglas\ApiBundle\JsonLd\ContextBuilder;
 use Dunglas\ApiBundle\Mapping\AttributeMetadataInterface;
 use Dunglas\ApiBundle\Mapping\ClassMetadataFactoryInterface;
+use Eliberty\ApiBundle\Helper\TransformerHelper;
+use Nelmio\ApiDocBundle\Parser\JmsMetadataParser;
 use Symfony\Bundle\FrameworkBundle\Controller\ControllerNameParser;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Routing\RouterInterface;
-
+use Eliberty\ApiBundle\Api\Resource as DunglasResource;
+use Nelmio\ApiDocBundle\Parser\ParserInterface;
 /**
  * Class ApiDocumentationBuilder
  * @package Eliberty\ApiBundle\Hydra
@@ -30,6 +33,10 @@ use Symfony\Component\Routing\RouterInterface;
 class ApiDocumentationBuilder implements ApiDocumentationBuilderInterface
 {
     const ANNOTATION_CLASS = 'Nelmio\\ApiDocBundle\\Annotation\\ApiDoc';
+    /**
+     * @var TransformerHelper
+     */
+    protected $transformerHelper;
 
     /**
      * @var ResourceCollectionInterface
@@ -68,6 +75,10 @@ class ApiDocumentationBuilder implements ApiDocumentationBuilderInterface
      */
     private $container;
 
+    /**
+     * @var ParserInterface[]
+     */
+    protected $parsers = array();
 
     /**
      * @param ResourceCollectionInterface $resourceCollection
@@ -100,6 +111,7 @@ class ApiDocumentationBuilder implements ApiDocumentationBuilderInterface
         $this->reader = $reader;
         $this->controllerNameParser = $controllerNameParser;
         $this->container = $container;
+        $this->transformerHelper = $this->container->get('api.transformer.helper');
     }
 
     /**
@@ -111,35 +123,35 @@ class ApiDocumentationBuilder implements ApiDocumentationBuilderInterface
         $entrypointProperties = [];
 
         foreach ($this->resourceCollection as $resource) {
-            $classMetadata = $this->classMetadataFactory->getMetadataFor(
-                $resource->getEntityClass(),
-                $resource->getNormalizationGroups(),
-                $resource->getDenormalizationGroups(),
-                $resource->getValidationGroups()
-            );
+//            $classMetadata = $this->classMetadataFactory->getMetadataFor(
+//                $resource->getEntityClass(),
+//                $resource->getNormalizationGroups(),
+//                $resource->getDenormalizationGroups(),
+//                $resource->getValidationGroups()
+//            );
 
             $shortName = $resource->getShortName();
-            $prefixedShortName = ($iri = $classMetadata->getIri()) ? $iri : '#'.$shortName;
+            $prefixedShortName = '#'.$shortName;
 
             $collectionOperations = [];
             foreach ($resource->getCollectionOperations() as $collectionOperation) {
                 $collectionOperations[] = $this->getHydraOperation($resource, $collectionOperation, $prefixedShortName, true);
             }
 
-            $entrypointProperties[] = [
-                '@type' => 'hydra:SupportedProperty',
-                'hydra:property' => [
-                    '@id' => sprintf('#Entrypoint/%s', lcfirst($shortName)),
-                    '@type' => 'hydra:Link',
-                    'domain' => '#Entrypoint',
-                    'rdfs:label' => sprintf('The collection of %s resources', $shortName),
-                    'range' => 'hydra:PagedCollection',
-                    'hydra:supportedOperation' => $collectionOperations,
-                ],
-                'hydra:title' => sprintf('The collection of %s resources', $shortName),
-                'hydra:readable' => true,
-                'hydra:writable' => false,
-            ];
+//            $entrypointProperties[] = [
+//                '@type' => 'hydra:SupportedProperty',
+//                'hydra:property' => [
+//                    '@id' => sprintf('#Entrypoint/%s', lcfirst($shortName)),
+//                    '@type' => 'hydra:Link',
+//                    'domain' => '#Entrypoint',
+//                    'rdfs:label' => sprintf('The collection of %s resources', $shortName),
+//                    'range' => 'hydra:PagedCollection',
+//                    'hydra:supportedOperation' => $collectionOperations,
+//                ],
+//                'hydra:title' => sprintf('The collection of %s resources', $shortName),
+//                'hydra:readable' => true,
+//                'hydra:writable' => false,
+//            ];
 
             $class = [
                 '@id' => $prefixedShortName,
@@ -157,42 +169,47 @@ class ApiDocumentationBuilder implements ApiDocumentationBuilderInterface
                 $class['hydra:description'] = $class['hydra:description']. '(parent: '. $resource->getParent()->getShortName() .')';
             }
 
-            if ($description = $classMetadata->getDescription()) {
-                $class['hydra:description'] = $description;
-            }
+//            if ($description = $classMetadata->getDescription()) {
+//                $class['hydra:description'] = $description;
+//            }
 
             $properties = [];
-            foreach ($classMetadata->getAttributes() as $attributeName => $attributeMetadata) {
-                if ($attributeMetadata->isIdentifier() && !$attributeMetadata->isWritable()) {
-                    continue;
-                }
+            $normalizedOutput = $this->normalizeClassParameter($resource->getEntityClass(), $resource);
+            $attributes = $this->getParametersParser($normalizedOutput, $resource);
+            foreach ($attributes as $attributeName => $attributeMetadata) {
 
-                if ($attributeMetadata->isNormalizationLink()) {
-                    $type = 'Hydra:Link';
-                } else {
+//                var_dump($attributeName);
+//                var_dump($attributeMetadata);exit;
+//                if ($attributeMetadata->isIdentifier() && !$attributeMetadata->isWritable()) {
+//                    continue;
+//                }
+
+//                if ($attributeMetadata->isNormalizationLink()) {
+//                    $type = 'Hydra:Link';
+//                } else {
                     $type = 'rdf:Property';
-                }
+                //}
 
                 $property = [
                     '@type' => 'hydra:SupportedProperty',
                     'hydra:property' => [
-                        '@id' => ($iri = $attributeMetadata->getIri()) ? $iri : sprintf('#%s/%s', $shortName, $attributeName),
+                        '@id' => sprintf('#%s/%s', $shortName, $attributeName),
                         '@type' => $type,
                         'rdfs:label' => $attributeName,
                         'domain' => $prefixedShortName,
                     ],
                     'hydra:title' => $attributeName,
-                    'hydra:required' => $attributeMetadata->isRequired(),
-                    'hydra:readable' => $attributeMetadata->isIdentifier() ? false : $attributeMetadata->isReadable(),
-                    'hydra:writable' => $attributeMetadata->isWritable(),
+                    'hydra:required' => $attributeMetadata['required'],
+                    'hydra:readable' => $attributeMetadata['readonly'],
+                    'hydra:writable' => !$attributeMetadata['readonly'],
                 ];
 
                 if ($range = $this->getRange($attributeMetadata)) {
                     $property['hydra:property']['range'] = $range;
                 }
 
-                if ($description = $attributeMetadata->getDescription()) {
-                    $property['hydra:description'] = $description;
+                if (isset($attributeMetadata['description'])) {
+                    $property['hydra:description'] = $description = $attributeMetadata['description'];
                 }
 
                 $properties[] = $property;
@@ -204,7 +221,7 @@ class ApiDocumentationBuilder implements ApiDocumentationBuilderInterface
                 $operations[] = $this->getHydraOperation($resource, $itemOperation, $prefixedShortName, false);
             }
 
-            $class['hydra:supportedOperation'] = $operations;
+            $class['hydra:supportedOperation'] = array_merge($operations, $collectionOperations);
             $classes[] = $class;
         }
 
@@ -221,67 +238,6 @@ class ApiDocumentationBuilder implements ApiDocumentationBuilderInterface
                 'returns' => '#EntryPoint',
             ],
         ];
-
-//        // Constraint violation
-//        $classes[] = [
-//            '@id' => '#ConstraintViolation',
-//            '@type' => 'hydra:Class',
-//            'hydra:title' => 'A constraint violation',
-//            'hydra:supportedProperty' => [
-//                [
-//                    '@type' => 'hydra:SupportedProperty',
-//                    'hydra:property' => [
-//                        '@id' => '#ConstraintViolation/propertyPath',
-//                        '@type' => 'rdf:Property',
-//                        'rdfs:label' => 'propertyPath',
-//                        'domain' => '#ConstraintViolation',
-//                        'range' => 'xmls:string',
-//                    ],
-//                    'hydra:title' => 'propertyPath',
-//                    'hydra:description' => 'The property path of the violation',
-//                    'hydra:readable' => true,
-//                    'hydra:writable' => false,
-//                ],
-//                [
-//                    '@type' => 'hydra:SupportedProperty',
-//                    'hydra:property' => [
-//                        '@id' => '#ConstraintViolation/message',
-//                        '@type' => 'rdf:Property',
-//                        'rdfs:label' => 'message',
-//                        'domain' => '#ConstraintViolation',
-//                        'range' => 'xmls:string',
-//                    ],
-//                    'hydra:title' => 'message',
-//                    'hydra:description' => 'The message associated with the violation',
-//                    'hydra:readable' => true,
-//                    'hydra:writable' => false,
-//                ],
-//            ],
-//        ];
-//
-//        // Constraint violation list
-//        $classes[] = [
-//            '@id' => '#ConstraintViolationList',
-//            '@type' => 'hydra:Class',
-//            'subClassOf' => 'hydra:Error',
-//            'hydra:title' => 'A constraint violation list',
-//            'hydra:supportedProperty' => [
-//                [
-//                    '@type' => 'hydra:SupportedProperty',
-//                    'hydra:property' => [
-//                        '@id' => '#ConstraintViolationList/violation',
-//                        '@type' => 'rdf:Property',
-//                        'rdfs:label' => 'violation',
-//                        'domain' => '#ConstraintViolationList',
-//                        'range' => '#ConstraintViolation',
-//                    ],
-//                    'hydra:title' => 'violation',
-//                    'hydra:description' => 'The violations',
-//                    'hydra:readable' => true,
-//                    'hydra:writable' => false,
-//                ],
-//            ],
-//        ];
 
         return [
             '@context' => $this->getContext(),
@@ -313,6 +269,7 @@ class ApiDocumentationBuilder implements ApiDocumentationBuilderInterface
         $methodDoc = $this->getReflectionMethod($operation->getRoute()->getDefault('_controller'));
         $annotation = $methodDoc !== null ? $this->reader->getMethodAnnotation($methodDoc, self::ANNOTATION_CLASS): null;
         $hydraOperation = $operation->getContext();
+
         $hydraOperation['hydra:entrypoint'] = $operation->getRoute()->getPath();
 
         switch ($method) {
@@ -411,20 +368,16 @@ class ApiDocumentationBuilder implements ApiDocumentationBuilderInterface
     /**
      * Gets the range of the property.
      *
-     * @param AttributeMetadataInterface $attributeMetadata
+     * @param array $attributeMetadata
      *
      * @return string|null
      */
-    private function getRange(AttributeMetadataInterface $attributeMetadata)
+    private function getRange($attributeMetadata)
     {
-        if (isset($attributeMetadata->getTypes()[0])) {
-            $type = $attributeMetadata->getTypes()[0];
+        if (isset($attributeMetadata['dataType'])) {
+            $type = $attributeMetadata['dataType'];
 
-            if ($type->isCollection() && $collectionType = $type->getCollectionType()) {
-                $type = $collectionType;
-            }
-
-            switch ($type->getType()) {
+            switch ($type) {
                 case 'string':
                     return 'xmls:string';
 
@@ -437,18 +390,8 @@ class ApiDocumentationBuilder implements ApiDocumentationBuilderInterface
                 case 'bool':
                     return 'xmls:boolean';
 
-                case 'object':
-                    $class = $type->getClass();
-
-                    if ($class) {
-                        if ('DateTime' === $class) {
-                            return 'xmls:dateTime';
-                        }
-
-                        if ($resource = $this->resourceCollection->getResourceForEntity($type->getClass())) {
-                            return sprintf('#%s', $resource->getShortName());
-                        }
-                    }
+                case 'DateTime':
+                    return 'xmls:dateTime';
                     break;
             }
         }
@@ -511,5 +454,189 @@ class ApiDocumentationBuilder implements ApiDocumentationBuilderInterface
         }
 
         return null;
+    }
+
+    /**
+     * @param $normalizedInput
+     * @param DunglasResource $resource
+     * @param string $type
+     * @return array
+     */
+    public function getParametersParser($normalizedInput,  DunglasResource $resource, $type = 'Output')
+    {
+        $supportedParsers = [];
+        $parameters       = [];
+
+        foreach ($this->getParsers($normalizedInput) as $parser) {
+            if ($parser->supports($normalizedInput)) {
+                $supportedParsers[] = $parser;
+
+                if ($parser instanceof JmsMetadataParser) {
+                    $normalizedInput['groups'] = [];
+                    $attributes         = $parser->parse($normalizedInput);
+                    foreach ($attributes as $key => $value) {
+                        if ($key === 'id' && !empty($value)) {
+                            $parameters['id'] = $value;
+                        }
+                        if (isset($parameters[$key]) && isset($value['description'])) {
+                            $parameters[$key]['description'] = $value['description'];
+                        }
+                    }
+
+                    $this->transformerHelper->getOutputAttr($resource->getShortName(), $parameters, 'doc', $attributes);
+
+                    continue;
+                }
+
+                $attributes = $parser->parse($normalizedInput);
+
+                $parameters = $this->mergeParameters($parameters, $attributes);
+            }
+        }
+
+        foreach ($supportedParsers as $parser) {
+            if ($parser instanceof PostParserInterface) {
+                $parameters = $this->mergeParameters(
+                    $parameters,
+                    $parser->postParse($normalizedInput, $parameters)
+                );
+            }
+        }
+
+        return $parameters;
+    }
+
+    /**
+     * @param $input
+     * @return array
+     */
+    protected function normalizeClassParameter($input, DunglasResource $resource)
+    {
+        $defaults = array(
+            'class'   => '',
+            'groups'  => array(),
+            'options'  => array(),
+        );
+
+        // normalize strings
+        if (is_string($input)) {
+            $input = array('class' => $input);
+        }
+
+        $collectionData = array();
+
+        /*
+         * Match array<Fully\Qualified\ClassName> as alias; "as alias" optional.
+         */
+        if (preg_match_all("/^array<([a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*(?:\\\\[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*)*)>(?:\\s+as\\s+(.+))?$/", $input['class'], $collectionData)) {
+            $input['class'] = $collectionData[1][0];
+            $input['collection'] = true;
+            $input['collectionName'] = $collectionData[2][0];
+        } elseif (preg_match('/^array</', $input['class'])) { //See if a collection directive was attempted. Must be malformed.
+            throw new \InvalidArgumentException(
+                sprintf(
+                    'Malformed collection directive: %s. Proper format is: array<Fully\\Qualified\\ClassName> or array<Fully\\Qualified\\ClassName> as collectionName',
+                    $input['class']
+                )
+            );
+        }
+
+        $dataResponse = array_merge($defaults, $input);
+        $dataResponse['groups'] = $resource->getValidationGroups();
+
+        return $dataResponse;
+    }
+
+    /**
+     * @param array $parameters
+     * @return array|\Nelmio\ApiDocBundle\Parser\ParserInterface[]
+     */
+    protected function getParsers(array $parameters)
+    {
+        if (isset($parameters['parsers'])) {
+            $parsers = array();
+            foreach ($this->parsers as $parser) {
+                if (in_array(get_class($parser), $parameters['parsers'])) {
+                    $parsers[] = $parser;
+                }
+            }
+        } else {
+            $parsers = $this->parsers;
+        }
+
+        return $parsers;
+    }
+
+    /**
+     * Registers a class parser to use for parsing input class metadata
+     *
+     * @param ParserInterface $parser
+     */
+    public function addParser(ParserInterface $parser)
+    {
+        $this->parsers[] = $parser;
+    }
+
+    /**
+     * Merges two parameter arrays together. This logic allows documentation to be built
+     * from multiple parser passes, with later passes extending previous passes:
+     *  - Boolean values are true if any parser returns true.
+     *  - Requirement parameters are concatenated.
+     *  - Other string values are overridden by later parsers when present.
+     *  - Array parameters are recursively merged.
+     *  - Non-null default values prevail over null default values. Later values overrides previous defaults.
+     *
+     * However, if newly-returned parameter array contains a parameter with NULL, the parameter is removed from the merged results.
+     * If the parameter is not present in the newly-returned array, then it is left as-is.
+     *
+     * @param  array $p1 The pre-existing parameters array.
+     * @param  array $p2 The newly-returned parameters array.
+     * @return array The resulting, merged array.
+     */
+    protected function mergeParameters($p1, $p2)
+    {
+        $params = $p1;
+
+        foreach ($p2 as $propname => $propvalue) {
+
+            if ($propvalue === null) {
+                unset($params[$propname]);
+                continue;
+            }
+
+            if (!isset($p1[$propname])) {
+                $params[$propname] = $propvalue;
+            } elseif (is_array($propvalue)) {
+                $v1 = $p1[$propname];
+
+                foreach ($propvalue as $name => $value) {
+                    if (is_array($value)) {
+                        if (isset($v1[$name]) && is_array($v1[$name])) {
+                            $v1[$name] = $this->mergeParameters($v1[$name], $value);
+                        } else {
+                            $v1[$name] = $value;
+                        }
+                    } elseif (!is_null($value)) {
+                        if (in_array($name, array('required', 'readonly'))) {
+                            $v1[$name] = $v1[$name] || $value;
+                        } elseif (in_array($name, array('requirement'))) {
+                            if (isset($v1[$name])) {
+                                $v1[$name] .= ', ' . $value;
+                            } else {
+                                $v1[$name] = $value;
+                            }
+                        } elseif ($name == 'default') {
+                            $v1[$name] = $value ?: $v1[$name];
+                        } else {
+                            $v1[$name] = $value;
+                        }
+                    }
+                }
+
+                $params[$propname] = $v1;
+            }
+        }
+
+        return $params;
     }
 }
