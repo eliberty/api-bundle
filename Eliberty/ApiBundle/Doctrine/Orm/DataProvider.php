@@ -133,15 +133,6 @@ class DataProvider implements DataProviderInterface
             }
         }
 
-        $orderBy      = $request->get('orderby', null);
-        $this->order  = $orderBy ? (array) json_decode(str_replace('=', ':', $orderBy)) : null;
-
-        if (null !== $this->order) {
-            foreach ($this->order as $key => $value) {
-                $queryBuilder->addOrderBy('o.'.$key, $value);
-            }
-        }
-
         return $queryBuilder;
     }
 

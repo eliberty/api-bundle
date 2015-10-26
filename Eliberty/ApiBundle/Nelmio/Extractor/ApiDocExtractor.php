@@ -688,12 +688,12 @@ class ApiDocExtractor extends BaseApiDocExtractor
                 'default'     => 1
             ]);
 
-            //filter orderby
-            $annotation->addFilter('orderby', [
-                'requirement' => '\t',
-                'description' => 'Way to sort the rows in the result set.',
-                'default'     => '{"id":"asc"}'
-            ]);
+//            //filter orderby
+//            $annotation->addFilter('orderby', [
+//                'requirement' => '\t',
+//                'description' => 'Way to sort the rows in the result set.',
+//                'default'     => '{"id":"asc"}'
+//            ]);
         }
 
         return $annotation;

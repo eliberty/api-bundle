@@ -9,7 +9,7 @@
  * file that was distributed with this source code.
  */
 
-namespace Eliberty\ApiBundle\Doctrine\Orm;
+namespace Eliberty\ApiBundle\Doctrine\Orm\Filter;
 
 
 use Doctrine\ORM\QueryBuilder;

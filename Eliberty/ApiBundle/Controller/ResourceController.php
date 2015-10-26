@@ -1,9 +1,9 @@
 <?php
 
 /*
- * This file is part of the DunglasJsonLdApiBundle package.
+ * This file is part of the ElibertyApiBundle package.
  *
- * (c) Kévin Dunglas <dunglas@gmail.com>
+ * (c) philippe Vesin <pvesin@eliberty.fr>
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -16,11 +16,12 @@ use Doctrine\Common\Inflector\Inflector;
 use Doctrine\ORM\PersistentCollection;
 use Dunglas\ApiBundle\Doctrine\Orm\Filter\FilterInterface;
 use Dunglas\ApiBundle\Doctrine\Orm\Paginator;
-use Dunglas\ApiBundle\Doctrine\Orm\SearchFilter as Filter;
+use Dunglas\ApiBundle\Doctrine\Orm\Filter\SearchFilter as Filter;
 use Dunglas\ApiBundle\Event\Events;
 use Eliberty\ApiBundle\Api\ResourceConfig;
 use Eliberty\ApiBundle\Api\ResourceConfigInterface;
 use Eliberty\ApiBundle\Doctrine\Orm\ArrayPaginator;
+use Eliberty\ApiBundle\Doctrine\Orm\Filter\OrderFilter;
 use Nelmio\ApiDocBundle\Annotation\ApiDoc;
 use Dunglas\ApiBundle\Event\DataEvent;
 use Dunglas\ApiBundle\Exception\DeserializationException;
@@ -32,7 +33,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
 use Symfony\Component\Serializer\Exception\Exception;
-use Eliberty\ApiBundle\Doctrine\Orm\EmbedFilter;
+use Eliberty\ApiBundle\Doctrine\Orm\Filter\EmbedFilter;
 use Dunglas\ApiBundle\Controller\ResourceController as BaseResourceController;
 
 /**
@@ -362,13 +363,11 @@ class ResourceController extends BaseResourceController
 
         $em = $this->get('doctrine.orm.entity_manager');
 
-        $iriConverter = $this->get('api.iri_converter');
-
         $managerRegister = $this->get('doctrine');
 
         $propertyAccessor = $this->get('property_accessor');
 
-        $filter = new EmbedFilter($managerRegister, $iriConverter, $propertyAccessor);
+        $filter = new EmbedFilter($managerRegister, $propertyAccessor);
 
         $params = !$request->request->has('embedParams')?[
             'embed' => $embed,
@@ -398,26 +397,25 @@ class ResourceController extends BaseResourceController
 
         if ($data instanceof PersistentCollection) {
             $embedClassMeta =  $em->getClassMetadata($resourceEmbed->getEntityClass());
-            $embedIdentifiers = $embedClassMeta->getIdentifier();
-            $embedIdentifier = is_array($embedIdentifiers) && count($embedIdentifiers) > 0 ? array_shift($embedIdentifiers) : 'id';
-            $orderBy      = $request->get('orderby', null);
-            $orderBy  = $orderBy ? (array) json_decode(str_replace('=', ':', $orderBy)) : [$embedIdentifier => Criteria::ASC];
-            $criteria = Criteria::create()
-                ->orderBy($orderBy);
-
+            $criteria = Criteria::create();
             foreach ($resourceEmbed->getFilters() as $filter) {
                 if ($filter instanceof FilterInterface) {
-                    foreach ($filter->getProperties() as $name => $precision) {
-                        $dataRequest = $request->get($name, null);
-                        if (!is_null($dataRequest)) {
-                            $expCriterial = Criteria::expr();
-                            if ($embedClassMeta->hasAssociation($name)) {
-                                $whereCriteria = $expCriterial->in($name, [$dataRequest]);
-                            } else {
-                                $whereCriteria = $precision === 'exact' ? $expCriterial->equal($name, $dataRequest) : $expCriterial->contains($name, $dataRequest);
-                            }
-                            $criteria->where($whereCriteria);
+                    $properties = $filter->getRequestProperties($request);
+                    if ($filter instanceof OrderFilter) {
+                        $criteria->orderBy($properties);
+                        continue;
+                    }
+                    foreach ($properties as $name => $data) {
+                        $expCriterial = Criteria::expr();
+                        if ($embedClassMeta->hasAssociation($name)) {
+                            $whereCriteria = $expCriterial->in($name, [$data['value']]);
+                        } else {
+                            $whereCriteria = $data['precision'] === 'exact' ?
+                                $expCriterial->equal($name, $data['value']) :
+                                $expCriterial->contains($name, $data['value'])
+                            ;
                         }
+                        $criteria->where($whereCriteria);
                     }
                 }
             }

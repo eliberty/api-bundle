@@ -13,7 +13,7 @@ namespace Eliberty\ApiBundle\Fractal;
 
 use Doctrine\Common\Inflector\Inflector;
 use Dunglas\ApiBundle\Model\PaginatorInterface;
-use Eliberty\ApiBundle\Doctrine\Orm\EmbedFilter;
+use Eliberty\ApiBundle\Doctrine\Orm\Filter\EmbedFilter;
 use League\Fractal\Pagination\PaginatorInterface as FractalPaginatorInterface;
 use League\Fractal\Resource\ResourceInterface;
 use League\Fractal\Scope as BaseFractalScope;

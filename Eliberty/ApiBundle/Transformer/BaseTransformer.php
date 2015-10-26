@@ -207,44 +207,9 @@ class BaseTransformer extends TransformerAbstract
      */
     protected function getEmbeds($requestEmbed)
     {
-        $explodeEmbeds    = preg_split("/[(a-zA-Z|}),],/", $requestEmbed, -1, PREG_SPLIT_OFFSET_CAPTURE);
-        $embedWithOptions = [];
-        foreach ($explodeEmbeds as $key => $value) {
-            //if the current offset of capture is into the position 0
-            if ($value[1] === 0) {
-                $embedWithOptions[$key] = $value[0];
-                continue;
-            }
-            //else get the last carac of the embed because is split with the preg_split Function
-            $lastCarac                  = $value[1] - 2;
-            $lastCarac                  = str_split($requestEmbed, 1)[$lastCarac];
-            $embedWithOptions[$key - 1] = $explodeEmbeds[$key - 1][0].$lastCarac;
-            $embedWithOptions[$key]     = $explodeEmbeds[$key][0];
-        }
+        $embeds = preg_split("/[(a-zA-Z|}),],/", $requestEmbed, -1, PREG_SPLIT_OFFSET_CAPTURE);
 
-        return $this->getSplitEmbedOption($embedWithOptions);
-    }
-
-    /**
-     * split the embed name and the option embed.
-     *
-     * @param array $embedWithOptions
-     *
-     * @return array
-     */
-    protected function getSplitEmbedOption($embedWithOptions = [])
-    {
-        $embedAndOption = [];
-        foreach ($embedWithOptions as $key => $value) {
-            $tab     = explode('{', $value);
-            $options = count($tab) > 1 ? '{'.array_pop($tab) : null;
-
-            $data = $options !== null ? (array) json_decode(str_replace('=', ':', $options)) : null;
-
-            $embedAndOption[array_shift($tab)] = $data;
-        }
-
-        return $this->getEmbedsWithParentEmbed($embedAndOption);
+        return $this->getEmbedsWithParentEmbed($embeds);
     }
 
     /**

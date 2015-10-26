@@ -1,6 +1,11 @@
 parameters:
     eliberty_api.normalizer.item.class: Eliberty\ApiBundle\JsonLd\Serializer\Normalizer
     eliberty_api.doctrine.orm.data_provider.class: Eliberty\ApiBundle\Doctrine\Orm\DataProvider
+
+imports:
+    - { resource: filter.yml }
+    - { resource: webhook.yml }
+
 services:
     api.resource:
         class: Eliberty\ApiBundle\Api\Resource
@@ -87,40 +92,6 @@ services:
         arguments:
             - @api.ressource.transformer_resolver
 
-#    api.iri_converter:
-#        class: Dunglas\ApiBundle\Api\IriConverter
-#        arguments:
-#            - @api.resource_collection
-#            - @api.data_provider
-#            - @api.mapping.class_metadata_factory
-#            - @api.router
-#            - @property_accessor
-
-    webhook.doctrine.entity_listener_resolver:
-        class: Eliberty\ApiBundle\WebHook\Doctrine\Listener\EntityListenerResolver
-
-    webhook.listener:
-        class : Eliberty\ApiBundle\WebHook\Listener\WebHookListener
-        arguments:
-            - @doctrine.orm.default_entity_manager
-            - @api.router
-            - @api.mapping.class_metadata_factory
-            - @api.json_ld.context_builder
-            - @api.resource_collection
-            - @request_stack
-            - @logger
-        tags:
-            - { name: kernel.event_subscriber }
-
-    api.doctrine.orm.search_filter:
-        class: Eliberty\ApiBundle\Doctrine\Orm\SearchFilter
-        public: false
-        abstract: true
-        arguments:
-            - @doctrine
-            - @api.iri_converter
-            - @property_accessor
-
     api.route_loader:
         class: Eliberty\ApiBundle\Routing\ApiLoader
         public: false
@@ -129,28 +100,3 @@ services:
             - @kernel
         tags:
             - { name: routing.loader }
-
-    api.webhook.entity_listener:
-        class: Eliberty\ApiBundle\WebHook\Doctrine\Listener\WebHookBaseListener
-        arguments:
-            - @event_dispatcher
-            - @logger
-        tags:
-            - { name: doctrine.entity_listener }
-
-
-    eliberty.api.doctrine.orm.inlist_filter:
-        class: Eliberty\ApiBundle\Doctrine\Orm\Filter\InListFilter
-        abstract: true
-        arguments:
-            - @doctrine
-            - @api.iri_converter
-            - @property_accessor
-
-    eliberty.api.doctrine.orm.isnull_filter:
-        class: Eliberty\ApiBundle\Doctrine\Orm\Filter\IsNullFilter
-        abstract: true
-        arguments:
-            - @doctrine
-            - @api.iri_converter
-            - @property_accessor
