@@ -100,3 +100,24 @@ services:
             - @kernel
         tags:
             - { name: routing.loader }
+
+    eliberty.api.controller_name_parser:
+        class: Symfony\Bundle\FrameworkBundle\Controller\ControllerNameParser
+        arguments:
+            - @kernel
+
+    api.hydra.documentation_builder:
+        class: Eliberty\ApiBundle\Hydra\ApiDocumentationBuilder
+        arguments:
+            - @api.resource_collection
+            - @api.json_ld.context_builder
+            - @router
+            - @api.mapping.class_metadata_factory
+            - %api.title%
+            - %api.description%
+            - @annotation_reader
+            - @eliberty.api.controller_name_parser
+            - @service_container
+
+
+

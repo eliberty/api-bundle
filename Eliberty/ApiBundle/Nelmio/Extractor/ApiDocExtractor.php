@@ -495,8 +495,6 @@ class ApiDocExtractor extends BaseApiDocExtractor
         //section
         $annotation->setSection($resource);
 
-
-
         $annotation = $this->addFilters($resource, $annotation, $dunglasResource, $route);
 
         if (in_array($annotation->getMethod(), ['POST', 'PUT'])) {
@@ -513,8 +511,11 @@ class ApiDocExtractor extends BaseApiDocExtractor
         if ('GET' === $annotation->getMethod()) {
             $entityClassInput = null;
         }
-
-        $entityClassOutput = $this->transformerHelper->getEntityClass($resource);
+        if (is_null($annotation->getOutput()) || is_array($annotation->getOutput())) {
+            $entityClassOutput = $this->transformerHelper->getEntityClass($resource);
+        } else {
+            $entityClassOutput = $annotation->getOutput();
+        }
 
         if ('DELETE' === $annotation->getMethod()) {
             $entityClassInput = $entityClassOutput = null;
@@ -554,18 +555,23 @@ class ApiDocExtractor extends BaseApiDocExtractor
         if (null !== $output = $entityClassOutput) {
 
             $normalizedOutput = $this->normalizeClassParameter($output, $dunglasResource);
-
-            $response = $this->getParametersParser($normalizedOutput, $resource, $dunglasResource, $annotation, 'Output');
-
-            $response = $this->clearClasses($response);
-            $response = $this->generateHumanReadableTypes($response);
+            if (!is_array($annotation->getOutput())) {
+                $response = $this->getParametersParser($normalizedOutput, $resource, $dunglasResource, $annotation, 'Output');
+                $response = $this->clearClasses($response);
+                $response = $this->generateHumanReadableTypes($response);
+            } else {
+                $response = $this->normalizeArrayParameter($annotation->getOutput());
+            }
 
             $annotation->setResponse($response);
             $annotation->setResponseForStatusCode($response, $normalizedOutput, 200);
         }
 
-        if (count($annotation->getResponseMap()) > 0) {
+        if (count($annotation->getResponseMap()) > 0 ) {
             foreach ($annotation->getResponseMap() as $code => $modelName) {
+                if(is_array($modelName)) {
+                    continue;
+                }
                 if ('200' === (string)$code && isset($modelName['type']) && isset($modelName['model'])) {
                     /*
                      * Model was already parsed as the default `output` for this ApiDoc.
@@ -591,7 +597,6 @@ class ApiDocExtractor extends BaseApiDocExtractor
                     }
                 }
 
-
                 $parameters = $this->clearClasses($parameters);
                 $parameters = $this->generateHumanReadableTypes($parameters);
 
@@ -606,13 +611,15 @@ class ApiDocExtractor extends BaseApiDocExtractor
 
     protected function normalizeClassParameter($input, DunglasResource $resource = null)
     {
+        $dataResponse = [];
+
         if (in_array(strtolower($this->versionApi), $this->nelmioDocStandardVersion)) {
             return parent::normalizeClassParameter($input);
         }
-
         $dataResponse = parent::normalizeClassParameter($input);
 
         $dataResponse['groups'] = $resource->getValidationGroups();
+
 
         return $dataResponse;
 
@@ -720,5 +727,25 @@ class ApiDocExtractor extends BaseApiDocExtractor
         }
 
         return $array;
+    }
+
+    /**
+     * normalze the format of the output response
+     */
+    protected function normalizeArrayParameter($output) {
+        foreach($output as $key =>$parameter) {
+            $output[$key] = array_merge([
+                'dataType' => 'string',
+                'actualType' => 'string',
+                'subType' => null,
+                'required' => false,
+                'default' => null,
+                'description' => 'is the description',
+                'readonly' => false,
+                'sinceVersion' => null,
+                'untilVersion' => null,
+            ], $parameter);
+        }
+        return $output;
     }
 }
