@@ -69,7 +69,7 @@ class ContextBuilder extends BaseContextBuilder
             $this->transformerHelper->getOutputAttr($resource->getShortName(), $context);
             $embeds = $this->transformerHelper->getAvailableIncludes($resource->getShortName());
             $data['@embed'] = implode(',', $embeds);
-            $context = array_merge($data, $context);
+            //$context = array_merge($data, $context);
         }
 
         return $context;
