@@ -497,4 +497,16 @@ class BaseTransformer extends TransformerAbstract
 
         return $this->objectTranslations[$object->getId()]->matching($criteria);
     }
+
+    /**
+     * @param $entity
+     * @return null
+     */
+    public function getIdOrNull($entity) {
+        if (is_null($entity)) {
+            return null;
+        }
+
+        return $entity->getId();
+    }
 }
