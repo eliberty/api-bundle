@@ -78,19 +78,18 @@ services:
             - @api.resource_collection
             - @property_accessor
 
-    api.json_ld.context_builder:
-        class: Eliberty\ApiBundle\JsonLd\ContextBuilder
-        arguments:
-            - @api.router
-            - @event_dispatcher
-            - @api.resource_collection
-            - @api.mapping.class_metadata_factory
-            - @api.transformer.helper
-
     api.transformer.helper:
         class: Eliberty\ApiBundle\Helper\TransformerHelper
         arguments:
             - @api.ressource.transformer_resolver
+
+    api.documentation.helper:
+        class: Eliberty\ApiBundle\Helper\DocumentationHelper
+        arguments:
+            - @eliberty.api.controller_name_parser
+            - @annotation_reader
+            - @api.transformer.helper
+            - @service_container
 
     api.route_loader:
         class: Eliberty\ApiBundle\Routing\ApiLoader
@@ -112,12 +111,18 @@ services:
             - @api.resource_collection
             - @api.json_ld.context_builder
             - @router
-            - @api.mapping.class_metadata_factory
             - %api.title%
             - %api.description%
-            - @annotation_reader
-            - @eliberty.api.controller_name_parser
-            - @service_container
+            - @api.documentation.helper
+
+    api.json_ld.context_builder:
+        class: Eliberty\ApiBundle\JsonLd\ContextBuilder
+        arguments:
+            - @api.router
+            - @event_dispatcher
+            - @api.resource_collection
+            - @api.mapping.class_metadata_factory
+            - @api.documentation.helper
 
 
 
