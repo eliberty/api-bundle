@@ -109,16 +109,16 @@ class ApiDocumentationBuilder implements ApiDocumentationBuilderInterface
             ];
 
             if (!empty($resource->getAlias())) {
-                $class['hydra:description']= $class['hydra:description']. '[alias: '. implode(',', $resource->getAlias()) .']';
+                $class['hydra:description']= $class['hydra:description']. ' [alias: '. implode(',', $resource->getAlias()) .']';
             }
 
             if (!is_null($resource->getParent())) {
-                $class['hydra:description'] = $class['hydra:description']. '(parent: '. $resource->getParent()->getShortName() .')';
+                $class['hydra:description'] = $class['hydra:description']. ' (parent: '. $resource->getParent()->getShortName() .')';
             }
 
             $properties = [];
             $normalizedOutput = $this->documentationHelper->normalizeClassParameter($resource->getEntityClass(), $resource);
-            $attributes =  $this->documentationHelper->getParametersParser($normalizedOutput, $resource);
+            $attributes =  $this->documentationHelper->getParametersParser($normalizedOutput, $resource->getShortName());
             foreach ($attributes as $attributeName => $attributeMetadata) {
 
                 $type = 'rdf:Property';
