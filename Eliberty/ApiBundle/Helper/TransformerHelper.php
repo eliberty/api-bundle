@@ -118,41 +118,20 @@ class TransformerHelper
 
     }
 
-    /**
-     * @param ResourceInterface $resource
-     * @return \Dunglas\ApiBundle\Mapping\AttributeMetadata[]
-     * @throws \Exception
-     */
-    protected function getTransformerAttributes(ResourceInterface $resource = null)
-    {
 
-        $shortname = (null !== $resource) ? $resource->getShortName(): null;
-
-        $resource = new Resource($this->getEntityClass($shortname));
-
-        $attributes = $this->classMetadataFactory->getMetadataFor(
-            $this->getTransformerClass($shortname),
-            $resource->getNormalizationGroups(),
-            $resource->getDenormalizationGroups(),
-            $resource->getValidationGroups()
-        )->getAttributes();
-
-        return $attributes;
-    }
 
     /**
      * @param $shortname
      * @param $data
      * @param string $type
      * @param array $jmsAttribute
+     * @param array $transformerAttributes
      * @return array
      */
-    public function getOutputAttr($shortname, &$data, $type = 'context', $jmsAttribute = [])
+    public function getOutputAttr($shortname, &$data, $type = 'context', $jmsAttribute = [], $transformerAttributes = [])
     {
 
         $attributes             = $this->getAttribute($shortname);
-
-        $transformerAttributes = $this->getTransformerAttributes();
 
         foreach ($data as $key => $value) {
             if (!array_key_exists($key, $attributes) && !in_array($key, ['@vocab', 'hydra'])) {
@@ -166,7 +145,11 @@ class TransformerHelper
             }
             if (array_key_exists($key, $transformerAttributes)) {
                 $attribute = $transformerAttributes[$key];
-                $data[$key] = $this->addAttribute($attribute, $shortname, $type);
+                if ($attribute instanceof AttributeMetadata ) {
+                    $data[$key] = $this->addAttribute($attribute, $shortname, $type);
+                    continue;
+                }
+                $data[$key] = $attribute;
             }
         }
 

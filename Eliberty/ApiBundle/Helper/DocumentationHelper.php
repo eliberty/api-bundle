@@ -105,14 +105,21 @@ class DocumentationHelper {
 
     /**
      * @param $normalizedInput
-     * @param DunglasResource $resource
+     * @param $shortName
      * @param string $type
      * @return array
      */
-    public function getParametersParser($normalizedInput,  DunglasResource $resource, $type = 'Output')
+    public function getParametersParser($normalizedInput,  $shortName, $type = 'Output')
     {
         $supportedParsers = [];
         $parameters       = [];
+        $transformerAttributes = [];
+        if ($type === 'Output') {
+            $normalizedOutput = $this->normalizeClassParameter(
+                $this->transformerHelper->getTransformerClass($shortName)
+            );
+            $transformerAttributes = $this->getParametersParser($normalizedOutput, $shortName, 'Transformer');
+        }
 
         foreach ($this->getParsers($normalizedInput) as $parser) {
             if ($parser->supports($normalizedInput)) {
@@ -120,7 +127,7 @@ class DocumentationHelper {
 
                 if ($parser instanceof JmsMetadataParser) {
                     $normalizedInput['groups'] = [];
-                    $attributes         = $parser->parse($normalizedInput);
+                    $attributes = $parser->parse($normalizedInput);
                     foreach ($attributes as $key => $value) {
                         if ($key === 'id' && !empty($value)) {
                             $parameters['id'] = $value;
@@ -130,8 +137,9 @@ class DocumentationHelper {
                         }
                     }
 
-                    $this->transformerHelper->getOutputAttr($resource->getShortName(), $parameters, 'doc', $attributes);
-
+                    if ($type === 'Output') {
+                        $this->transformerHelper->getOutputAttr($shortName, $parameters, 'doc', $attributes, $transformerAttributes);
+                    }
                     continue;
                 }
 
@@ -141,12 +149,14 @@ class DocumentationHelper {
             }
         }
 
-        foreach ($supportedParsers as $parser) {
-            if ($parser instanceof PostParserInterface) {
-                $parameters = $this->mergeParameters(
-                    $parameters,
-                    $parser->postParse($normalizedInput, $parameters)
-                );
+        if ($type === 'Output') {
+            foreach ($supportedParsers as $parser) {
+                if ($parser instanceof PostParserInterface) {
+                    $parameters = $this->mergeParameters(
+                        $parameters,
+                        $parser->postParse($normalizedInput, $parameters)
+                    );
+                }
             }
         }
 
@@ -155,9 +165,10 @@ class DocumentationHelper {
 
     /**
      * @param $input
+     * @param DunglasResource $resource
      * @return array
      */
-    public function normalizeClassParameter($input, DunglasResource $resource)
+    public function normalizeClassParameter($input, DunglasResource $resource = null)
     {
         $defaults = array(
             'class'   => '',
@@ -189,7 +200,10 @@ class DocumentationHelper {
         }
 
         $dataResponse = array_merge($defaults, $input);
-        $dataResponse['groups'] = $resource->getValidationGroups();
+
+        if (!is_null($resource)) {
+            $dataResponse['groups'] = $resource->getValidationGroups();
+        }
 
         return $dataResponse;
     }
