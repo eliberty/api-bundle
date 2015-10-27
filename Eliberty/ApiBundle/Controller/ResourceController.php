@@ -22,6 +22,7 @@ use Eliberty\ApiBundle\Api\ResourceConfig;
 use Eliberty\ApiBundle\Api\ResourceConfigInterface;
 use Eliberty\ApiBundle\Doctrine\Orm\ArrayPaginator;
 use Eliberty\ApiBundle\Doctrine\Orm\Filter\OrderFilter;
+use Eliberty\ApiBundle\Doctrine\Orm\Filter\SearchFilter;
 use Nelmio\ApiDocBundle\Annotation\ApiDoc;
 use Dunglas\ApiBundle\Event\DataEvent;
 use Dunglas\ApiBundle\Exception\DeserializationException;
@@ -401,17 +402,18 @@ class ResourceController extends BaseResourceController
                         $criteria->orderBy($properties);
                         continue;
                     }
-                    foreach ($properties as $name => $data) {
-                        $expCriterial = Criteria::expr();
-                        if ($embedClassMeta->hasAssociation($name)) {
-                            $whereCriteria = $expCriterial->in($name, [$data['value']]);
-                        } else {
-                            $whereCriteria = $data['precision'] === 'exact' ?
-                                $expCriterial->equal($name, $data['value']) :
-                                $expCriterial->contains($name, $data['value'])
-                            ;
+                    if ($filter instanceof SearchFilter) {
+                        foreach ($properties as $name => $data) {
+                            $expCriterial = Criteria::expr();
+                            if ($embedClassMeta->hasAssociation($name)) {
+                                $whereCriteria = $expCriterial->in($name, [$data['value']]);
+                            } else {
+                                $whereCriteria = isset($data['precision']) && $data['precision'] === 'exact' ?
+                                    $expCriterial->equal($name, $data['value']) :
+                                    $expCriterial->contains($name, $data['value']);
+                            }
+                            $criteria->where($whereCriteria);
                         }
-                        $criteria->where($whereCriteria);
                     }
                 }
             }
