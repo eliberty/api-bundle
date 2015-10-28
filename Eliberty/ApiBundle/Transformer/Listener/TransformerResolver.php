@@ -2,6 +2,7 @@
 namespace Eliberty\ApiBundle\Transformer\Listener;
 
 use Doctrine\ORM\Mapping\DefaultEntityListenerResolver;
+use Eliberty\ApiBundle\Api\Resource;
 use Symfony\Bundle\FrameworkBundle\Routing\Router;
 use Eliberty\ApiBundle\Versioning\Router\ApiRouter;
 use League\Fractal\TransformerAbstract;
@@ -78,6 +79,10 @@ class TransformerResolver
      */
     public function resolve($entityName)
     {
+        if ($entityName instanceof Resource) {
+            $entityName = $entityName->getShortName();
+        }
+
         $serviceId = 'transformer.'.strtolower($entityName).'.'.$this->version;
         if (isset($this->mapping[$serviceId])) {
             return $this->mapping[$serviceId];

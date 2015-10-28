@@ -133,8 +133,8 @@ class ApiDocumentationBuilder implements ApiDocumentationBuilderInterface
                     ],
                     'hydra:title' => $attributeName,
                     'hydra:required' => $attributeMetadata['required'],
-                    'hydra:readable' => $attributeMetadata['readonly'],
-                    'hydra:writable' => !$attributeMetadata['readonly'],
+//                    'hydra:readable' => $attributeMetadata['readonly'],
+//                    'hydra:writable' => !$attributeMetadata['readonly'],
                 ];
 
                 if ($range = $this->getRange($attributeMetadata)) {
