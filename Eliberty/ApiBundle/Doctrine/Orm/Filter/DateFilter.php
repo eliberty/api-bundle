@@ -118,7 +118,7 @@ class DateFilter extends AbstractFilter
         $queryParameter = sprintf('date_%s_%s', $parameter, $property);
         $symbole = $this->getCompareSymbole($parameter);
         $where = sprintf('o.%s %s :%s', $property, $symbole, $queryParameter);
-//var_dump($where);exit;
+
         $queryBuilder->setParameter($queryParameter, new \DateTime($value));
 
         if (null === $nullManagement || self::EXCLUDE_NULL === $nullManagement) {
