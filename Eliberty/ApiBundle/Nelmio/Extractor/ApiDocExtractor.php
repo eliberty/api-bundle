@@ -7,9 +7,13 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\Common\Inflector\Inflector;
 use Doctrine\Common\Util\ClassUtils;
 use Doctrine\ORM\EntityManager;
+use Dunglas\ApiBundle\Doctrine\Orm\Filter\AbstractFilter;
 use Eliberty\ApiBundle\Api\Resource as DunglasResource;
 use Eliberty\ApiBundle\Api\Resource;
 use Eliberty\ApiBundle\Api\ResourceCollection;
+use Eliberty\ApiBundle\Doctrine\Orm\Filter\DateFilter;
+use Eliberty\ApiBundle\Doctrine\Orm\Filter\InListFilter;
+use Eliberty\ApiBundle\Doctrine\Orm\Filter\IsNullFilter;
 use Eliberty\ApiBundle\Helper\TransformerHelper;
 use Eliberty\ApiBundle\JsonLd\Serializer\Normalizer;
 use Eliberty\ApiBundle\Transformer\Listener\TransformerResolver;
@@ -673,8 +677,9 @@ class ApiDocExtractor extends BaseApiDocExtractor
             foreach ($dunglasResource->getFilters() as $filter) {
                 foreach ($filter->getDescription($dunglasResource) as $key => $value) {
                     $annotation->addFilter($key, [
-                        'requirement' => '[a-zA-Z0-9-]+',
-                        'description' => $key . ' filter',
+                        'type' => isset($value['type'])? $value['type'] : 'string',
+                        'requirement' => isset($value['requirement'])? $value['requirement'] : '[a-zA-Z0-9-]+',
+                        'description' => isset($value['description'])? $value['description'] : $key . ' filter',
                         'default'     => ''
                     ]);
                 }
@@ -694,17 +699,11 @@ class ApiDocExtractor extends BaseApiDocExtractor
                 'description' => 'How many page start to return.',
                 'default'     => 1
             ]);
-
-//            //filter orderby
-//            $annotation->addFilter('orderby', [
-//                'requirement' => '\t',
-//                'description' => 'Way to sort the rows in the result set.',
-//                'default'     => '{"id":"asc"}'
-//            ]);
         }
 
         return $annotation;
     }
+
 
     /**
      * Populates the `dataType` properties in the parameter array if empty. Recurses through children when necessary.
