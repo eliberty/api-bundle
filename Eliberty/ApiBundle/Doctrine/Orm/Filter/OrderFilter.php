@@ -27,6 +27,24 @@ use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
  */
 class OrderFilter extends BaseOrderFilter
 {
+
+    /**
+     * @var string Keyword used to retrieve the value.
+     */
+    private $orderParameter;
+
+    /**
+     * @param ManagerRegistry $managerRegistry
+     * @param string          $orderParameter  Keyword used to retrieve the value.
+     * @param array|null      $properties      List of property names on which the filter will be enabled.
+     */
+    public function __construct(ManagerRegistry $managerRegistry, $orderParameter, array $properties = null)
+    {
+        parent::__construct($managerRegistry, $properties);
+
+        $this->orderParameter = $orderParameter;
+    }
+
     /**
      * @param Request $request
      * @return array|mixed
@@ -34,5 +52,36 @@ class OrderFilter extends BaseOrderFilter
     public function getRequestProperties(Request $request)
     {
         return $this->extractProperties($request);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getDescription(ResourceInterface $resource)
+    {
+        $description = [];
+        $metadata = $this->getClassMetadata($resource);
+
+        foreach ($metadata->getFieldNames() as $fieldName) {
+            if ($this->isPropertyEnabled($fieldName)) {
+                $description[sprintf('%s[%s]', $this->orderParameter, $fieldName)] = [
+                    'property' => $fieldName,
+                    'type' => 'string',
+                    'required' => false,
+                    'requirement'  => 'ASC|DESC',
+                    'description' => 'Order by '.$fieldName
+                ];
+            }
+        }
+
+        return $description;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function extractProperties(Request $request)
+    {
+        return $request->query->get($this->orderParameter, []);
     }
 }

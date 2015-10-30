@@ -44,4 +44,37 @@ class IsNullFilter extends SearchFilter
             }
         }
     }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getDescription(ResourceInterface $resource)
+    {
+        $description = [];
+        foreach ($this->getClassMetadata($resource)->getFieldNames() as $fieldName) {
+            if ($this->isPropertyEnabled($fieldName)) {
+                $description += $this->getFilterDescription($fieldName);
+            }
+        }
+
+        return $description;
+    }
+
+    /**
+     * Gets filter description.
+     * @param $fieldName
+     * @return array
+     */
+    private function getFilterDescription($fieldName)
+    {
+        return [
+            sprintf('%s[%s]', $fieldName, 'in') => [
+                'property' => $fieldName,
+                'type' => '\boolean',
+                'required' => false,
+                'description' => 'return the entity with'. $fieldName .' is true/false',
+                'requirement'  => '0|1'
+            ],
+        ];
+    }
 }

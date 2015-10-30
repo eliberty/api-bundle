@@ -125,9 +125,10 @@ class TransformerHelper
      * @param $data
      * @param string $type
      * @param array $jmsAttribute
+     * @param array $transformerAttributes
      * @return array
      */
-    public function getOutputAttr($shortname, &$data, $type = 'context', $jmsAttribute = [])
+    public function getOutputAttr($shortname, &$data, $type = 'context', $jmsAttribute = [], $transformerAttributes = [])
     {
 
         $attributes             = $this->getAttribute($shortname);
@@ -142,7 +143,14 @@ class TransformerHelper
             if (array_key_exists($key, $jmsAttribute) && !isset($data[$key])) {
                 $data[$key] = $jmsAttribute[$key];
             }
-            $data[$key] = $this->addAttribute($value, $shortname, $type);
+            if (array_key_exists($key, $transformerAttributes)) {
+                $attribute = $transformerAttributes[$key];
+                if ($attribute instanceof AttributeMetadata ) {
+                    $data[$key] = $this->addAttribute($attribute, $shortname, $type);
+                    continue;
+                }
+                $data[$key] = $attribute;
+            }
         }
 
         ksort($data);
@@ -192,7 +200,7 @@ class TransformerHelper
      * @param $type
      * @return array|null|string
      */
-    protected function  addAttribute(AttributeMetadata $attribute, $entityName, $type)
+    protected function addAttribute(AttributeMetadata $attribute, $entityName, $type)
     {
         if ($type === 'context') {
             if (!$id = $attribute->getIri()) {

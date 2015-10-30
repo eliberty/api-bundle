@@ -18,6 +18,7 @@ services:
             - @api.mapping.class_metadata_factory
             - @api.json_ld.context_builder
             - @api.resource_collection
+            - @api.ressource.transformer_resolver
             - @request_stack
             - @logger
         tags:

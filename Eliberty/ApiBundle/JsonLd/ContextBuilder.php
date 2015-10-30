@@ -7,6 +7,7 @@ use Dunglas\ApiBundle\JsonLd\ContextBuilder as BaseContextBuilder;
 use Dunglas\ApiBundle\Api\ResourceCollectionInterface;
 use Dunglas\ApiBundle\Api\ResourceInterface;
 use Dunglas\ApiBundle\Mapping\ClassMetadataFactory;
+use Eliberty\ApiBundle\Helper\DocumentationHelper;
 use Eliberty\ApiBundle\Helper\TransformerHelper;
 use Eliberty\ApiBundle\Transformer\Listener\TransformerResolver;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
@@ -25,32 +26,31 @@ class ContextBuilder extends BaseContextBuilder
     const OWL_NS = 'http://www.w3.org/2002/07/owl#';
 
     /**
-     * @var TransformerHelper
-     */
-    protected $transformerHelper;
-
-    /**
      * @var ClassMetadataFactory
      */
     private $classMetadataFactory;
+    /**
+     * @var DocumentationHelper
+     */
+    private $documentationHelper;
 
     /**
      * @param RouterInterface $router
      * @param EventDispatcherInterface $eventDispatcher
      * @param ResourceCollectionInterface $resourceCollection
      * @param ClassMetadataFactory $classMetadataFactory
-     * @param TransformerHelper $transformerHelper
+     * @param DocumentationHelper $documentationHelper
      */
     public function __construct(
         RouterInterface $router,
         EventDispatcherInterface $eventDispatcher,
         ResourceCollectionInterface $resourceCollection,
         ClassMetadataFactory $classMetadataFactory,
-        TransformerHelper $transformerHelper
+        DocumentationHelper $documentationHelper
     ) {
         $this->classMetadataFactory = $classMetadataFactory;
-        $this->transformerHelper = $transformerHelper;
         parent::__construct($router, $eventDispatcher, $resourceCollection);
+        $this->documentationHelper = $documentationHelper;
     }
 
 
@@ -65,11 +65,15 @@ class ContextBuilder extends BaseContextBuilder
     {
         $context = parent::getContext($resource);
         if ($resource) {
-            $this->transformerHelper->setClassMetadataFactory($this->classMetadataFactory);
-            $this->transformerHelper->getOutputAttr($resource->getShortName(), $context);
-            $embeds = $this->transformerHelper->getAvailableIncludes($resource->getShortName());
-            $data['@embed'] = implode(',', $embeds);
-            //$context = array_merge($data, $context);
+
+            $normalizedOutput = $this->documentationHelper->normalizeClassParameter($resource->getEntityClass(), $resource);
+            $data =  $this->documentationHelper->getParametersParser($normalizedOutput, $resource);
+
+            $embeds = $this->documentationHelper->transformerHelper->getAvailableIncludes($resource->getShortName());
+            $context['@embed'] = implode(',', $embeds);
+            foreach($data as $key => $value) {
+                $context[$key] = '#'.$resource->getShortName().'/'.$key;
+            }
         }
 
         return $context;

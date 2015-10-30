@@ -11,8 +11,10 @@
 
 namespace Eliberty\ApiBundle\Controller;
 
+use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Criteria;
 use Doctrine\Common\Inflector\Inflector;
+use Doctrine\ODM\PHPCR\ReferrersCollection;
 use Doctrine\ORM\PersistentCollection;
 use Dunglas\ApiBundle\Doctrine\Orm\Filter\FilterInterface;
 use Dunglas\ApiBundle\Doctrine\Orm\Paginator;
@@ -22,6 +24,7 @@ use Eliberty\ApiBundle\Api\ResourceConfig;
 use Eliberty\ApiBundle\Api\ResourceConfigInterface;
 use Eliberty\ApiBundle\Doctrine\Orm\ArrayPaginator;
 use Eliberty\ApiBundle\Doctrine\Orm\Filter\OrderFilter;
+use Eliberty\ApiBundle\Doctrine\Orm\Filter\SearchFilter;
 use Nelmio\ApiDocBundle\Annotation\ApiDoc;
 use Dunglas\ApiBundle\Event\DataEvent;
 use Dunglas\ApiBundle\Exception\DeserializationException;
@@ -381,15 +384,19 @@ class ResourceController extends BaseResourceController
         $object = $this->findOrThrowNotFound($resource, $id);
 
         $parentClassMeta =  $em->getClassMetadata($resource->getEntityClass());
-
-        $propertyName = $parentClassMeta->hasAssociation($embed) ? $embed : $resourceEmbed->shortName;
-
-        if (!is_null($resource->getEmbedAlias($embed))) {
-            $propertyName = $resource->getEmbedAlias($embed);
+        $data = null;
+        if ($parentClassMeta->hasAssociation($embed)) {
+            $propertyName = $embed;
+        } elseif (null === $data = call_user_func([$object, 'get'.ucfirst($embed)])) {
+            $propertyName = $resourceEmbed->shortName;
         }
 
-
-        $data = $propertyAccessor->getValue($object, $propertyName);
+        if (is_null($data)) {
+            if (!is_null($resource->getEmbedAlias($embed))) {
+                $propertyName = $resource->getEmbedAlias($embed);
+            }
+            $data = $propertyAccessor->getValue($object, $propertyName);
+        }
 
         if ($data instanceof PersistentCollection) {
             $embedClassMeta =  $em->getClassMetadata($resourceEmbed->getEntityClass());
@@ -401,23 +408,27 @@ class ResourceController extends BaseResourceController
                         $criteria->orderBy($properties);
                         continue;
                     }
-                    foreach ($properties as $name => $data) {
-                        $expCriterial = Criteria::expr();
-                        if ($embedClassMeta->hasAssociation($name)) {
-                            $whereCriteria = $expCriterial->in($name, [$data['value']]);
-                        } else {
-                            $whereCriteria = $data['precision'] === 'exact' ?
-                                $expCriterial->equal($name, $data['value']) :
-                                $expCriterial->contains($name, $data['value'])
-                            ;
+                    if ($filter instanceof SearchFilter) {
+                        foreach ($properties as $name => $propertie) {
+                            $expCriterial = Criteria::expr();
+                            if ($embedClassMeta->hasAssociation($name)) {
+                                $whereCriteria = $expCriterial->in($name, [$propertie['value']]);
+                                $criteria->where($whereCriteria);
+                            } else {
+                                $whereCriteria = isset($propertie['precision']) && $propertie['precision'] === 'exact' ?
+                                    $expCriterial->eq($name, $propertie['value']) :
+                                    $expCriterial->contains($name, $propertie['value']);
+                                $criteria->where($whereCriteria);
+                            }
                         }
-                        $criteria->where($whereCriteria);
                     }
                 }
             }
             $data = $data->matching($criteria);
-            $data = new ArrayPaginator(new ArrayAdapter($data->toArray()), $request);
+
         }
+
+        $data = new ArrayPaginator(new ArrayAdapter($data->toArray()), $request);
 
         $this->get('event_dispatcher')->dispatch(Events::RETRIEVE_LIST, new DataEvent($resourceEmbed, $data));
 
