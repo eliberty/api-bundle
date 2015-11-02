@@ -398,7 +398,8 @@ class ResourceController extends BaseResourceController
             $data = $propertyAccessor->getValue($object, $propertyName);
         }
 
-        if ($data instanceof PersistentCollection) {
+        $requestValue = $request->request->all();
+        if ($data instanceof PersistentCollection && !empty($requestValue)) {
             $embedClassMeta =  $em->getClassMetadata($resourceEmbed->getEntityClass());
             $criteria = Criteria::create();
             foreach ($resourceEmbed->getFilters() as $filter) {
@@ -425,7 +426,6 @@ class ResourceController extends BaseResourceController
                 }
             }
             $data = $data->matching($criteria);
-
         }
 
         $data = new ArrayPaginator(new ArrayAdapter($data->toArray()), $request);
