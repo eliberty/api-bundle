@@ -41,7 +41,7 @@ class OrderFilter extends BaseOrderFilter
     public function __construct(ManagerRegistry $managerRegistry, $orderParameter, array $properties = null)
     {
         parent::__construct($managerRegistry, $properties);
-
+        $this->properties = $properties;
         $this->orderParameter = $orderParameter;
     }
 
