@@ -398,8 +398,7 @@ class ResourceController extends BaseResourceController
             $data = $propertyAccessor->getValue($object, $propertyName);
         }
 
-        $requestValue = $request->request->all();
-        if ($data instanceof PersistentCollection && !empty($requestValue)) {
+        if ($data instanceof PersistentCollection) {
             $embedClassMeta =  $em->getClassMetadata($resourceEmbed->getEntityClass());
             $criteria = Criteria::create();
             foreach ($resourceEmbed->getFilters() as $filter) {
@@ -411,6 +410,9 @@ class ResourceController extends BaseResourceController
                     }
                     if ($filter instanceof SearchFilter) {
                         foreach ($properties as $name => $propertie) {
+                            if (in_array($name, $embedClassMeta->getIdentifier())) {
+                                continue;
+                            }
                             $expCriterial = Criteria::expr();
                             if ($embedClassMeta->hasAssociation($name)) {
                                 $whereCriteria = $expCriterial->in($name, [$propertie['value']]);
