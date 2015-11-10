@@ -40,4 +40,9 @@ interface ResourceConfigInterface
      */
     public function getParentName();
 
+    /**
+     * Gets the identifier for this resource.
+     * @return string
+     */
+    public function getIdentifier();
 }

@@ -392,19 +392,19 @@ class ResourceController extends BaseResourceController
         }
 
         if (is_null($data)) {
-            if (!is_null($resource->getEmbedAlias($embed))) {
+            if (!is_null($resourceEmbed->getEmbedAlias($embed))) {
                 $propertyName = $resource->getEmbedAlias($embed);
             }
             $data = $propertyAccessor->getValue($object, $propertyName);
         }
 
-        if ($data instanceof PersistentCollection) {
+        if ($data instanceof PersistentCollection && $data->count() > 0) {
             $embedClassMeta =  $em->getClassMetadata($resourceEmbed->getEntityClass());
             $criteria = Criteria::create();
             foreach ($resourceEmbed->getFilters() as $filter) {
                 if ($filter instanceof FilterInterface) {
                     $properties = $filter->getRequestProperties($request);
-                    if ($filter instanceof OrderFilter) {
+                    if ($filter instanceof OrderFilter && !empty($properties)) {
                         $criteria->orderBy($properties);
                         continue;
                     }
@@ -430,7 +430,9 @@ class ResourceController extends BaseResourceController
             $data = $data->matching($criteria);
         }
 
-        $data = new ArrayPaginator(new ArrayAdapter($data->toArray()), $request);
+        if ($data instanceof ArrayCollection) {
+            $data = new ArrayPaginator(new ArrayAdapter($data->toArray()), $request);
+        }
 
         $this->get('event_dispatcher')->dispatch(Events::RETRIEVE_LIST, new DataEvent($resourceEmbed, $data));
 

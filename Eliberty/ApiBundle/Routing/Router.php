@@ -212,9 +212,10 @@ class Router implements RouterInterface
             if ($this->getScope()->getParent() instanceof Scope) {
                 $parentScope = $this->getScope()->getParent();
                 if (!is_null($parentScope->getDunglasResource()->getEmbedOperation())) {
-                    $parentParameters    = $parentScope->getDunglasResource()->getRouteKeyParams($parentScope->getData());
+                    $parentDunglasResource = $parentScope->getDunglasResource();
+                    $parameters = [];
+                    $parameters[$parentDunglasResource->getIdentifier()] = $parentDunglasResource->getIdentifierValue($parentScope->getData());
                     $parameters['embed'] = $this->getScope()->getSingleIdentifier();
-                    $parameters['id']    = isset($parentParameters['id']) ? $parentParameters['id'] : $parentScope->getData()->getId();
 
                     return $parentScope->getDunglasResource()->getEmbedOperation()->getRouteName();
                 }
@@ -247,12 +248,6 @@ class Router implements RouterInterface
         $operations = 'item' === $prefix ? $resource->getItemOperations() : $resource->getCollectionOperations();
         foreach ($operations as $operation) {
             $methods = $operation->getRoute()->getMethods();
-            //check if have not the embed routing
-//            if (!$resource->getParent() instanceof ResourceInterface &&
-//                false !== strpos($this->router->getRouteCollection()->get($operation->getRouteName())->getPath(), 'embed')
-//            ) {
-//                continue;
-//            }
 
             if (empty($methods) || in_array('GET', $methods)) {
                 $data = $this->routeCache[$resource];
@@ -262,32 +257,7 @@ class Router implements RouterInterface
                 return $data[$key];
             }
         }
-
-
-//        $this->initRouteCache($resource);
-//
-//        if (isset($this->routeCache[$resource]['itemRouteName'])) {
-//            return $this->routeCache[$resource]['itemRouteName'];
-//        }
-//
-//        $operations = $resource->getitemOperations();
-//        foreach ($operations as $operation) {
-//            if (in_array('GET', $operation->getRoute()->getMethods())) {
-//                //check if have not the embed routing
-//                if (!$resource->getParent() instanceof ResourceInterface &&
-//                    false !== strpos($this->router->getRouteCollection()->get($operation->getRouteName())->getPath(), 'embed')
-//                ) {
-//                    continue;
-//                }
-//
-//                $data                        = $this->routeCache[$resource];
-//                $data['itemRouteName']       = $operation->getRouteName();
-//                $this->routeCache[$resource] = $data;
-//
-//                return $data['itemRouteName'];
-//            }
-//        }
-    }
+   }
 
     /**
      * Initializes the route cache structure for the given resource.
