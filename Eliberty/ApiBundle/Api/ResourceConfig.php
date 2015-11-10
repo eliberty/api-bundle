@@ -55,6 +55,7 @@ class ResourceConfig implements ResourceConfigInterface
      */
     private $embeds;
 
+
     /**
      * @var array
      */
@@ -102,6 +103,10 @@ class ResourceConfig implements ResourceConfigInterface
 
         if (isset($this->options['embeds'])) {
             $this->embeds = $this->options['embeds'];
+        }
+
+        if (isset($this->options['identifier'])) {
+            $this->identifier = $this->options['identifier'];
         }
 
         return $this;
@@ -181,5 +186,15 @@ class ResourceConfig implements ResourceConfigInterface
             return $this->embeds[$alias];
         }
         return null;
+    }
+
+    /**
+     * @return string
+     */
+    public function getIdentifier() {
+        if (isset($this->options['identifier'])) {
+            return $this->options['identifier'];
+        }
+        return 'id';
     }
 }

@@ -292,10 +292,6 @@ class Scope extends BaseFractalScope
             $transformedData['@id'] = $this->getGenerateRoute($data);
         }
 
-//        $classMetadata =  $this->manager->getApiClassMetadataFactory()->getMetadataFor(
-//            $this->dunglasResource->getEntityClass()
-//        );
-        //$transformedData['@type'] =  ($iri = $classMetadata->getIri()) ? $iri : $this->getEntityName();
         if (!empty($this->getEntityName())) {
             $transformedData['@type'] = $this->getEntityName();
         }
@@ -476,6 +472,10 @@ class Scope extends BaseFractalScope
 
         if (!$parentScope instanceof Scope) {
             return parent::transformerHasIncludes($transformer);
+        }
+
+        if ($parentScope->getDunglasResource()->getShortName() === $this->getDunglasResource()->getShortName()) {
+            return true;
         }
 
         if ($parentScope->getParent() instanceof Scope) {

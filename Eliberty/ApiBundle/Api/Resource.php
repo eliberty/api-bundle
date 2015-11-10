@@ -482,4 +482,19 @@ class Resource implements ResourceInterface
 
         return $dataResponse;
     }
+
+    /**
+     * return the identifier value for this resource
+     */
+    public function getIdentifierValue($data){
+        return $this->getPropertyValue($data, 'get'.ucfirst($this->getIdentifier()));
+    }
+
+    /**
+     * return the identifier for the resource (default : id)
+     * @return string
+     */
+    public function getIdentifier(){
+        return $this->config->getIdentifier();
+    }
 }

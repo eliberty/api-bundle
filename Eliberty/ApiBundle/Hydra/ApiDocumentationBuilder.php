@@ -231,7 +231,9 @@ class ApiDocumentationBuilder implements ApiDocumentationBuilderInterface
                                 $annotation->getDescription() :
                                 sprintf('Retrieves %s resource.', $resource->getShortName());
                     }
-                    $hydraOperation['returns'] = $annotation->getOutput();
+                    if (null !== $annotation) {
+                        $hydraOperation['returns'] = $annotation->getOutput();
+                    }
                 }
                 break;
 
