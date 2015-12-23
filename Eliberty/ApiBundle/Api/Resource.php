@@ -99,15 +99,16 @@ class Resource implements ResourceInterface
     }
 
     /**
+     * @param null $key
      * @return array
      */
     public function getListener($key = null)
     {
-        if (is_null($key)) {
+        if (is_null($key) && $this->config instanceof ResourceConfig) {
             return $this->config->getListener();
         }
 
-        return $this->hasEventListener($key) ? $this->config->getListener()[$key] : null;
+        return $this->hasEventListener($key) && $this->config instanceof ResourceConfig ? $this->config->getListener()[$key] : null;
     }
 
     /**
@@ -485,6 +486,9 @@ class Resource implements ResourceInterface
 
     /**
      * return the identifier value for this resource
+     * @param $data
+     * @return
+     * @throws \Exception
      */
     public function getIdentifierValue($data){
         return $this->getPropertyValue($data, 'get'.ucfirst($this->getIdentifier()));

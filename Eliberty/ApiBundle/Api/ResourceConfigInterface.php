@@ -45,4 +45,10 @@ interface ResourceConfigInterface
      * @return string
      */
     public function getIdentifier();
+
+    /**
+     * Gets the identifier for this resource.
+     * @return string
+     */
+    public function getListener();
 }
