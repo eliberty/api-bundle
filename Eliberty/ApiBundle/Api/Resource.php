@@ -495,6 +495,6 @@ class Resource implements ResourceInterface
      * @return string
      */
     public function getIdentifier(){
-        return $this->config->getIdentifier();
+        return $this->config instanceof ResourceConfig ?  $this->config->getIdentifier() : 'id';
     }
 }
