@@ -149,6 +149,8 @@ class ResourceController extends BaseResourceController
      * Adds an element to the collection.
      *
      * @param Request $request
+     * @return Response|void
+     * @throws \NotFoundResourceException
      * @ApiDoc(
      *                         resource = true,
      *                         statusCodes = {
@@ -157,66 +159,33 @@ class ResourceController extends BaseResourceController
      *                         400 = "Returned when the form has errors"
      *                         }
      *                         )
-     *
-     * @return Response
-     *
-     * @throws DeserializationException
      */
     public function cpostAction(Request $request)
     {
-        $resource = $this->getResource($request);
-
-        $object = $this->getEntity($request, $resource);
-
-        $this->get('event_dispatcher')->dispatch(Events::PRE_CREATE_VALIDATION, new DataEvent($resource, $object));
-
-        $violations = $this->get('validator')->validate($object, null, $resource->getValidationGroups());
-
-        return $this->FormResponse($object, $violations, $resource, Events::PRE_CREATE);
+        throw new \NotFoundResourceException('this method is not allowed');
     }
 
     /**
      * Replaces an element of the collection.
      *
      * @param Request $request
-     * @param string  $id
+     * @param string $id
+     * @return Response
+     * @throws DeserializationException
+     * @throws \NotFoundResourceException
      * @ApiDoc(
-     *                         resource = true,
-     *                         statusCodes = {
+     *    resource = true,
+     *    statusCodes = {
      *                         200 = "Returned when successful",
      *                         401 = "Returned when the User is not authorized to use this method",
      *                         404 = "Returned when the element not found",
-     *                         }
-     *                         )
+     *    }
+     * )
      *
-     * @return Response
-     *
-     * @throws DeserializationException
      */
     public function putAction(Request $request, $id)
     {
-        $resource = $this->getResource($request);
-        $object   = $this->findOrThrowNotFound($resource, $id);
-
-        $context                       = $resource->getDenormalizationContext();
-        $context['object_to_populate'] = $object;
-
-        try {
-            $object = $this->get('api.json_ld.normalizer.item')->denormalize(
-                $request->getContent(),
-                $resource->getEntityClass(),
-                'json-ld',
-                $context
-            );
-        } catch (Exception $e) {
-            throw new DeserializationException($e->getMessage(), $e->getCode(), $e);
-        }
-
-        $this->get('event_dispatcher')->dispatch(Events::PRE_UPDATE_VALIDATION, new DataEvent($resource, $object));
-
-        $violations = $this->get('validator')->validate($object, null, $resource->getValidationGroups());
-
-        return $this->FormResponse($object, $violations, $resource, Events::PRE_UPDATE);
+        throw new \NotFoundResourceException('this method is not allowed');
     }
 
     /**
@@ -305,6 +274,7 @@ class ResourceController extends BaseResourceController
         array $headers = [],
         array $additionalContext = []
     ) {
+
         $dataResponse = $this->get('api.json_ld.normalizer.item')
             ->normalize($data, 'json-ld', $resource->getNormalizationContext() + $additionalContext);
 
@@ -430,8 +400,12 @@ class ResourceController extends BaseResourceController
             $data = $data->matching($criteria);
         }
 
-        if ($data instanceof ArrayCollection) {
+        if ($data instanceof ArrayCollection && $data->count() > 0) {
             $data = new ArrayPaginator(new ArrayAdapter($data->toArray()), $request);
+        }
+
+        if ($data->count() === 0) {
+            return new Response([]);
         }
 
         $this->get('event_dispatcher')->dispatch(Events::RETRIEVE_LIST, new DataEvent($resourceEmbed, $data));
@@ -463,7 +437,11 @@ class ResourceController extends BaseResourceController
                 // Validation succeed
                 $this->get('event_dispatcher')->dispatch($eventName, $event);
             }
-            return $this->getSuccessResponse($resource, $object, 201);
+
+            $request = $this->get('request_stack')->getCurrentRequest();
+            $codeResponse = in_array($request->getMethod(), ['PUT', 'PATCH']) ? 200 : 201;
+
+            return $this->getSuccessResponse($resource, $object, $codeResponse);
         }
 
         return $this->getErrorResponse($violations);
