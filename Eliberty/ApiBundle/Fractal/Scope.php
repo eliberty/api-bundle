@@ -211,11 +211,11 @@ class Scope extends BaseFractalScope
      */
     protected function getEntityName()
     {
-        if (substr($this->scopeIdentifer, -1) === 's') {
-            return ucwords(Inflector::singularize($this->scopeIdentifer));
+        if (substr($this->scopeIdentifier, -1) === 's') {
+            return ucwords(Inflector::singularize($this->scopeIdentifier));
         }
 
-        return ucwords($this->scopeIdentifer);
+        return ucwords($this->scopeIdentifier);
     }
 
     /**

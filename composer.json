@@ -13,7 +13,7 @@
     "require": {
         "php": ">=5.5.0",
         "nelmio/api-doc-bundle": "2.9.0",
-        "league/fractal": "0.12.0",
+        "league/fractal": "0.13.0",
         "dunglas/api-bundle": "v1.0.1",
         "white-october/pagerfanta-bundle": "v1.0.2"
     },
