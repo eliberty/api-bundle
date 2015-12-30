@@ -420,12 +420,13 @@ class ApiDocExtractor extends BaseApiDocExtractor
                     $parameters[$key]['format'] = '[false|true]';
                 }
                 if (is_null($format) && $parameters[$key]['dataType'] === 'string') {
-                    if (isset($metadataAttributesValidation[$key]) && $metadataAttributesValidation[$key]['format'] !== '{not blank}') {
+                    if (isset($metadataAttributesValidation[$key]['format']) &&
+                        $metadataAttributesValidation[$key]['format'] !== '{not blank}') {
                         $parameters[$key]['format'] = $metadataAttributesValidation[$key]['format'];
                     } else if ($classMetadata->hasField($key)) {
                         $metatdataOrm               = $classMetadata->getFieldMapping($key);
-                        $maxLenght = isset($metatdataOrm['length']) ? $metatdataOrm['length'] : '255';
-                        $parameters[$key]['format'] = '{length:  max: '.$maxLenght.'}';
+                        $maxLenght                  = isset($metatdataOrm['length']) ? $metatdataOrm['length'] : '255';
+                        $parameters[$key]['format'] = '{length:  max: ' . $maxLenght . '}';
                     }
                 }
             }
