@@ -328,7 +328,9 @@ class ApiDocExtractor extends BaseApiDocExtractor
         foreach ($this->getParsers($normalizedInput) as $parser) {
             if ($parser->supports($normalizedInput)) {
                 $supportedParsers[] = $parser;
-
+                if ($type === 'Output' && !$parser instanceof JmsMetadataParser) {
+                    continue;
+                }
                 if ($parser instanceof JmsMetadataParser) {
                     $normalizedInput['groups'] = [];
                     $attributes         = $parser->parse($normalizedInput);
@@ -341,6 +343,9 @@ class ApiDocExtractor extends BaseApiDocExtractor
                         }
                     }
                     if (!is_null($resource) && $type !== 'Input') {
+                        $transformer = $this->transformerHelper->getTransformer($resource);
+                        $attributesTransformer =  $parser->parse(['class' => get_class($transformer), 'groups' => []]);
+                        $attributes = array_merge($attributes, $attributesTransformer);
                         $this->transformerHelper->getOutputAttr($resource, $parameters, 'doc', $attributes);
                     }
 
@@ -562,6 +567,14 @@ class ApiDocExtractor extends BaseApiDocExtractor
             $normalizedOutput = $this->normalizeClassParameter($output, $dunglasResource);
             if (!is_array($annotation->getOutput())) {
                 $response = $this->getParametersParser($normalizedOutput, $resource, $dunglasResource, $annotation, 'Output');
+                foreach($response as $key => $params) {
+                    if (isset($response[$key]['children'])) {
+                        unset($response[$key]['children']);
+                    }
+                    if ($response[$key]['actualType'] === 'model') {
+                        $response[$key]['dataType'] = 'Integer | ' .$response[$key]['dataType'];
+                    }
+                }
                 $response = $this->clearClasses($response);
                 $response = $this->generateHumanReadableTypes($response);
             } else {
