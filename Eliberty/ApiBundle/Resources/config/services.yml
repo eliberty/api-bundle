@@ -27,6 +27,9 @@ services:
              - %api.collection.pagination.items_per_page.number%
              - %api.collection.pagination.items_per_page.enable_client_request%
              - %api.collection.pagination.items_per_page.parameter_name%
+
+    api.doctrine.orm.default_data_provider:
+        parent : api.doctrine.orm.data_provider
         tags:
              - { name: api.data_provider }
 
