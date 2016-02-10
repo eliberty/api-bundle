@@ -15,7 +15,7 @@
         "nelmio/api-doc-bundle": "2.9.0",
         "league/fractal": "0.13.0",
         "dunglas/api-bundle": "v1.0.1",
-        "white-october/pagerfanta-bundle": "~v1.0.2"
+        "white-october/pagerfanta-bundle": "~1.0.2"
     },
     "extra": {
     },
