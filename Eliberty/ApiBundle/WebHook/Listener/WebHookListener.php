@@ -195,7 +195,7 @@ class WebHookListener implements EventSubscriberInterface
                     }
                 }
             } catch (\Exception $ex) {
-                $this->logger->alert($ex->getMessage());
+                $this->logger->info($ex->getMessage());
             }
         }
     }
@@ -290,7 +290,7 @@ class WebHookListener implements EventSubscriberInterface
                 }
             }
         } catch (\Exception $ex) {
-            $this->logger->alert($ex->getMessage());
+            $this->logger->info($ex->getMessage());
         }
     }
 
@@ -380,7 +380,7 @@ class WebHookListener implements EventSubscriberInterface
 //            try {
 //                $this->client->send($clientRequest);
 //            } catch (\Exception $ex) {
-//                $this->logger->alert($ex->getMessage());
+//                $this->logger->info($ex->getMessage());
 //            }
 //        }
     }

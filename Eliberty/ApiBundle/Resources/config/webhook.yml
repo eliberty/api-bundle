@@ -2,8 +2,8 @@ services:
     api.webhook.entity_listener:
         class: Eliberty\ApiBundle\WebHook\Doctrine\Listener\WebHookBaseListener
         arguments:
-            - @event_dispatcher
-            - @logger
+            - '@event_dispatcher'
+            - '@logger'
         tags:
             - { name: doctrine.entity_listener }
 
@@ -13,13 +13,13 @@ services:
     webhook.listener:
         class : Eliberty\ApiBundle\WebHook\Listener\WebHookListener
         arguments:
-            - @doctrine.orm.default_entity_manager
-            - @api.router
-            - @api.mapping.class_metadata_factory
-            - @api.json_ld.context_builder
-            - @api.resource_collection
-            - @api.ressource.transformer_resolver
-            - @request_stack
-            - @logger
+            - '@doctrine.orm.default_entity_manager'
+            - '@api.router'
+            - '@api.mapping.class_metadata_factory'
+            - '@api.json_ld.context_builder'
+            - '@api.resource_collection'
+            - '@api.ressource.transformer_resolver'
+            - '@request_stack'
+            - '@logger'
         tags:
             - { name: kernel.event_subscriber }

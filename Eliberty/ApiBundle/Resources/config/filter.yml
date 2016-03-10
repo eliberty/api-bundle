@@ -3,33 +3,33 @@ services:
         class: Eliberty\ApiBundle\Doctrine\Orm\Filter\InListFilter
         abstract: true
         arguments:
-            - @doctrine
-            - @property_accessor
+            - '@doctrine'
+            - '@property_accessor'
 
     eliberty.api.doctrine.orm.isnull_filter:
         class: Eliberty\ApiBundle\Doctrine\Orm\Filter\IsNullFilter
         abstract: true
         arguments:
-            - @doctrine
-            - @property_accessor
+            - '@doctrine'
+            - '@property_accessor'
 
     api.doctrine.orm.date_filter:
         class: Eliberty\ApiBundle\Doctrine\Orm\Filter\DateFilter
         abstract: true
         arguments:
-            - @doctrine
+            - '@doctrine'
 
     api.doctrine.orm.order_filter:
         class: Eliberty\ApiBundle\Doctrine\Orm\Filter\OrderFilter
         abstract: true
         arguments:
-            - @doctrine
-            - %api.collection.filter_name.order%
+            - '@doctrine'
+            - '%api.collection.filter_name.order%'
 
     api.doctrine.orm.search_filter:
         class: Eliberty\ApiBundle\Doctrine\Orm\Filter\SearchFilter
         public: false
         abstract: true
         arguments:
-            - @doctrine
-            - @property_accessor
+            - '@doctrine'
+            - '@property_accessor'

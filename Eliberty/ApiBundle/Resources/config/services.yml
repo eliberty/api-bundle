@@ -87,7 +87,11 @@ services:
         class: 'Eliberty\ApiBundle\Api\ResourceCollection'
         arguments:
             - '@request_stack'
+<<<<<<< HEAD
         lazy: 'true'
+=======
+        lazy: true
+>>>>>>> 05db838277429b1cc4be2a5daa47ecec247c0fb6
 
     api.operation_factory:
         class: 'Eliberty\ApiBundle\Api\Operation\OperationFactory'
@@ -146,6 +150,9 @@ services:
             - '@api.resource_collection'
             - '@api.mapping.class_metadata_factory'
             - '@api.documentation.helper'
+<<<<<<< HEAD
 
 
 
+=======
+>>>>>>> 05db838277429b1cc4be2a5daa47ecec247c0fb6

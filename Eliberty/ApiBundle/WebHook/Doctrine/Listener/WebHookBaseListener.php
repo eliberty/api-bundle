@@ -32,7 +32,7 @@ class WebHookBaseListener
      */
     public function postPersist(LifecycleEventArgs $args)
     {
-        $this->logger->alert('postPersist');
+        $this->logger->info('postPersist');
         $this->eventDispatcher->dispatch('weebhook.persist.entity', new EntityListenerEvent($args));
     }
 
@@ -41,7 +41,7 @@ class WebHookBaseListener
      */
     public function postUpdate(LifecycleEventArgs $args)
     {
-        $this->logger->alert('postUpdate');
+        $this->logger->info('postUpdate');
         $this->eventDispatcher->dispatch('weebhook.update.entity', new EntityListenerEvent($args));
     }
 
@@ -50,7 +50,7 @@ class WebHookBaseListener
      */
     public function postRemove(LifecycleEventArgs $args)
     {
-        $this->logger->alert('postRemove');
+        $this->logger->info('postRemove');
         $this->eventDispatcher->dispatch('weebhook.remove.entity', new EntityListenerEvent($args));
     }
 }
