@@ -248,7 +248,6 @@ class BaseTransformer extends TransformerAbstract
     public function setRequest(Request $request = null)
     {
         $this->request = $request;
-        //$this->setParamRequestEmbed();
 
         if (null !== $request) {
             $this->uri     = $this->request->getPathInfo();

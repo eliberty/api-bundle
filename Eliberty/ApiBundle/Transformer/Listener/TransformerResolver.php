@@ -3,6 +3,7 @@ namespace Eliberty\ApiBundle\Transformer\Listener;
 
 use Doctrine\ORM\Mapping\DefaultEntityListenerResolver;
 use Eliberty\ApiBundle\Api\Resource;
+use Eliberty\ApiBundle\Resolver\BaseResolver;
 use Symfony\Bundle\FrameworkBundle\Routing\Router;
 use Eliberty\ApiBundle\Versioning\Router\ApiRouter;
 use League\Fractal\TransformerAbstract;
@@ -11,56 +12,8 @@ use Symfony\Component\HttpFoundation\AcceptHeader;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 
-class TransformerResolver
+class TransformerResolver extends BaseResolver
 {
-    /**
-     * @var ContainerInterface
-     */
-    private $container;
-
-    /**
-     * @var array
-     */
-    private $mapping;
-
-    /**
-     * @var string
-     */
-    private $version = 'v2';
-    /**
-     * @var Request
-     */
-    private $request;
-
-    /**
-     * @param RequestStack $requestStack
-     */
-    public function __construct(RequestStack $requestStack)
-    {
-        $this->mapping   = [];
-        $this->request = $requestStack->getCurrentRequest();
-        if ($this->request instanceof Request) {
-            $acceptHeader = AcceptHeader::fromString($this->request->headers->get('Accept'))->all();
-            foreach ($acceptHeader as $acceptHeaderItem) {
-                if ($acceptHeaderItem->hasAttribute('version')) {
-                    $this->version = $acceptHeaderItem->getAttribute('version');
-                    break;
-                }
-            }
-        }
-    }
-
-    /**
-     * @param string $version
-     *
-     * @return $this
-     */
-    public function setVersion($version)
-    {
-        $this->version = $version;
-
-        return $this;
-    }
 
     /**
      * @param TransformerAbstract $transformer

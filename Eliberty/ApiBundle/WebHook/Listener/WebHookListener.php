@@ -299,7 +299,7 @@ class WebHookListener implements EventSubscriberInterface
      */
     public function processPersistEntity(EntityListenerEvent $event)
     {
-        $this->logger->alert('processPersistEntity');
+        $this->logger->info('processPersistEntity');
         $entity = $event->getLifecycleEventArgs()->getEntity();
         $this->persistData[$entity->getId()] = $entity;
     }
@@ -309,7 +309,7 @@ class WebHookListener implements EventSubscriberInterface
      */
     public function processUpdateEntity(EntityListenerEvent $event)
     {
-        $this->logger->alert('processUpdateEntity');
+        $this->logger->info('processUpdateEntity');
         $entity = $event->getLifecycleEventArgs()->getEntity();
         $this->updateData[$entity->getId()] = $entity;
     }

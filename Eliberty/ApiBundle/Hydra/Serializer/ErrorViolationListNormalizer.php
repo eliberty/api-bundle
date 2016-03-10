@@ -46,15 +46,15 @@ class ErrorViolationListNormalizer implements NormalizerInterface
      */
     public function __construct(RouterInterface $router, $debug, PropertyAccessorInterface $propertyAccessor)
     {
-        $this->router = $router;
-        $this->debug = $debug;
+        $this->router           = $router;
+        $this->debug            = $debug;
         $this->propertyAccessor = $propertyAccessor;
     }
 
     /**
      * {@inheritdoc}
      */
-    public function normalize($violationList, $format = null, array $context = array())
+    public function normalize($violationList, $format = null, array $context = [])
     {
         if ($violationList instanceof \Exception) {
             if ($this->debug) {
@@ -63,28 +63,28 @@ class ErrorViolationListNormalizer implements NormalizerInterface
         }
 
         $data = [
-            '@context' => $this->router->generate('api_json_ld_context', ['shortName' => 'ConstraintViolationList']),
-            '@type' => 'ConstraintViolationList',
+            '@context'    => $this->router->generate('api_json_ld_context', ['shortName' => 'ConstraintViolationList']),
+            '@type'       => 'ConstraintViolationList',
             'hydra:title' => isset($context['title']) ? $context['title'] : 'An error occurred',
             //'hydra:description' => isset($message) ? $message : (string) $violationList,
-            'violations' => [],
+            'violations'  => [],
         ];
 
         foreach ($violationList as $violation) {
-            $key = $violation->getPropertyPath();
+            $key          = $violation->getPropertyPath();
             $invalidValue = $violation->getInvalidValue();
             if (method_exists($violation->getRoot(), '__toString')) {
                 $invalidValue = $this->propertyAccessor->getValue($violation->getRoot(), $violation->getPropertyPath());
             }
             if ($violation->getConstraint() instanceof UniqueEntity) {
-                $class = method_exists($violation->getRoot(), 'getConfig')?$violation->getRoot()->getConfig():$violation->getRoot();
+                $class     = method_exists($violation->getRoot(), 'getConfig') ? $violation->getRoot()->getConfig() : $violation->getRoot();
                 $reflexion = new \ReflectionClass($class);
-                $key = strtolower($reflexion->getShortname());
+                $key       = strtolower($reflexion->getShortname());
             }
             $data['violations'][$key][] = [
-                'property' => $violation->getPropertyPath(),
+                'property'     => $violation->getPropertyPath(),
                 'invalidValue' => $invalidValue,
-                'message' =>  $violation->getMessage()
+                'message'      => $violation->getMessage()
             ];
         }
 
@@ -94,7 +94,6 @@ class ErrorViolationListNormalizer implements NormalizerInterface
 
         return $data;
     }
-
 
 
     /**
