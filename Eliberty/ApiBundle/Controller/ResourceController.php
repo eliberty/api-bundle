@@ -327,33 +327,13 @@ class ResourceController extends BaseResourceController
      */
     public function cgetEmbedAction(Request $request, $id, $embed)
     {
-        $embedShortname = ucwords(Inflector::singularize($embed));
-        $resourceEmbed  = $this->get('api.resource_collection')->getResourceForShortName($embedShortname);
-
-        $em = $this->get('doctrine.orm.entity_manager');
-
-        $managerRegister = $this->get('doctrine');
-
+        $resourceEmbed    = $this->get('api.init.filter.embed')->InitFilterEmbed($id, $embed);
+        $em               = $this->get('doctrine.orm.entity_manager');
         $propertyAccessor = $this->get('property_accessor');
+        $resource         = $this->getResource($request);
+        $object           = $this->findOrThrowNotFound($resource, $id);
+        $parentClassMeta  = $em->getClassMetadata($resource->getEntityClass());
 
-        $filter = new EmbedFilter($managerRegister, $propertyAccessor);
-
-        $params = !$request->request->has('embedParams')?[
-            'embed' => $embed,
-            'id'    => $id,
-        ] : $request->request->get('embedParams');
-
-        $filter->setParameters($params);
-
-        $filter->setRouteName($request->get('_route'));
-
-        $resourceEmbed->addFilter($filter);
-
-        $resource = $this->getResource($request);
-
-        $object = $this->findOrThrowNotFound($resource, $id);
-
-        $parentClassMeta =  $em->getClassMetadata($resource->getEntityClass());
         $data = null;
         if ($parentClassMeta->hasAssociation($embed)) {
             $propertyName = $embed;
@@ -368,49 +348,19 @@ class ResourceController extends BaseResourceController
             $data = $propertyAccessor->getValue($object, $propertyName);
         }
 
-        if ($data instanceof PersistentCollection && $data->count() > 0) {
-            $embedClassMeta =  $em->getClassMetadata($resourceEmbed->getEntityClass());
-            $criteria = Criteria::create();
-            foreach ($resourceEmbed->getFilters() as $filter) {
-                if ($filter instanceof FilterInterface) {
-                    $properties = $filter->getRequestProperties($request);
-                    if ($filter instanceof OrderFilter && !empty($properties)) {
-                        $criteria->orderBy($properties);
-                        continue;
-                    }
-                    if ($filter instanceof SearchFilter) {
-                        foreach ($properties as $name => $propertie) {
-                            if (in_array($name, $embedClassMeta->getIdentifier())) {
-                                continue;
-                            }
-                            $expCriterial = Criteria::expr();
-                            if ($embedClassMeta->hasAssociation($name)) {
-                                $whereCriteria = $expCriterial->in($name, [$propertie['value']]);
-                                $criteria->where($whereCriteria);
-                            } else {
-                                $whereCriteria = isset($propertie['precision']) && $propertie['precision'] === 'exact' ?
-                                    $expCriterial->eq($name, $propertie['value']) :
-                                    $expCriterial->contains($name, $propertie['value']);
-                                $criteria->where($whereCriteria);
-                            }
-                        }
-                    }
-                }
-            }
-            $data = $data->matching($criteria);
+        $dataResponse = $this->get('api.helper.apply.criteria')->ApplyCriteria($resourceEmbed, $data);
+
+        if ($dataResponse instanceof ArrayCollection && $dataResponse->count() > 0) {
+            $dataResponse = new ArrayPaginator(new ArrayAdapter($dataResponse->toArray()), $request);
         }
 
-        if ($data instanceof ArrayCollection && $data->count() > 0) {
-            $data = new ArrayPaginator(new ArrayAdapter($data->toArray()), $request);
-        }
-
-        if ($data->count() === 0) {
+        if ($dataResponse instanceof ArrayCollection && $dataResponse->count() === 0) {
             return new Response([]);
         }
 
-        $this->get('event_dispatcher')->dispatch(Events::RETRIEVE_LIST, new DataEvent($resourceEmbed, $data));
+        $this->get('event_dispatcher')->dispatch(Events::RETRIEVE_LIST, new DataEvent($resourceEmbed, $dataResponse));
 
-        return $this->getSuccessResponse($resourceEmbed, $data);
+        return $this->getSuccessResponse($resourceEmbed, $dataResponse);
     }
 
     /**

@@ -12,6 +12,7 @@
 namespace Eliberty\ApiBundle\Doctrine\Orm;
 
 use Doctrine\Common\Persistence\ManagerRegistry;
+use Doctrine\ORM\EntityRepository;
 use Doctrine\ORM\Tools\Pagination\Paginator as DoctrineOrmPaginator;
 use Dunglas\ApiBundle\Api\ResourceInterface;
 use Dunglas\ApiBundle\Doctrine\Orm\Filter\FilterInterface;
@@ -26,6 +27,11 @@ use Symfony\Component\HttpFoundation\Request;
  */
 class DataProvider implements DataProviderInterface
 {
+    /**
+     * @var array
+     */
+    protected $dataProvider= [];
+
     /**
      * @var ManagerRegistry
      */
@@ -109,7 +115,6 @@ class DataProvider implements DataProviderInterface
      */
     public function getQueryBuilderForCollection(ResourceInterface $resource, Request $request)
     {
-
         $entityClass = $resource->getEntityClass();
 
         $manager = $this->managerRegistry->getManagerForClass($resource->getEntityClass());
@@ -117,15 +122,9 @@ class DataProvider implements DataProviderInterface
 
         $page = (int) $request->get($this->pageParameter, 1);
 
-        $itemsPerPage = $this->itemsPerPage;
-        if ($this->enableClientRequestItemsPerPage && $requestedItemsPerPage = $request->get($this->itemsPerPageParameter)) {
-            $itemsPerPage = (int) $requestedItemsPerPage;
-        }
-        $queryBuilder = $repository
-            ->createQueryBuilder('o')
-            ->setFirstResult(($page - 1) * $itemsPerPage)
-            ->setMaxResults($itemsPerPage)
-        ;
+        $itemsPerPage = $this->getItemPerPage($request);
+
+        $queryBuilder = $this->getQB($request, $repository, $page, $itemsPerPage);
 
         foreach ($resource->getFilters() as $filter) {
             if ($filter instanceof FilterInterface) {
@@ -137,10 +136,53 @@ class DataProvider implements DataProviderInterface
     }
 
     /**
+     * @param Request $request
+     * @param EntityRepository $repository
+     * @param $page
+     * @param $itemsPerPage
+     * @return \Doctrine\ORM\QueryBuilder
+     */
+    protected function getQB(Request $request, EntityRepository $repository, $page, $itemsPerPage) {
+        return $repository
+            ->createQueryBuilder('o')
+            ->setFirstResult(($page - 1) * $itemsPerPage)
+            ->setMaxResults($itemsPerPage);
+    }
+
+    /**
      * {@inheritdoc}
      */
     public function supports(ResourceInterface $resource)
     {
+        foreach ($this->dataProvider as $dataProvider) {
+            if ($dataProvider->supports($resource)) {
+                return false;
+            }
+        }
         return null !== $this->managerRegistry->getManagerForClass($resource->getEntityClass());
+    }
+
+    /**
+     * @param Request $request
+     * @return int
+     */
+    protected function getItemPerPage(Request $request) {
+        $itemsPerPage = $this->itemsPerPage;
+        if ($this->enableClientRequestItemsPerPage && $requestedItemsPerPage = $request->get($this->itemsPerPageParameter)) {
+            $itemsPerPage = (int) $requestedItemsPerPage;
+            if ($itemsPerPage > 2000) {
+                $itemsPerPage = $this->itemsPerPage;
+            }
+        }
+
+        return $itemsPerPage;
+    }
+
+    /**
+     * @param $dataProvider
+     */
+    public function addDataProvider($dataProvider)
+    {
+        $this->dataProvider[] = $dataProvider;
     }
 }

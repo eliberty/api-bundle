@@ -18,6 +18,8 @@ services:
              - '@api.iri_converter'
              - '@api.router'
 
+
+
     api.doctrine.orm.data_provider:
         class: '%eliberty_api.doctrine.orm.data_provider.class%'
         arguments:
@@ -39,7 +41,7 @@ services:
              - '@api.router'
              - '%kernel.debug%'
              - '@property_accessor'
-        lazy: 'true'
+        lazy: true
         tags:
              - { name: serializer.normalizer }
 
@@ -87,11 +89,7 @@ services:
         class: 'Eliberty\ApiBundle\Api\ResourceCollection'
         arguments:
             - '@request_stack'
-<<<<<<< HEAD
-        lazy: 'true'
-=======
         lazy: true
->>>>>>> 05db838277429b1cc4be2a5daa47ecec247c0fb6
 
     api.operation_factory:
         class: 'Eliberty\ApiBundle\Api\Operation\OperationFactory'
@@ -150,9 +148,19 @@ services:
             - '@api.resource_collection'
             - '@api.mapping.class_metadata_factory'
             - '@api.documentation.helper'
-<<<<<<< HEAD
 
+    api.helper.apply.criteria:
+        class: 'Eliberty\ApiBundle\Helper\ApplyCriteriaEmbed'
+        arguments:
+            - '@request_stack'
+            - '@doctrine.orm.entity_manager'
+            - '@api.resource_collection'
+            - '@api.data_provider'
 
-
-=======
->>>>>>> 05db838277429b1cc4be2a5daa47ecec247c0fb6
+    api.init.filter.embed:
+        class: 'Eliberty\ApiBundle\Helper\InitFilterEmbed'
+        arguments:
+            - '@request_stack'
+            - '@api.resource_collection'
+            - '@doctrine'
+            - '@property_accessor'
