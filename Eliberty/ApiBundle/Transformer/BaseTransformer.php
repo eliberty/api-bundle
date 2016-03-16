@@ -111,12 +111,11 @@ class BaseTransformer extends TransformerAbstract
     /**
      * Constructor.
      *
-     * @param Request       $request
      * @param EntityManager $em
      *
      * @internal param Kernel $kernel
      */
-    public function __construct(EntityManager $em, Request $request = null)
+    public function __construct(EntityManager $em)
     {
         $this->em = $em;
     }
@@ -397,7 +396,6 @@ class BaseTransformer extends TransformerAbstract
         return $includedData;
     }
 
-
     /**
      * Call Include Method.
      *
@@ -417,8 +415,7 @@ class BaseTransformer extends TransformerAbstract
         return parent::callIncludeMethod($scope, $includeName, $data);
     }
 
-    /////Gestion des langs//////////////////////////////////////////////////////////////////////
-
+    #region managements of locals
     /**
      *  get the multi language for a entity and field
      * @param $object
@@ -497,6 +494,8 @@ class BaseTransformer extends TransformerAbstract
         return $this->objectTranslations[$object->getId()]->matching($criteria);
     }
 
+    #endregion
+
     /**
      * @param $entity
      * @return null
@@ -508,4 +507,5 @@ class BaseTransformer extends TransformerAbstract
 
         return $entity->getId();
     }
+
 }

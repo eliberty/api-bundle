@@ -15,6 +15,10 @@ use Dunglas\ApiBundle\Routing\Router;
 use League\Fractal\Pagination\PaginatorInterface;
 use League\Fractal\Serializer\DataArraySerializer as baseDataArraySerializer;
 
+/**
+ * Class DataArraySerializer
+ * @package Eliberty\ApiBundle\Fractal\Serializer
+ */
 class DataArraySerializer extends baseDataArraySerializer
 {
     /**

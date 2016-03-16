@@ -170,7 +170,7 @@ class DataProvider implements DataProviderInterface
         $itemsPerPage = $this->itemsPerPage;
         if ($this->enableClientRequestItemsPerPage && $requestedItemsPerPage = $request->get($this->itemsPerPageParameter)) {
             $itemsPerPage = (int) $requestedItemsPerPage;
-            if ($itemsPerPage > 2000) {
+            if ($itemsPerPage > 500) {
                 $itemsPerPage = $this->itemsPerPage;
             }
         }
