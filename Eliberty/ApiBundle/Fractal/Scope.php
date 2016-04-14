@@ -112,7 +112,9 @@ class Scope extends BaseFractalScope
             }
             if (empty($route)) {
                 $parameters = [];
-                if ($this->dunglasResource->getParent() instanceof DunglasResource) {
+                if (
+                    $this->dunglasResource->getParent() instanceof DunglasResource
+                ) {
                     $dunglasParentResource = $this->dunglasResource->getParent();
                     $parameters = $dunglasParentResource->getRouteKeyParams($this->getParent()->getData());
                 }
@@ -251,7 +253,7 @@ class Scope extends BaseFractalScope
      * @throws \Exception
      */
     protected function getApiVersion() {
-        $version = null;
+        $version = 'v2';
         if ($this->parent instanceof Scope && $this->parent->getDunglasResource() instanceof DunglasResource) {
             $version = $this->parent->getDunglasResource()->getVersion();
         }

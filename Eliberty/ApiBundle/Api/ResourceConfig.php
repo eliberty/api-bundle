@@ -42,6 +42,16 @@ class ResourceConfig implements ResourceConfigInterface
     /**
      * @var []
      */
+    protected $embedsParams;
+
+    /**
+     * @var string
+     */
+    protected $identifier;
+
+    /**
+     * @var []
+     */
     private $routeKeyParams;
 
     /**
@@ -103,6 +113,10 @@ class ResourceConfig implements ResourceConfigInterface
 
         if (isset($this->options['embeds'])) {
             $this->embeds = $this->options['embeds'];
+        }
+
+        if (isset($this->options['embedsParams'])) {
+            $this->embedsParams = $this->options['embedsParams'];
         }
 
         if (isset($this->options['identifier'])) {
@@ -185,6 +199,23 @@ class ResourceConfig implements ResourceConfigInterface
         if (isset($this->embeds[$alias])) {
             return $this->embeds[$alias];
         }
+        return null;
+    }
+
+    /**
+     * @param $parentName
+     *
+     * @return null
+     */
+    public function getEmbedParams($parentName) {
+        if (isset($this->embedsParams) && count($this->embedsParams)>0) {
+            foreach ($this->embedsParams as $embedsParam) {
+                if (strtolower($embedsParam['parentName']) === $parentName) {
+                    return $embedsParam['arguments'];
+                }
+            }
+        }
+
         return null;
     }
 

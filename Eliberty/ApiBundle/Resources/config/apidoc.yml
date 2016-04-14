@@ -14,3 +14,13 @@ services:
             - '@api.resource_collection'
             - '@doctrine.orm.entity_manager'
             - '@form.registry'
+
+    eliberty_api_doc.formatter.file_formatter:
+        class: Eliberty\ApiBundle\Nelmio\Formatter\MkDocsFormatter
+        arguments:
+            - '%kernel.root_dir%'
+            - '@templating'
+            - '@api.json_ld.normalizer.item'
+            - '@api.resource_collection'
+            - '@doctrine'
+            - '@property_accessor'

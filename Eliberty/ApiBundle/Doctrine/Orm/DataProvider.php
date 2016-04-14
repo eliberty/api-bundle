@@ -125,7 +125,7 @@ class DataProvider implements DataProviderInterface
         $itemsPerPage = $this->getItemPerPage($request);
 
         $queryBuilder = $this->getQB($request, $repository, $page, $itemsPerPage);
-
+//->addOrderBy('o.id', $this->order)
         foreach ($resource->getFilters() as $filter) {
             if ($filter instanceof FilterInterface) {
                 $filter->apply($resource, $queryBuilder, $request);

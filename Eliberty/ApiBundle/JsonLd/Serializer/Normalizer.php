@@ -14,6 +14,7 @@ namespace Eliberty\ApiBundle\JsonLd\Serializer;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Persistence\ObjectManager;
 use Doctrine\Common\Util\Inflector;
+use Doctrine\ORM\PersistentCollection;
 use Dunglas\ApiBundle\JsonLd\Serializer\DateTimeNormalizer;
 use Dunglas\ApiBundle\Mapping\Loader\ValidatorMetadataLoader;
 use Eliberty\ApiBundle\Api\Resource;
@@ -59,7 +60,7 @@ class Normalizer extends AbstractNormalizer
     /**
      * @var DataProviderInterface
      */
-    private $dataProvider;
+    public $dataProvider;
     /**
      * @var RouterInterface
      */
@@ -124,10 +125,10 @@ class Normalizer extends AbstractNormalizer
      * @param TransformerHelper           $transformerHelper
      * @param RequestStack                $requestStack
      * @param ObjectManager               $objectManager
-     * @param ValidatorMetadataLoader     $validatorMetadataLoader
      * @param Logger                      $logger
      * @param NameConverterInterface      $nameConverter
      *
+     * @internal param ValidatorMetadataLoader $validatorMetadataLoader
      * @internal param Request $request
      * @internal param ValidatorInterface $validator
      */
@@ -171,7 +172,7 @@ class Normalizer extends AbstractNormalizer
      * @throws CircularReferenceException
      * @throws InvalidArgumentException
      */
-    public function normalize($object, $format = null, array $context = [])
+    public function normalize($object, $format = null, array $context = [], $defaultIncludes = true)
     {
         $dunglasResource = $this->guessResource($object, $context);
 
@@ -185,9 +186,11 @@ class Normalizer extends AbstractNormalizer
             $this->fractal->setResourceCollection($this->resourceCollection);
         }
 
-        $this->fractal->parseIncludes($this->getEmbedsWithoutOptions());
+        if ($this->request) {
+            $this->fractal->parseIncludes($this->getEmbedsWithoutOptions());
+        }
 
-        if ($object instanceof Paginator) {
+        if ($object instanceof Paginator || $object instanceof PersistentCollection) {
             $resource = new Collection($object, $this->transformer);
         } else {
             $resource = new Item($object, $this->transformer);
@@ -195,11 +198,15 @@ class Normalizer extends AbstractNormalizer
 
         $rootScope = $this->fractal->createData($resource, $dunglasResource->getShortName());
 
+        if ($defaultIncludes === false) {
+            $this->transformer->setDefaultIncludes([]);
+        }
+
         $this->transformer
             ->setCurrentScope($rootScope)
             ->setEmbed($dunglasResource->getShortName());
 
-        return $rootScope->toArray();;
+        return $rootScope->toArray();
     }
 
     /**
@@ -522,5 +529,13 @@ class Normalizer extends AbstractNormalizer
     public function getClassMetadataFactory()
     {
         return $this->apiClassMetadataFactory;
+    }
+
+    /**
+     * @return DataProviderInterface
+     */
+    public function getDataProvider()
+    {
+        return $this->dataProvider;
     }
 }

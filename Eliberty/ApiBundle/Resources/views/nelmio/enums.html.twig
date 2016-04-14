@@ -1,0 +1,18 @@
+{% if data is defined and data is not empty %}
+<table class='fullwidth'>
+    <thead>
+    <tr>
+        <th>Value</th>
+        <th>Définition</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for name, infos in data.property %}
+        <tr>
+            <td>{{ name }}</td>
+            <td>{{ infos}}</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endif %}

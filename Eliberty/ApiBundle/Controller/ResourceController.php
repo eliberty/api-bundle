@@ -274,9 +274,9 @@ class ResourceController extends BaseResourceController
         array $headers = [],
         array $additionalContext = []
     ) {
-
         $dataResponse = $this->get('api.json_ld.normalizer.item')
             ->normalize($data, 'json-ld', $resource->getNormalizationContext() + $additionalContext);
+
 
         return new Response(
             $dataResponse,
@@ -327,19 +327,15 @@ class ResourceController extends BaseResourceController
      */
     public function cgetEmbedAction(Request $request, $id, $embed)
     {
-        $resourceEmbed    = $this->get('api.init.filter.embed')->InitFilterEmbed($id, $embed);
+        $resourceEmbed    = $this->get('api.init.filter.embed')->initFilterEmbed($id, $embed);
         $em               = $this->get('doctrine.orm.entity_manager');
         $propertyAccessor = $this->get('property_accessor');
         $resource         = $this->getResource($request);
         $object           = $this->findOrThrowNotFound($resource, $id);
         $parentClassMeta  = $em->getClassMetadata($resource->getEntityClass());
 
-        $data = null;
-        if ($parentClassMeta->hasAssociation($embed)) {
-            $propertyName = $embed;
-        } elseif (null === $data = call_user_func([$object, 'get'.ucfirst($embed)])) {
-            $propertyName = $resourceEmbed->shortName;
-        }
+        $propertyName = $parentClassMeta->hasAssociation($embed) ? $embed : $resourceEmbed->shortName;
+        $data = call_user_func([$object, 'get'.ucfirst($embed)], $resourceEmbed->getEmbedParams(strtolower($resource->getShortName())));
 
         if (is_null($data)) {
             if (!is_null($resourceEmbed->getEmbedAlias($embed))) {
@@ -367,27 +363,14 @@ class ResourceController extends BaseResourceController
      * @param $object
      * @param ConstraintViolationListInterface $violations
      * @param ResourceInterface $resource
-     * @param $eventName
      * @return Response
      */
     protected function formResponse(
         $object,
         ConstraintViolationListInterface $violations,
-        ResourceInterface $resource,
-        $eventName
+        ResourceInterface $resource
     ) {
         if (0 === count($violations)) {
-            if ($eventName !== self::NONE) {
-                $event = new DataEvent($resource, $object);
-                if ($resource->hasEventListener($eventName)) {
-                    $eventName  = $resource->getListener($eventName);
-                    $eventClass = $resource->getListener('eventClass');
-                    $event      = new $eventClass($object);
-                }
-                // Validation succeed
-                $this->get('event_dispatcher')->dispatch($eventName, $event);
-            }
-
             $request = $this->get('request_stack')->getCurrentRequest();
             $codeResponse = in_array($request->getMethod(), ['PUT', 'PATCH']) ? 200 : 201;
 

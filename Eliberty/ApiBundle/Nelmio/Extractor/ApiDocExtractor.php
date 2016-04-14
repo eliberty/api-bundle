@@ -150,8 +150,9 @@ class ApiDocExtractor extends BaseApiDocExtractor
         $this->transformerHelper->setClassMetadataFactory($normailzer->getClassMetadataFactory());
 
         $this->annotationsProviders = $annotationsProviders;
-        $this->setVersionApiDoc();
-
+        //remove apres generation de la doc
+        $this->versionApi = 'v2';
+//        $this->setVersionApiDoc();
         if (in_array(strtolower($this->versionApi), $this->nelmioDocStandardVersion)) {
             $annotationsProviders = [];
         }
@@ -221,8 +222,9 @@ class ApiDocExtractor extends BaseApiDocExtractor
         }
 
         $this->transformerHelper->setVersion($this->versionApi);
-
+        $routesName = [];
         foreach ($routes as $name => $route) {
+            $routeName = $name;
             if (!$route instanceof Route) {
                 throw new \InvalidArgumentException(sprintf('All elements of $routes must be instances of Route. "%s" given', gettype($route)));
             }
@@ -256,7 +258,9 @@ class ApiDocExtractor extends BaseApiDocExtractor
                         $name            = Inflector::singularize($include);
                         $dunglasResource = $this->resourceCollection->getResourceForShortName(ucfirst($name), $this->versionApi);
                         $route->addDefaults(['_resource' => $dunglasResource->getShortName()]);
-                        $array[] = ['annotation' => $this->extractData($annotation, $route, $method, $dunglasResource)];
+                        $apiDoc =  $this->extractData($annotation, $route, $method, $dunglasResource);
+                        $routesNames[$apiDoc->getRoute()->getPattern()] = $routeName;
+                        $array[] = ['annotation' => $apiDoc];
                     }
                 }
             }
@@ -266,12 +270,12 @@ class ApiDocExtractor extends BaseApiDocExtractor
         foreach ($array as $index => $element) {
             $hasResource = false;
             $pattern     = $element['annotation']->getRoute()->getPattern();
+            $routeName = isset($routesNames[$pattern]) ? $routesNames[$pattern] : null;
 
             foreach ($resources as $resource) {
                 if (0 === strpos($pattern, $resource) || $resource === $element['annotation']->getResource()) {
                     $data = (false !== $element['annotation']->getResource()) ? $resource : $pattern;
                     $array[$index]['resource'] = $data;
-
                     $hasResource = true;
                     break;
                 }
@@ -280,6 +284,7 @@ class ApiDocExtractor extends BaseApiDocExtractor
             if (false === $hasResource) {
                 $array[$index]['resource'] = 'others';
             }
+            $array[$index]['routeName'] = $routeName;
         }
 
         $methodOrder = array('GET', 'POST', 'PUT', 'DELETE');
@@ -668,7 +673,7 @@ class ApiDocExtractor extends BaseApiDocExtractor
                 ]);
             } else {
                 unset($data['requirements']['embed']);
-                unset($data['tags']['embed']);
+                $data['tags']['embed'] = "#298A08";
                 $path = explode('/', $route->getPath());
                 $embed       = array_pop($path);
                 $singularize = Inflector::singularize($embed);

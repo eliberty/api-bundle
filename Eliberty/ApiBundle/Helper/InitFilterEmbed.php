@@ -75,7 +75,7 @@ class InitFilterEmbed
      * @param $embed
      * @return ResourceInterface
      */
-    public function InitFilterEmbed($id, $embed)
+    public function initFilterEmbed($id, $embed)
     {
         $embedShortname = ucwords(Inflector::singularize($embed));
 
