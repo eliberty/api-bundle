@@ -1,3 +1,12 @@
+{%  set mapping =
+    {
+        'contact' : {'status' : 'contactstatus'},
+        'asset'   : {'trigger' : 'assettriggertype', 'type' : 'assettype'},
+        'document' : {'type' : 'documenttype'},
+        'keycard'  : {'usage' : 'keycardusagetype'}
+    }
+%}
+
 {% if data.response is defined and data.response is not empty %}
 <table class='fullwidth'>
     <thead>
@@ -11,7 +20,16 @@
     <tbody>
     {% for name, infos in data.response %}
         <tr>
-            <td>{{ name }}</td>
+            <td>
+                {% set lowerName =  name | lower %}
+                {% if name | lower in enums %}
+                    <a href="../../enums/{{ lowerName }}/index.html">{{  name }}</a>
+                {% elseif mapping[entityName][lowerName] is defined %}
+                    <a href="../../enums/{{ mapping[entityName][lowerName] }}/index.html">{{  name }}</a>
+                {% else %}
+                    {{  name }}
+                {% endif %}
+            </td>
             <td>{{ infos.dataType }}</td>
             <td>{% include 'NelmioApiDocBundle:Components:version.html.twig' with {'sinceVersion': infos.sinceVersion, 'untilVersion': infos.untilVersion} only %}</td>
             <td>{{ infos.description }}</td>

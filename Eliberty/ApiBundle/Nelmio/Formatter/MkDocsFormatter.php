@@ -163,7 +163,7 @@ class MkDocsFormatter extends AbstractFormatter
         if (isset($data['parameters']) && !$this->fs->exists($path. '/parameters.html')) {
             $dataFilters =  $this->engine->render(
                 'ElibertyApiBundle:nelmio:parameters.html.twig',
-                ['data' => $data, 'enums' => $this->enums]
+                ['data' => $data]
             );
             $this->fs->dumpFile($path . '/parameters.html', $dataFilters);
         }
@@ -176,7 +176,12 @@ class MkDocsFormatter extends AbstractFormatter
 
         if (isset($data['response'])) {
             if (!$this->fs->exists($path. '/responses.html')) {
-                $dataFilters = $this->engine->render('ElibertyApiBundle:nelmio:responses.html.twig', ['data' => $data]);
+                $dataFilters = $this->engine->render('ElibertyApiBundle:nelmio:responses.html.twig',
+                    [
+                        'data' => $data,
+                        'enums' => $this->enums,
+                        'entityName' => strtolower($this->apiResource->getShortName())
+                    ]);
                 $this->fs->dumpFile($path . '/responses.html', $dataFilters);
             }
 
