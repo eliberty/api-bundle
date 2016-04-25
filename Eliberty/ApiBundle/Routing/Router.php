@@ -142,6 +142,10 @@ class Router implements RouterInterface
             }
         }
 
+        if (isset($parameters['id']) && $parameters['id'] === 0 ) {
+            return null;
+        }
+
         $baseContext = $this->router->getContext();
 
         try {
@@ -154,6 +158,7 @@ class Router implements RouterInterface
                 $baseContext->getHttpsPort()
             ));
             try {
+
                 return $this->router->generate($name, $parameters, $referenceType);
             } catch (\Exception $e) {
                 throw new \Exception($e->getMessage(), $e->getCode());

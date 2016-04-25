@@ -122,7 +122,7 @@ class Scope extends BaseFractalScope
                     $route = $this->getGenerateRoute($this->dunglasResource, $parameters);
                 } catch (\Exception $e) {
                    // var_dump($e);exit;
-                    $route = $e->getMessage();
+                    $route = null;
                 }
             }
             $data['@id'] = $route;
