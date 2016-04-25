@@ -257,6 +257,9 @@ class ApiDocExtractor extends BaseApiDocExtractor
                         $route->setPath(str_replace('{embed}', $include, $path));
                         $name            = Inflector::singularize($include);
                         $dunglasResource = $this->resourceCollection->getResourceForShortName(ucfirst($name), $this->versionApi);
+                        if (null === $dunglasResource) {
+                            $dunglasResource = $this->resourceCollection->getResourceForShortName(ucfirst($include), $this->versionApi);
+                        }
                         $route->addDefaults(['_resource' => $dunglasResource->getShortName()]);
                         $apiDoc =  $this->extractData($annotation, $route, $method, $dunglasResource);
                         $routesNames[$apiDoc->getRoute()->getPattern()] = $routeName;
