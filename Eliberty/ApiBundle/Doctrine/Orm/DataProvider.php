@@ -126,8 +126,6 @@ class DataProvider implements DataProviderInterface
 
         $queryBuilder = $this->getQB($request, $repository, $page, $itemsPerPage);
 
-//        $queryBuilder->addOrderBy('o.id', $this->order);
-
         foreach ($resource->getFilters() as $filter) {
             if ($filter instanceof FilterInterface) {
                 $filter->apply($resource, $queryBuilder, $request);
@@ -172,7 +170,7 @@ class DataProvider implements DataProviderInterface
         $itemsPerPage = $this->itemsPerPage;
         if ($this->enableClientRequestItemsPerPage && $requestedItemsPerPage = $request->get($this->itemsPerPageParameter)) {
             $itemsPerPage = (int) $requestedItemsPerPage;
-            if ($itemsPerPage > 500) {
+            if ($itemsPerPage > 200) {
                 $itemsPerPage = $this->itemsPerPage;
             }
         }
