@@ -56,6 +56,38 @@ class OrderFilter extends BaseOrderFilter
 
     /**
      * {@inheritdoc}
+     *
+     * Orders collection by properties. The order of the ordered properties is the same as the order specified in the
+     * query.
+     * For each property passed, if the resource does not have such property or if the order value is different from
+     * `asc` or `desc` (case insensitive), the property is ignored.
+     */
+    public function apply(ResourceInterface $resource, QueryBuilder $queryBuilder, Request $request)
+    {
+        $properties = $this->extractProperties($request);
+
+        if (count($properties) === 0) {
+            $properties['id'] = 'ASC';
+        }
+
+        $fieldNames = array_flip($this->getClassMetadata($resource)->getFieldNames());
+
+        foreach ($properties as $property => $order) {
+            if (!$this->isPropertyEnabled($property) || !isset($fieldNames[$property])) {
+                continue;
+            } elseif ('' === $order && isset($this->properties[$property])) {
+                $order = $this->properties[$property];
+            }
+
+            $order = strtoupper($order);
+            if ('ASC' === $order || 'DESC' === $order) {
+                $queryBuilder->addOrderBy(sprintf('o.%s', $property), $order);
+            }
+        }
+    }
+
+    /**
+     * {@inheritdoc}
      */
     public function getDescription(ResourceInterface $resource)
     {

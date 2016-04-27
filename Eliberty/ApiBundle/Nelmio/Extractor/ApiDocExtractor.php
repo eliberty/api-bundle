@@ -80,7 +80,8 @@ class ApiDocExtractor extends BaseApiDocExtractor
     /**
      * @var string
      */
-    protected $versionApi;
+    protected $versionApi = null;
+
     /**
      * @var Normalizer
      */
@@ -131,7 +132,8 @@ class ApiDocExtractor extends BaseApiDocExtractor
         ResourceCollection $resourceCollection,
         EntityManager $entityManager,
         FormRegistryInterface $registry
-    ) {
+    )
+    {
         $this->container          = $container;
         $this->router             = $router;
         $this->commentExtractor   = $commentExtractor;
@@ -150,9 +152,9 @@ class ApiDocExtractor extends BaseApiDocExtractor
         $this->transformerHelper->setClassMetadataFactory($normailzer->getClassMetadataFactory());
 
         $this->annotationsProviders = $annotationsProviders;
-        //remove apres generation de la doc
-        $this->versionApi = 'v2';
-//        $this->setVersionApiDoc();
+
+        $this->setVersionApiDoc();
+
         if (in_array(strtolower($this->versionApi), $this->nelmioDocStandardVersion)) {
             $annotationsProviders = [];
         }
@@ -168,15 +170,19 @@ class ApiDocExtractor extends BaseApiDocExtractor
      */
     protected function setVersionApiDoc()
     {
-        $request = $this->container->get('request');
-        $paramsRoute      = $this->router->match($request->getPathInfo());
+        try {
+            $request     = $this->container->get('request');
+            $paramsRoute = $this->router->match($request->getPathInfo());
 
-        $this->versionApi = isset($paramsRoute['version']) ? $paramsRoute['version'] : null;
-        if (isset($paramsRoute['view']) && is_null($this->versionApi)) {
-            $this->versionApi = $paramsRoute['view'];
-        }
+            $this->versionApi = isset($paramsRoute['version']) ? $paramsRoute['version'] : null;
+            if (isset($paramsRoute['view']) && is_null($this->versionApi)) {
+                $this->versionApi = $paramsRoute['view'];
+            }
 
-        if (is_null($this->versionApi)) {
+            if (is_null($this->versionApi)) {
+                $this->versionApi = 'v2';
+            }
+        } catch (\Exception $ex) {
             $this->versionApi = 'v2';
         }
     }
@@ -320,12 +326,14 @@ class ApiDocExtractor extends BaseApiDocExtractor
     }
 
     /**
-     * @param $normalizedInput
-     * @param null $resource
+     * @param          $normalizedInput
+     * @param null     $resource
      * @param Resource $dunglasResource
-     * @param ApiDoc $apiDoc
-     * @param string $type
+     * @param ApiDoc   $apiDoc
+     * @param string   $type
+     *
      * @return array
+     * @throws \Exception
      */
     public function getParametersParser($normalizedInput, $resource = null, DunglasResource $dunglasResource, ApiDoc $apiDoc, $type = 'Input')
     {

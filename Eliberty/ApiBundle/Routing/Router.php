@@ -28,6 +28,7 @@ use Symfony\Component\Routing\RouterInterface;
  */
 class Router implements RouterInterface
 {
+    protected $isCollectionEmbed;
 
     /**
      * @var \SplObjectStorage

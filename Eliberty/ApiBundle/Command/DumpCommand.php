@@ -82,8 +82,8 @@ class DumpCommand extends ContainerAwareCommand
             $this->getContainer()->enterScope('request');
             $this->getContainer()->set('request', new Request(), 'request');
         }
-
-        $extractedDoc = $this->getContainer()->get('nelmio_api_doc.extractor.api_doc_extractor')->all($view);
+        $extractorService = $this->getContainer()->get('nelmio_api_doc.extractor.api_doc_extractor');
+        $extractedDoc = $extractorService->all($view);
         $formattedDoc = $formatter->format($extractedDoc);
 
         $output->writeln($formattedDoc);
@@ -111,8 +111,8 @@ class DumpCommand extends ContainerAwareCommand
                 if (!empty($propertyDescription)) {
                     $this->enums[] = $strFilename;
                     $dataFilters = $engine->render('ElibertyApiBundle:nelmio:enums.html.twig', ['data' => $propertyDescription[0]]);
-                    $fs->mkdir($rootDir . '/../doc/enums/'.$strFilename);
-                    $fs->dumpFile($rootDir . '/../doc/enums/'.$strFilename.'/definition.html', $dataFilters);
+                    $fs->mkdir($rootDir . '/../apidoc/docs/metadata//enums/'.$strFilename);
+                    $fs->dumpFile($rootDir . '/../apidoc/docs/metadata/enums/'.$strFilename.'/definition.html', $dataFilters);
                 }
             }
         }

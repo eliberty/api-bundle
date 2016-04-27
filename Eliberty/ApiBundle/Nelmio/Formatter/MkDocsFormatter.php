@@ -11,6 +11,7 @@
 
 namespace Eliberty\ApiBundle\Nelmio\Formatter;
 
+use Doctrine\ORM\Tools\Pagination\Paginator;
 use Dunglas\ApiBundle\Api\ResourceInterface as DunglasResource;
 use Eliberty\ApiBundle\Api\ResourceCollection;
 use Eliberty\ApiBundle\Doctrine\Orm\Filter\EmbedFilter;
@@ -106,7 +107,7 @@ class MkDocsFormatter extends AbstractFormatter
         $this->routeDir = $routeDir;
         $this->engine   = $engine;
         $this->fs = new Filesystem();
-        $this->currentPath = $this->routeDir . '/../doc';
+        $this->currentPath = $this->routeDir . '/../apidoc/docs/metadata/';
         $this->fs->mkdir($this->currentPath);
         $this->normalizer = $normalizer;
         $this->resourceCollection = $resourceCollection;
@@ -187,7 +188,7 @@ class MkDocsFormatter extends AbstractFormatter
 
             $dataprovider    = $this->normalizer->getDataProvider();
             $dataToSerialize = $dataprovider->getCollection($this->apiResource, new Request());
-            if (!isset($data['tags']['collection'])) {
+            if (!isset($data['tags']['collection']) && $dataToSerialize instanceof Paginator) {
                 $dataToSerialize = $dataToSerialize->getIterator()->current();
             }
 
