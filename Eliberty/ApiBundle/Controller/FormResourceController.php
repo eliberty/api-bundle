@@ -5,6 +5,7 @@ namespace Eliberty\ApiBundle\Controller;
 use Doctrine\ORM\EntityNotFoundException;
 use Dunglas\ApiBundle\Event\Events;
 use FOS\RestBundle\Controller\FOSRestController;
+use Symfony\Component\Finder\Exception\AccessDeniedException;
 use Symfony\Component\Form\Exception\InvalidArgumentException;
 use Symfony\Component\Form\FormErrorIterator;
 use Symfony\Component\HttpFoundation\Response;
@@ -35,6 +36,10 @@ abstract class FormResourceController extends ResourceController
     {
         $resource = $this->getResource($this->container->get('request'));
 
+        if (!$resource->isGranted(['EDIT'])) {
+            throw new AccessDeniedException('Acl permission for this object is not granted.');
+        }
+
         if (null === $object) {
             $object   = $this->findOrThrowNotFound($resource, $id);
         }
@@ -58,6 +63,11 @@ abstract class FormResourceController extends ResourceController
     {
         $request = $this->container->get('request');
         $resource = $this->getResource($request);
+
+        if (!$resource->isGranted(['CREATE'])) {
+            throw new AccessDeniedException('Acl permission for this object is not granted.');
+        }
+
         if (null === $entity) {
             $entityName = $this->get('doctrine')->getManager()->getClassMetadata($resource->getEntityClass())->getName();
             $entity     = new $entityName;

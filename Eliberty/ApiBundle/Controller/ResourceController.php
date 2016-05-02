@@ -12,19 +12,8 @@
 namespace Eliberty\ApiBundle\Controller;
 
 use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\Criteria;
-use Doctrine\Common\Inflector\Inflector;
-use Doctrine\ODM\PHPCR\ReferrersCollection;
-use Doctrine\ORM\PersistentCollection;
-use Dunglas\ApiBundle\Doctrine\Orm\Filter\FilterInterface;
-use Dunglas\ApiBundle\Doctrine\Orm\Paginator;
-use Dunglas\ApiBundle\Doctrine\Orm\Filter\SearchFilter as Filter;
 use Dunglas\ApiBundle\Event\Events;
-use Eliberty\ApiBundle\Api\ResourceConfig;
-use Eliberty\ApiBundle\Api\ResourceConfigInterface;
 use Eliberty\ApiBundle\Doctrine\Orm\ArrayPaginator;
-use Eliberty\ApiBundle\Doctrine\Orm\Filter\OrderFilter;
-use Eliberty\ApiBundle\Doctrine\Orm\Filter\SearchFilter;
 use Nelmio\ApiDocBundle\Annotation\ApiDoc;
 use Dunglas\ApiBundle\Event\DataEvent;
 use Dunglas\ApiBundle\Exception\DeserializationException;
@@ -32,11 +21,12 @@ use Dunglas\ApiBundle\Api\ResourceInterface;
 use Dunglas\ApiBundle\Model\PaginatorInterface;
 use Dunglas\ApiBundle\JsonLd\Response;
 use Pagerfanta\Adapter\ArrayAdapter;
+use Symfony\Component\Finder\Exception\AccessDeniedException;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\Security\Acl\Permission\MaskBuilder;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
 use Symfony\Component\Serializer\Exception\Exception;
-use Eliberty\ApiBundle\Doctrine\Orm\Filter\EmbedFilter;
 use Dunglas\ApiBundle\Controller\ResourceController as BaseResourceController;
 
 /**
@@ -138,6 +128,12 @@ class ResourceController extends BaseResourceController
     public function cgetAction(Request $request)
     {
         $resource = $this->getResource($request);
+
+        if (!$resource->isGranted(['VIEW'])) {
+            throw new AccessDeniedException('Acl permission for this object is not granted.');
+        }
+
+
         $data     = $this->getCollectionData($resource, $request);
 
         $this->get('event_dispatcher')->dispatch(Events::RETRIEVE_LIST, new DataEvent($resource, $data));
@@ -211,6 +207,7 @@ class ResourceController extends BaseResourceController
     public function getAction(Request $request, $id)
     {
         $resource = $this->getResource($request);
+        $resource->isGranted([MaskBuilder::MASK_VIEW]);
 
         $object = $this->findOrThrowNotFound($resource, $id);
 
@@ -241,6 +238,7 @@ class ResourceController extends BaseResourceController
     public function deleteAction(Request $request, $id)
     {
         $resource = $this->getResource($request);
+        $resource->isGranted(['DELETE']);
         $object   = $this->findOrThrowNotFound($resource, $id);
 
         $eventName = Events::PRE_DELETE;
@@ -328,6 +326,10 @@ class ResourceController extends BaseResourceController
     public function cgetEmbedAction(Request $request, $id, $embed)
     {
         $resourceEmbed    = $this->get('api.init.filter.embed')->initFilterEmbed($id, $embed);
+        if (!$resourceEmbed->isGranted(['VIEW'])) {
+            throw new AccessDeniedException('Acl permission for this object is not granted.');
+        }
+
         $em               = $this->get('doctrine.orm.entity_manager');
         $propertyAccessor = $this->get('property_accessor');
         $resource         = $this->getResource($request);
