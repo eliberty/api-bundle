@@ -1,35 +1,23 @@
 <?php
 
-/*
- * This file is part of the League\Fractal package.
- *
- * (c) Phil Sturgeon <me@philsturgeon.uk>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-
 namespace Eliberty\ApiBundle\Fractal\Serializer;
 
-use Dunglas\ApiBundle\Routing\Router;
+use Doctrine\ORM\PersistentCollection;
 use League\Fractal\Manager;
-use League\Fractal\Pagination\PaginatorInterface;
-use League\Fractal\Serializer\DataArraySerializer as baseDataArraySerializer;
-use Doctrine\Common\Inflector\Inflector;
+use Dunglas\ApiBundle\Model\PaginatorInterface;;
+use League\Fractal\Serializer\DataArraySerializer as BaseDataArraySerializer;
 use Eliberty\ApiBundle\Doctrine\Orm\Filter\EmbedFilter;
 use League\Fractal\Pagination\PaginatorInterface as FractalPaginatorInterface;
 use League\Fractal\Resource\ResourceInterface;
-use League\Fractal\Scope as BaseFractalScope;
 use League\Fractal\Resource\Collection;
 use Dunglas\ApiBundle\Api\ResourceInterface as DunglasResource;
-use League\Fractal\TransformerAbstract;
 
 /**
  * Class DataArraySerializer
  *
  * @package Eliberty\ApiBundle\Fractal\Serializer
  */
-class DataArraySerializer extends baseDataArraySerializer
+class DataHydraSerializer extends BaseDataArraySerializer
 {
 
     /**
@@ -68,15 +56,6 @@ class DataArraySerializer extends baseDataArraySerializer
      */
     public function item($resourceKey, array $data)
     {
-        $data = [];
-        if ($this->getDunglasResource() instanceof DunglasResource) {
-            $data['@context'] = $this->getContext($this->getDunglasResource());
-        }
-
-        if (!$this->getResource()->getTransformer()->isChild()) {
-            $data['@embed'] = implode(',', $this->getResource()->getTransformer()->getAvailableIncludes());
-        }
-
         return $data;
     }
 
@@ -90,17 +69,61 @@ class DataArraySerializer extends baseDataArraySerializer
      */
     public function collection($resourceKey, array $data)
     {
-
         if (empty($data)) {
             return [];
         }
 
-        $data['@context'] = $this->getContext();
+        return ['hydra:member' => $data];
+    }
+
+    /**
+     * Serialize the meta.
+     *
+     * @param array $meta
+     *
+     * @return array
+     */
+    public function meta(array $meta)
+    {
+        $hydra['@context'] = $this->getContext();
 
         if (!$this->getResource()->getTransformer()->isChild()) {
-            $data['@embed'] = implode(',', $this->getResource()->getTransformer()->getAvailableIncludes());
+            $hydra['@embed'] = implode(',', $this->getResource()->getTransformer()->getAvailableIncludes());
         }
 
+        $object = $this->getResource()->getData();
+
+        if($object instanceof Collection) {
+            $hydra['@id'] = $this->getResourceRoute();
+        }
+
+        if ($object instanceof PaginatorInterface || $object instanceof FractalPaginatorInterface) {
+            $hydra['@type'] = self::HYDRA_PAGED_COLLECTION;
+
+            $currentPage = (int) $object->getCurrentPage();
+            $lastPage    = (int) $object->getLastPage();
+
+            $baseUrl = $hydra['@id'];
+            $paginatedUrl = $baseUrl.'?perpage='.$object->getItemsPerPage().'&page=';
+
+            $this->getPreviewPage($hydra, $currentPage, $paginatedUrl, $baseUrl);
+            $this->getNextPage($hydra, $currentPage, $lastPage, $paginatedUrl);
+
+            $hydra['hydra:totalItems'] =  $object->getTotalItems();
+            $hydra['hydra:itemsPerPage'] = $object->getItemsPerPage();
+            $this->getFirstPage($hydra, $object, $currentPage, $lastPage, $baseUrl);
+            $this->getLastPage($hydra, $object, $currentPage, $lastPage, $paginatedUrl);
+        } else if ($object instanceof PersistentCollection) {
+            $hydra['@type'] = self::HYDRA_COLLECTION;
+        }
+
+        return $hydra;
+    }
+
+    /**
+     * @return mixed|null
+     */
+    protected function getResourceRoute() {
         if (!is_null($this->getResource())) {
             foreach ($this->getDunglasResource()->getFilters() as $filter) {
                 if ($filter instanceof EmbedFilter) {
@@ -110,9 +133,7 @@ class DataArraySerializer extends baseDataArraySerializer
             }
             if (empty($route)) {
                 $parameters = [];
-                if (
-                    $this->getDunglasResource()->getParent() instanceof DunglasResource
-                ) {
+                if ($this->getDunglasResource()->getParent() instanceof DunglasResource) {
                     $dunglasParentResource = $this->getDunglasResource()->getParent();
                     $parameters = $dunglasParentResource->getRouteKeyParams($this->getParent()->getData());
                 }
@@ -122,39 +143,12 @@ class DataArraySerializer extends baseDataArraySerializer
                     $route = null;
                 }
             }
-            $data['@id'] = $route;
+
+            return $route;
         }
 
-        $object = $this->getResource()->getData();
-
-        if ($this->getResource()->hasPaginator()) {
-            $object = $this->getResource()->getPaginator();
-        }
-
-        if ($object instanceof PaginatorInterface || $object instanceof FractalPaginatorInterface) {
-            $data['@type'] = self::HYDRA_PAGED_COLLECTION;
-
-            $currentPage = (int) $object->getCurrentPage();
-            $lastPage    = (int) $object->getLastPage();
-
-            $baseUrl = $data['@id'];
-            $paginatedUrl = $baseUrl.'?perpage='.$object->getItemsPerPage().'&page=';
-
-            $this->getPreviewPage($data, $object, $currentPage, $paginatedUrl, $baseUrl);
-            $this->getNextPage($data, $object, $currentPage, $lastPage, $paginatedUrl);
-
-            $data['hydra:totalItems'] =  $object->getTotalItems();
-            $data['hydra:itemsPerPage'] = $object->getItemsPerPage();
-            $this->getFirstPage($data, $object, $currentPage, $lastPage, $baseUrl);
-            $this->getLastPage($data, $object, $currentPage, $lastPage, $paginatedUrl);
-        } else {
-            $data['@type'] = self::HYDRA_COLLECTION;
-        }
-
-        return ['hydra:member' => $data];
+        return null;
     }
-
-
     /**
      * @return mixed
      */
@@ -173,9 +167,7 @@ class DataArraySerializer extends baseDataArraySerializer
      */
     protected function getGenerateRoute($data, $params = [])
     {
-        $this->getManager()->getRouter()->setScope($this);
-
-        return $this->getManager()->getRouter()->generate($data, $params);
+        return $this->scope->getGenerateRoute($data, $params);
     }
 
     /**
@@ -204,43 +196,27 @@ class DataArraySerializer extends baseDataArraySerializer
 
     /**
      * @param $data
-     * @param $object
      * @param $currentPage
      * @param $paginatedUrl
      * @param $baseUrl
-     * @return bool
      */
-    protected function getPreviewPage(&$data, $object, $currentPage, $paginatedUrl, $baseUrl)
+    protected function getPreviewPage(&$data, $currentPage, $paginatedUrl, $baseUrl)
     {
         if (0 !== ($currentPage - 1)) {
             $previousPage = $currentPage - 1.;
-            if ($object instanceof FractalPaginatorInterface) {
-                $data['hydra:previousPage'] = $object->getUrl($currentPage - 1);
-
-                return true;
-            }
-
             $data['hydra:previousPage'] = 1 === $previousPage ? $baseUrl : $paginatedUrl.$previousPage;
         }
     }
 
     /**
      * @param $data
-     * @param $object
      * @param $currentPage
      * @param $lastPage
      * @param $paginatedUrl
-     * @return bool
      */
-    protected function getNextPage(&$data, $object, $currentPage, $lastPage, $paginatedUrl)
+    protected function getNextPage(&$data, $currentPage, $lastPage, $paginatedUrl)
     {
         if ($currentPage !== $lastPage) {
-            if ($object instanceof FractalPaginatorInterface) {
-                $data['hydra:nextPage'] = $object->getUrl($currentPage + 1);
-
-                return true;
-            }
-
             $data['hydra:nextPage'] = $paginatedUrl.($currentPage + 1.);
         }
     }
