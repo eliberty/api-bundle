@@ -12,19 +12,9 @@
 namespace Eliberty\ApiBundle\Controller;
 
 use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\Criteria;
-use Doctrine\Common\Inflector\Inflector;
-use Doctrine\ODM\PHPCR\ReferrersCollection;
-use Doctrine\ORM\PersistentCollection;
-use Dunglas\ApiBundle\Doctrine\Orm\Filter\FilterInterface;
-use Dunglas\ApiBundle\Doctrine\Orm\Paginator;
-use Dunglas\ApiBundle\Doctrine\Orm\Filter\SearchFilter as Filter;
 use Dunglas\ApiBundle\Event\Events;
-use Eliberty\ApiBundle\Api\ResourceConfig;
-use Eliberty\ApiBundle\Api\ResourceConfigInterface;
 use Eliberty\ApiBundle\Doctrine\Orm\ArrayPaginator;
-use Eliberty\ApiBundle\Doctrine\Orm\Filter\OrderFilter;
-use Eliberty\ApiBundle\Doctrine\Orm\Filter\SearchFilter;
+use Eliberty\ApiBundle\Helper\HeaderHelper;
 use Nelmio\ApiDocBundle\Annotation\ApiDoc;
 use Dunglas\ApiBundle\Event\DataEvent;
 use Dunglas\ApiBundle\Exception\DeserializationException;
@@ -32,12 +22,14 @@ use Dunglas\ApiBundle\Api\ResourceInterface;
 use Dunglas\ApiBundle\Model\PaginatorInterface;
 use Dunglas\ApiBundle\JsonLd\Response;
 use Pagerfanta\Adapter\ArrayAdapter;
+use Symfony\Component\Finder\Exception\AccessDeniedException;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\Security\Acl\Permission\MaskBuilder;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
 use Symfony\Component\Serializer\Exception\Exception;
-use Eliberty\ApiBundle\Doctrine\Orm\Filter\EmbedFilter;
 use Dunglas\ApiBundle\Controller\ResourceController as BaseResourceController;
+use Eliberty\ApiBundle\Xml\Response as XmlResponse;
 
 /**
  * Class ResourceController.
@@ -89,7 +81,7 @@ class ResourceController extends BaseResourceController
      */
     protected function getErrorResponse(ConstraintViolationListInterface $violations)
     {
-        return new Response(
+        return $this->getResponse(
             $this->get('eliberty.api.hydra.normalizer.violation.list.error')->normalize($violations, 'hydra-error'),
             400
         );
@@ -138,7 +130,13 @@ class ResourceController extends BaseResourceController
     public function cgetAction(Request $request)
     {
         $resource = $this->getResource($request);
-        $data     = $this->getCollectionData($resource, $request);
+
+        if (!$resource->isGranted(['VIEW'])) {
+            throw new AccessDeniedException('Acl permission for this object is not granted.');
+        }
+
+
+        $data = $this->getCollectionData($resource, $request);
 
         $this->get('event_dispatcher')->dispatch(Events::RETRIEVE_LIST, new DataEvent($resource, $data));
 
@@ -149,6 +147,7 @@ class ResourceController extends BaseResourceController
      * Adds an element to the collection.
      *
      * @param Request $request
+     *
      * @return Response|void
      * @throws \NotFoundResourceException
      * @ApiDoc(
@@ -169,7 +168,8 @@ class ResourceController extends BaseResourceController
      * Replaces an element of the collection.
      *
      * @param Request $request
-     * @param string $id
+     * @param string  $id
+     *
      * @return Response
      * @throws DeserializationException
      * @throws \NotFoundResourceException
@@ -211,6 +211,7 @@ class ResourceController extends BaseResourceController
     public function getAction(Request $request, $id)
     {
         $resource = $this->getResource($request);
+        $resource->isGranted([MaskBuilder::MASK_VIEW]);
 
         $object = $this->findOrThrowNotFound($resource, $id);
 
@@ -241,19 +242,20 @@ class ResourceController extends BaseResourceController
     public function deleteAction(Request $request, $id)
     {
         $resource = $this->getResource($request);
-        $object   = $this->findOrThrowNotFound($resource, $id);
+        $resource->isGranted(['DELETE']);
 
+        $object    = $this->findOrThrowNotFound($resource, $id);
         $eventName = Events::PRE_DELETE;
-        $event =  new DataEvent($resource, $object);
+        $event     = new DataEvent($resource, $object);
         if ($resource->hasEventListener($eventName)) {
-            $eventName = $resource->getListener($eventName);
+            $eventName  = $resource->getListener($eventName);
             $eventClass = $resource->getListener('eventClass');
-            $event =  new $eventClass($object);
+            $event      = new $eventClass($object);
         }
 
         $this->get('event_dispatcher')->dispatch($eventName, $event);
 
-        return new Response(null, 204);
+        return $this->getResponse(null, 204);
     }
 
     /**
@@ -274,15 +276,33 @@ class ResourceController extends BaseResourceController
         array $headers = [],
         array $additionalContext = []
     ) {
-
         $dataResponse = $this->get('api.json_ld.normalizer.item')
             ->normalize($data, 'json-ld', $resource->getNormalizationContext() + $additionalContext);
 
-        return new Response(
+        return $this->getResponse(
             $dataResponse,
             $status,
             $headers
         );
+    }
+
+    /**
+     * @param $data
+     * @param $status
+     * @param $headers
+     *
+     * @return Response|XmlResponse
+     */
+    private function getResponse($data, $status, $headers)
+    {
+        $request = $this->container->get('request_stack')->getCurrentRequest();
+        $context = HeaderHelper::getContext($request);
+
+        if ('xml' === $context) {
+            return new XmlResponse($data, $status, $headers);
+        }
+
+        return new Response($data, $status, $headers);
     }
 
     /**
@@ -327,39 +347,22 @@ class ResourceController extends BaseResourceController
      */
     public function cgetEmbedAction(Request $request, $id, $embed)
     {
-        $embedShortname = ucwords(Inflector::singularize($embed));
-        $resourceEmbed  = $this->get('api.resource_collection')->getResourceForShortName($embedShortname);
-
-        $em = $this->get('doctrine.orm.entity_manager');
-
-        $managerRegister = $this->get('doctrine');
-
-        $propertyAccessor = $this->get('property_accessor');
-
-        $filter = new EmbedFilter($managerRegister, $propertyAccessor);
-
-        $params = !$request->request->has('embedParams')?[
-            'embed' => $embed,
-            'id'    => $id,
-        ] : $request->request->get('embedParams');
-
-        $filter->setParameters($params);
-
-        $filter->setRouteName($request->get('_route'));
-
-        $resourceEmbed->addFilter($filter);
-
-        $resource = $this->getResource($request);
-
-        $object = $this->findOrThrowNotFound($resource, $id);
-
-        $parentClassMeta =  $em->getClassMetadata($resource->getEntityClass());
-        $data = null;
-        if ($parentClassMeta->hasAssociation($embed)) {
-            $propertyName = $embed;
-        } elseif (null === $data = call_user_func([$object, 'get'.ucfirst($embed)])) {
-            $propertyName = $resourceEmbed->shortName;
+        $resourceEmbed = $this->get('api.init.filter.embed')->initFilterEmbed($id, $embed);
+        if (!$resourceEmbed->isGranted(['VIEW'])) {
+            throw new AccessDeniedException('Acl permission for this object is not granted.');
         }
+
+        $em               = $this->get('doctrine.orm.entity_manager');
+        $propertyAccessor = $this->get('property_accessor');
+        $resource         = $this->getResource($request);
+        $object           = $this->findOrThrowNotFound($resource, $id);
+        $parentClassMeta  = $em->getClassMetadata($resource->getEntityClass());
+
+        $propertyName = $parentClassMeta->hasAssociation($embed) ? $embed : $resourceEmbed->shortName;
+        $data         = call_user_func(
+            [$object, 'get' . ucfirst($embed)],
+            $resourceEmbed->getEmbedParams(strtolower($resource->getShortName()))
+        );
 
         if (is_null($data)) {
             if (!is_null($resourceEmbed->getEmbedAlias($embed))) {
@@ -368,77 +371,35 @@ class ResourceController extends BaseResourceController
             $data = $propertyAccessor->getValue($object, $propertyName);
         }
 
-        if ($data instanceof PersistentCollection && $data->count() > 0) {
-            $embedClassMeta =  $em->getClassMetadata($resourceEmbed->getEntityClass());
-            $criteria = Criteria::create();
-            foreach ($resourceEmbed->getFilters() as $filter) {
-                if ($filter instanceof FilterInterface) {
-                    $properties = $filter->getRequestProperties($request);
-                    if ($filter instanceof OrderFilter && !empty($properties)) {
-                        $criteria->orderBy($properties);
-                        continue;
-                    }
-                    if ($filter instanceof SearchFilter) {
-                        foreach ($properties as $name => $propertie) {
-                            if (in_array($name, $embedClassMeta->getIdentifier())) {
-                                continue;
-                            }
-                            $expCriterial = Criteria::expr();
-                            if ($embedClassMeta->hasAssociation($name)) {
-                                $whereCriteria = $expCriterial->in($name, [$propertie['value']]);
-                                $criteria->where($whereCriteria);
-                            } else {
-                                $whereCriteria = isset($propertie['precision']) && $propertie['precision'] === 'exact' ?
-                                    $expCriterial->eq($name, $propertie['value']) :
-                                    $expCriterial->contains($name, $propertie['value']);
-                                $criteria->where($whereCriteria);
-                            }
-                        }
-                    }
-                }
-            }
-            $data = $data->matching($criteria);
+        $dataResponse = $this->get('api.helper.apply.criteria')->ApplyCriteria($resourceEmbed, $data);
+
+        if ($dataResponse instanceof ArrayCollection && $dataResponse->count() > 0) {
+            $dataResponse = new ArrayPaginator(new ArrayAdapter($dataResponse->toArray()), $request);
         }
 
-        if ($data instanceof ArrayCollection && $data->count() > 0) {
-            $data = new ArrayPaginator(new ArrayAdapter($data->toArray()), $request);
+        if ($dataResponse instanceof ArrayCollection && $dataResponse->count() === 0) {
+            return $this->getResponse([]);
         }
 
-        if ($data->count() === 0) {
-            return new Response([]);
-        }
+        $this->get('event_dispatcher')->dispatch(Events::RETRIEVE_LIST, new DataEvent($resourceEmbed, $dataResponse));
 
-        $this->get('event_dispatcher')->dispatch(Events::RETRIEVE_LIST, new DataEvent($resourceEmbed, $data));
-
-        return $this->getSuccessResponse($resourceEmbed, $data);
+        return $this->getSuccessResponse($resourceEmbed, $dataResponse);
     }
 
     /**
-     * @param $object
+     * @param                                  $object
      * @param ConstraintViolationListInterface $violations
-     * @param ResourceInterface $resource
-     * @param $eventName
+     * @param ResourceInterface                $resource
+     *
      * @return Response
      */
     protected function formResponse(
         $object,
         ConstraintViolationListInterface $violations,
-        ResourceInterface $resource,
-        $eventName
+        ResourceInterface $resource
     ) {
         if (0 === count($violations)) {
-            if ($eventName !== self::NONE) {
-                $event = new DataEvent($resource, $object);
-                if ($resource->hasEventListener($eventName)) {
-                    $eventName  = $resource->getListener($eventName);
-                    $eventClass = $resource->getListener('eventClass');
-                    $event      = new $eventClass($object);
-                }
-                // Validation succeed
-                $this->get('event_dispatcher')->dispatch($eventName, $event);
-            }
-
-            $request = $this->get('request_stack')->getCurrentRequest();
+            $request      = $this->get('request_stack')->getCurrentRequest();
             $codeResponse = in_array($request->getMethod(), ['PUT', 'PATCH']) ? 200 : 201;
 
             return $this->getSuccessResponse($resource, $object, $codeResponse);

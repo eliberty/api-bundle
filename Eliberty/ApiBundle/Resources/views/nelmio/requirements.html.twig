@@ -1,0 +1,22 @@
+{% if data.requirements is defined and data.requirements is not empty %}
+<table class="fullwidth">
+    <thead>
+    <tr>
+        <th>Name</th>
+        <th>Requirement</th>
+        <th>Type</th>
+        <th>Description</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for name, infos in data.requirements %}
+        <tr>
+            <td>{{ name }}</td>
+            <td>{{ infos.requirement is defined ? infos.requirement : ''}}</td>
+            <td>{{ infos.dataType is defined ? infos.dataType : ''}}</td>
+            <td>{{ infos.description is defined ? infos.description : ''}}</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endif %}

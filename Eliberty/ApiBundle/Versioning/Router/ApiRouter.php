@@ -20,10 +20,7 @@ class ApiRouter extends Router implements RequestMatcherInterface
      * @var RequestStack
      */
     protected $requestStack;
-    /**
-     * @var string
-     */
-    private $acceptHeader;
+
 
     /**
      * @param ContainerInterface $container
@@ -38,7 +35,6 @@ class ApiRouter extends Router implements RequestMatcherInterface
         RequestContext $context = null
     ) {
         parent::__construct($container, $resource, $options, $context);
-        $this->acceptHeader = "/application\/vnd.eliberty.api.+json/";
         $this->requestStack = $container->get('request_stack');
 
     }

@@ -43,17 +43,7 @@ class ResourcePass implements CompilerPassInterface
                     $this->createOperation($container, $serviceId, 'DELETE', false),
                 ]]);
             }
-
-//            if (!$resourceDefinition->hasMethodCall('addCollectionOperation')) {
-//                $resourceDefinition->addMethodCall('initCollectionOperations', [[
-//                    //$this->createOperation($container, $serviceId, 'GET', true),
-//                    //$this->createOperation($container, $serviceId, 'POST', true),
-//                ]]);
-//            }
-
-            //$resourceCollectionDefinition->addMethodCall('addResource', [new Reference($serviceId)]);
         }
-
     }
 
     /**

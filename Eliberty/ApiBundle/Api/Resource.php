@@ -13,9 +13,13 @@ use Dunglas\ApiBundle\Api\Filter\FilterInterface;
 use Dunglas\ApiBundle\Api\Operation\OperationInterface;
 use Dunglas\ApiBundle\Api\ResourceInterface;
 use Doctrine\Common\Inflector\Inflector;
+use Symfony\Component\Security\Acl\Domain\ObjectIdentity;
+use Symfony\Component\Security\Acl\Permission\MaskBuilder;
+use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 
 /**
  * Class Resource
+ *
  * @package Eliberty\ApiBundle\Api
  */
 class Resource implements ResourceInterface
@@ -54,9 +58,15 @@ class Resource implements ResourceInterface
     public $shortName;
     /**
      * embed operation
+     *
      * @var Operation
      */
     protected $embedOperation;
+
+    /**
+     * @var AuthorizationCheckerInterface
+     */
+    protected $authorizationChecker;
 
     /**
      * @var ResourceConfigInterface
@@ -65,12 +75,13 @@ class Resource implements ResourceInterface
 
     /**
      * versionning api
+     *
      * @var string
      */
     protected $version;
 
     /**
-     * @param $entityClass
+     * @param                         $entityClass
      * @param ResourceConfigInterface $config
      */
     public function __construct(
@@ -81,13 +92,21 @@ class Resource implements ResourceInterface
             throw new \InvalidArgumentException(sprintf('The class %s does not exist.', $entityClass));
         }
 
-        $this->config = $config;
+        $this->config      = $config;
         $this->entityClass = $entityClass;
 
         if (null === $this->shortName) {
-            $shortName = substr($this->entityClass, strrpos($this->entityClass, '\\') + 1);
+            $shortName       = substr($this->entityClass, strrpos($this->entityClass, '\\') + 1);
             $this->shortName = ucwords(strtolower($shortName));
         }
+    }
+
+    /**
+     * @param AuthorizationCheckerInterface $authorizationChecker
+     */
+    public function setAuthorizationChecker(AuthorizationCheckerInterface $authorizationChecker)
+    {
+        $this->authorizationChecker = $authorizationChecker;
     }
 
     /**
@@ -100,6 +119,7 @@ class Resource implements ResourceInterface
 
     /**
      * @param null $key
+     *
      * @return array
      */
     public function getListener($key = null)
@@ -108,11 +128,13 @@ class Resource implements ResourceInterface
             return $this->config->getListener();
         }
 
-        return $this->hasEventListener($key) && $this->config instanceof ResourceConfig ? $this->config->getListener()[$key] : null;
+        return $this->hasEventListener($key) && $this->config instanceof ResourceConfig ? $this->config->getListener(
+        )[$key] : null;
     }
 
     /**
      * @param null $key
+     *
      * @return bool
      */
     public function hasEventListener($key)
@@ -193,7 +215,7 @@ class Resource implements ResourceInterface
         return $this->filters;
     }
 
-    public function addFilter (FilterInterface $filter)
+    public function addFilter(FilterInterface $filter)
     {
         $this->filters[] = $filter;
     }
@@ -293,7 +315,9 @@ class Resource implements ResourceInterface
 
     /**
      * Initializes short name.
+     *
      * @param $shortName
+     *
      * @return $this
      */
     public function initShortName($shortName)
@@ -338,12 +362,29 @@ class Resource implements ResourceInterface
     }
 
     /**
+     * @param $embed
+     *
      * @return array
      */
     public function getEmbedAlias($embed)
     {
         if ($this->config instanceof ResourceConfigInterface) {
             return $this->config->getEmbedAlias($embed);
+        }
+
+        return null;
+    }
+
+
+    /**
+     * @param $parentName
+     *
+     * @return array
+     */
+    public function getEmbedParams($parentName)
+    {
+        if ($this->config instanceof ResourceConfigInterface) {
+            return $this->config->getEmbedParams($parentName);
         }
 
         return null;
@@ -379,6 +420,7 @@ class Resource implements ResourceInterface
 
     /**
      * @param $data
+     *
      * @return mixed
      */
     public function getRouteKeyParams($data)
@@ -389,7 +431,7 @@ class Resource implements ResourceInterface
         }
 
         if (empty($routeKeyParams)) {
-            $parameterName = 'id'; //strtolower($this->getShortname()).
+            $parameterName                  = 'id'; //strtolower($this->getShortname()).
             $routeKeyParams[$parameterName] = 'getId';
         }
 
@@ -407,6 +449,7 @@ class Resource implements ResourceInterface
     /**
      * @param $object
      * @param $methode
+     *
      * @throws \Exception
      */
     public function getPropertyValue($object, $methode)
@@ -486,19 +529,38 @@ class Resource implements ResourceInterface
 
     /**
      * return the identifier value for this resource
+     *
      * @param $data
+     *
      * @return
      * @throws \Exception
      */
-    public function getIdentifierValue($data){
-        return $this->getPropertyValue($data, 'get'.ucfirst($this->getIdentifier()));
+    public function getIdentifierValue($data)
+    {
+        return $this->getPropertyValue($data, 'get' . ucfirst($this->getIdentifier()));
     }
 
     /**
      * return the identifier for the resource (default : id)
+     *
      * @return string
      */
-    public function getIdentifier(){
-        return $this->config instanceof ResourceConfig ?  $this->config->getIdentifier() : 'id';
+    public function getIdentifier()
+    {
+        return $this->config instanceof ResourceConfig ? $this->config->getIdentifier() : 'id';
+    }
+
+    /**
+     * @param array $mask
+     *
+     * @return bool
+     * @throws InvalidAclException
+     * @throws InvalidAclException
+     */
+    public function isGranted($mask = [])
+    {
+        $objIdentity = new ObjectIdentity('class', $this->entityClass);
+
+        return $this->authorizationChecker->isGranted($mask, $objIdentity);
     }
 }

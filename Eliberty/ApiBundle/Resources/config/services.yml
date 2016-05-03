@@ -1,6 +1,6 @@
 parameters:
-    eliberty_api.normalizer.item.class: Eliberty\ApiBundle\JsonLd\Serializer\Normalizer
-    eliberty_api.doctrine.orm.data_provider.class: Eliberty\ApiBundle\Doctrine\Orm\DataProvider
+    eliberty_api.normalizer.item.class: 'Eliberty\ApiBundle\JsonLd\Serializer\Normalizer'
+    eliberty_api.doctrine.orm.data_provider.class: 'Eliberty\ApiBundle\Doctrine\Orm\DataProvider'
 
 imports:
     - { resource: filter.yml }
@@ -8,15 +8,17 @@ imports:
 
 services:
     api.resource:
-        class: Eliberty\ApiBundle\Api\Resource
+        class: 'Eliberty\ApiBundle\Api\Resource'
         abstract: true
 
     api.json_ld.entrypoint_builder:
-        class: Eliberty\ApiBundle\JsonLd\EntrypointBuilder
+        class: 'Eliberty\ApiBundle\JsonLd\EntrypointBuilder'
         arguments:
              - '@api.resource_collection'
              - '@api.iri_converter'
              - '@api.router'
+
+
 
     api.doctrine.orm.data_provider:
         class: '%eliberty_api.doctrine.orm.data_provider.class%'
@@ -29,16 +31,26 @@ services:
              - '%api.collection.pagination.items_per_page.parameter_name%'
 
     api.doctrine.orm.default_data_provider:
-        parent : api.doctrine.orm.data_provider
+        parent : 'api.doctrine.orm.data_provider'
         tags:
              - { name: api.data_provider }
 
     eliberty.api.hydra.normalizer.violation.list.error:
-        class: Eliberty\ApiBundle\Hydra\Serializer\ErrorViolationListNormalizer
+        class: 'Eliberty\ApiBundle\Hydra\Serializer\ErrorViolationListNormalizer'
         arguments:
              - '@api.router'
              - '%kernel.debug%'
              - '@property_accessor'
+        lazy: true
+        tags:
+             - { name: serializer.normalizer }
+
+    api.hydra.normalizer.error:
+        class: 'Eliberty\ApiBundle\Hydra\Serializer\ErrorNormalizer'
+        arguments:
+             - '@api.router'
+             - '@translator'
+             - '%kernel.debug%'
         tags:
              - { name: serializer.normalizer }
 
@@ -59,35 +71,45 @@ services:
             - { name: serializer.normalizer }
 
     api.ressource.transformer_resolver:
-        class: Eliberty\ApiBundle\Transformer\Listener\TransformerResolver
+        class: 'Eliberty\ApiBundle\Transformer\Listener\TransformerResolver'
+        arguments:
+            - '@request_stack'
+
+    api.handler.resolver:
+        class: 'Eliberty\ApiBundle\Handler\HandlerResolver'
+        arguments:
+            - '@request_stack'
+
+    api.form.resolver:
+        class: 'Eliberty\ApiBundle\Form\FormResolver'
         arguments:
             - '@request_stack'
 
     api.resource_collection:
-        class: Eliberty\ApiBundle\Api\ResourceCollection
+        class: 'Eliberty\ApiBundle\Api\ResourceCollection'
         arguments:
             - '@request_stack'
         lazy: true
 
     api.operation_factory:
-        class: Eliberty\ApiBundle\Api\Operation\OperationFactory
+        class: 'Eliberty\ApiBundle\Api\Operation\OperationFactory'
         arguments:
             - '@api.transformer.helper'
 
     api.router:
-        class: Eliberty\ApiBundle\Routing\Router
+        class: 'Eliberty\ApiBundle\Routing\Router'
         arguments:
             - '@router'
             - '@api.resource_collection'
             - '@property_accessor'
 
     api.transformer.helper:
-        class: Eliberty\ApiBundle\Helper\TransformerHelper
+        class: 'Eliberty\ApiBundle\Helper\TransformerHelper'
         arguments:
             - '@api.ressource.transformer_resolver'
 
     api.documentation.helper:
-        class: Eliberty\ApiBundle\Helper\DocumentationHelper
+        class: 'Eliberty\ApiBundle\Helper\DocumentationHelper'
         arguments:
             - '@eliberty.api.controller_name_parser'
             - '@annotation_reader'
@@ -95,8 +117,8 @@ services:
             - '@service_container'
 
     api.route_loader:
-        class: Eliberty\ApiBundle\Routing\ApiLoader
-        public: false
+        class: 'Eliberty\ApiBundle\Routing\ApiLoader'
+        public: 'false'
         arguments:
             - '@api.resource_collection'
             - '@kernel'
@@ -104,12 +126,12 @@ services:
             - { name: routing.loader }
 
     eliberty.api.controller_name_parser:
-        class: Symfony\Bundle\FrameworkBundle\Controller\ControllerNameParser
+        class: 'Symfony\Bundle\FrameworkBundle\Controller\ControllerNameParser'
         arguments:
             - '@kernel'
 
     api.hydra.documentation_builder:
-        class: Eliberty\ApiBundle\Hydra\ApiDocumentationBuilder
+        class: 'Eliberty\ApiBundle\Hydra\ApiDocumentationBuilder'
         arguments:
             - '@api.resource_collection'
             - '@api.json_ld.context_builder'
@@ -119,10 +141,33 @@ services:
             - '@api.documentation.helper'
 
     api.json_ld.context_builder:
-        class: Eliberty\ApiBundle\JsonLd\ContextBuilder
+        class: 'Eliberty\ApiBundle\JsonLd\ContextBuilder'
         arguments:
             - '@api.router'
             - '@event_dispatcher'
             - '@api.resource_collection'
             - '@api.mapping.class_metadata_factory'
             - '@api.documentation.helper'
+
+    api.helper.apply.criteria:
+        class: 'Eliberty\ApiBundle\Helper\ApplyCriteriaEmbed'
+        arguments:
+            - '@request_stack'
+            - '@doctrine.orm.entity_manager'
+            - '@api.resource_collection'
+            - '@api.data_provider'
+
+    api.init.filter.embed:
+        class: 'Eliberty\ApiBundle\Helper\InitFilterEmbed'
+        arguments:
+            - '@request_stack'
+            - '@api.resource_collection'
+            - '@doctrine'
+            - '@property_accessor'
+
+    api.hydra.listener.request_exception:
+        class: 'Eliberty\ApiBundle\Hydra\EventListener\RequestExceptionListener'
+        arguments:
+            - '@api.hydra.normalizer.error'
+        tags:
+            - { name: kernel.event_listener, event: kernel.exception, method: onKernelException }

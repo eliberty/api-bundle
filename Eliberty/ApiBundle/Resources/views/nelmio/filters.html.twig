@@ -1,0 +1,27 @@
+{% if data.filters is defined and data.filters is not empty %}
+<table class="fullwidth">
+    <thead>
+    <tr>
+        <th>Name</th>
+        <th>Information</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for name, infos in data.filters %}
+        <tr>
+            <td>{{ name }}</td>
+            <td>
+                <table>
+                    {% for key, value in infos %}
+                        <tr>
+                            <td>{{ key|title }}</td>
+                            <td>{{ value|json_encode|replace({'\\\\': '\\'})|trim('"') }}</td>
+                        </tr>
+                    {% endfor %}
+                </table>
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endif %}

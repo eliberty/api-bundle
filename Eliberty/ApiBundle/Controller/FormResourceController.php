@@ -5,6 +5,7 @@ namespace Eliberty\ApiBundle\Controller;
 use Doctrine\ORM\EntityNotFoundException;
 use Dunglas\ApiBundle\Event\Events;
 use FOS\RestBundle\Controller\FOSRestController;
+use Symfony\Component\Finder\Exception\AccessDeniedException;
 use Symfony\Component\Form\Exception\InvalidArgumentException;
 use Symfony\Component\Form\FormErrorIterator;
 use Symfony\Component\HttpFoundation\Response;
@@ -28,13 +29,20 @@ abstract class FormResourceController extends ResourceController
      * @param mixed $id
      *
      * @param string $eventName
+     * @param null $object
      * @return Response
      */
-    public function handleUpdateRequest($id, $eventName = Events::PRE_UPDATE)
+    public function handleUpdateRequest($id, $eventName = Events::PRE_UPDATE, $object = null)
     {
         $resource = $this->getResource($this->container->get('request'));
 
-        $object   = $this->findOrThrowNotFound($resource, $id);
+        if (!$resource->isGranted(['EDIT'])) {
+            throw new AccessDeniedException('Acl permission for this object is not granted.');
+        }
+
+        if (null === $object) {
+            $object   = $this->findOrThrowNotFound($resource, $id);
+        }
 
         $form = $this->processForm($object);
 
@@ -47,15 +55,23 @@ abstract class FormResourceController extends ResourceController
      * Create new.
      *
      *
-     * @param $eventName
+     * @param string $eventName
+     * @param null $entity
      * @return Response
      */
-    public function handleCreateRequest($eventName = Events::PRE_CREATE)
+    public function handleCreateRequest($eventName = Events::PRE_CREATE, $entity = null)
     {
         $request = $this->container->get('request');
         $resource = $this->getResource($request);
-        $entityName = $this->get('doctrine')->getManager()->getClassMetadata($resource->getEntityClass())->getName();
-        $entity      = new $entityName;
+
+        if (!$resource->isGranted(['CREATE'])) {
+            throw new AccessDeniedException('Acl permission for this object is not granted.');
+        }
+
+        if (null === $entity) {
+            $entityName = $this->get('doctrine')->getManager()->getClassMetadata($resource->getEntityClass())->getName();
+            $entity     = new $entityName;
+        }
 
         $form = $this->processForm($entity);
 
@@ -99,7 +115,6 @@ abstract class FormResourceController extends ResourceController
      */
     protected function fixRequestAttributes()
     {
-//        $apiVersion = $this->get('router')->getContext()->getApiVersion();
         $request    = $this->container->get('request');
 
         $data = $request->request->all();
@@ -113,7 +128,7 @@ abstract class FormResourceController extends ResourceController
      */
     protected function getForm()
     {
-        return $this->get('form.'.$this->getEntityName().'.api.'.$this->get('router')->getContext()->getApiVersion());
+        return $this->get('api.form.resolver')->resolve($this->getEntityName());
     }
 
     /**
@@ -121,7 +136,7 @@ abstract class FormResourceController extends ResourceController
      */
     protected function getFormHandler()
     {
-        return $this->get('handler.'.$this->getEntityName().'.api.'.$this->get('router')->getContext()->getApiVersion());
+        return $this->get('api.handler.resolver')->resolve($this->getEntityName());
     }
 
     /**

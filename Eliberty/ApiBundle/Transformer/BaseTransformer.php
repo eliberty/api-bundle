@@ -111,12 +111,11 @@ class BaseTransformer extends TransformerAbstract
     /**
      * Constructor.
      *
-     * @param Request       $request
      * @param EntityManager $em
      *
      * @internal param Kernel $kernel
      */
-    public function __construct(EntityManager $em, Request $request = null)
+    public function __construct(EntityManager $em)
     {
         $this->em = $em;
     }
@@ -248,7 +247,6 @@ class BaseTransformer extends TransformerAbstract
     public function setRequest(Request $request = null)
     {
         $this->request = $request;
-        //$this->setParamRequestEmbed();
 
         if (null !== $request) {
             $this->uri     = $this->request->getPathInfo();
@@ -398,7 +396,6 @@ class BaseTransformer extends TransformerAbstract
         return $includedData;
     }
 
-
     /**
      * Call Include Method.
      *
@@ -414,12 +411,13 @@ class BaseTransformer extends TransformerAbstract
      */
     protected function callIncludeMethod(Scope $scope, $includeName, $data)
     {
-        $scope->setData($data);
+        if (method_exists($scope , 'setData')) {
+            $scope->setData($data);
+        }
         return parent::callIncludeMethod($scope, $includeName, $data);
     }
 
-    /////Gestion des langs//////////////////////////////////////////////////////////////////////
-
+    #region managements of locals
     /**
      *  get the multi language for a entity and field
      * @param $object
@@ -467,7 +465,6 @@ class BaseTransformer extends TransformerAbstract
             return $this->getCurrentTranslation($object, $field);
         }
 
-
         $repoTranslation = $this->em->getRepository('Gedmo\\Translatable\\Entity\\Translation');
         $languages = array_merge(
             $this->request->getLanguages(),
@@ -498,6 +495,8 @@ class BaseTransformer extends TransformerAbstract
         return $this->objectTranslations[$object->getId()]->matching($criteria);
     }
 
+    #endregion
+
     /**
      * @param $entity
      * @return null
@@ -509,4 +508,5 @@ class BaseTransformer extends TransformerAbstract
 
         return $entity->getId();
     }
+
 }

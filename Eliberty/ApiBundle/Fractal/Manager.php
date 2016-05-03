@@ -2,7 +2,8 @@
 
 namespace Eliberty\ApiBundle\Fractal;
 
-use Eliberty\ApiBundle\Fractal\Serializer\DataArraySerializer;
+use Eliberty\ApiBundle\Fractal\Serializer\DataHydraSerializer;
+use League\Fractal\Serializer\DataArraySerializer;
 use Dunglas\ApiBundle\Api\ResourceCollection;
 use Dunglas\ApiBundle\JsonLd\ContextBuilder;
 use Dunglas\ApiBundle\Mapping\ClassMetadataFactory;
@@ -50,7 +51,7 @@ class Manager extends BaseFractalManager
     public function getSerializer()
     {
         if (! $this->serializer) {
-            $this->setSerializer(new DataArraySerializer());
+            $this->setSerializer(new DataHydraSerializer());
         }
 
         return $this->serializer;
