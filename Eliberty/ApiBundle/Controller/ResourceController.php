@@ -14,6 +14,7 @@ namespace Eliberty\ApiBundle\Controller;
 use Doctrine\Common\Collections\ArrayCollection;
 use Dunglas\ApiBundle\Event\Events;
 use Eliberty\ApiBundle\Doctrine\Orm\ArrayPaginator;
+use Eliberty\ApiBundle\Helper\HeaderHelper;
 use Nelmio\ApiDocBundle\Annotation\ApiDoc;
 use Dunglas\ApiBundle\Event\DataEvent;
 use Dunglas\ApiBundle\Exception\DeserializationException;
@@ -28,6 +29,7 @@ use Symfony\Component\Security\Acl\Permission\MaskBuilder;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
 use Symfony\Component\Serializer\Exception\Exception;
 use Dunglas\ApiBundle\Controller\ResourceController as BaseResourceController;
+use Eliberty\ApiBundle\Xml\Response as XmlResponse;
 
 /**
  * Class ResourceController.
@@ -79,7 +81,7 @@ class ResourceController extends BaseResourceController
      */
     protected function getErrorResponse(ConstraintViolationListInterface $violations)
     {
-        return new Response(
+        return $this->getResponse(
             $this->get('eliberty.api.hydra.normalizer.violation.list.error')->normalize($violations, 'hydra-error'),
             400
         );
@@ -134,7 +136,7 @@ class ResourceController extends BaseResourceController
         }
 
 
-        $data     = $this->getCollectionData($resource, $request);
+        $data = $this->getCollectionData($resource, $request);
 
         $this->get('event_dispatcher')->dispatch(Events::RETRIEVE_LIST, new DataEvent($resource, $data));
 
@@ -145,6 +147,7 @@ class ResourceController extends BaseResourceController
      * Adds an element to the collection.
      *
      * @param Request $request
+     *
      * @return Response|void
      * @throws \NotFoundResourceException
      * @ApiDoc(
@@ -165,7 +168,8 @@ class ResourceController extends BaseResourceController
      * Replaces an element of the collection.
      *
      * @param Request $request
-     * @param string $id
+     * @param string  $id
+     *
      * @return Response
      * @throws DeserializationException
      * @throws \NotFoundResourceException
@@ -239,19 +243,19 @@ class ResourceController extends BaseResourceController
     {
         $resource = $this->getResource($request);
         $resource->isGranted(['DELETE']);
-        $object   = $this->findOrThrowNotFound($resource, $id);
 
+        $object    = $this->findOrThrowNotFound($resource, $id);
         $eventName = Events::PRE_DELETE;
-        $event =  new DataEvent($resource, $object);
+        $event     = new DataEvent($resource, $object);
         if ($resource->hasEventListener($eventName)) {
-            $eventName = $resource->getListener($eventName);
+            $eventName  = $resource->getListener($eventName);
             $eventClass = $resource->getListener('eventClass');
-            $event =  new $eventClass($object);
+            $event      = new $eventClass($object);
         }
 
         $this->get('event_dispatcher')->dispatch($eventName, $event);
 
-        return new Response(null, 204);
+        return $this->getResponse(null, 204);
     }
 
     /**
@@ -275,12 +279,30 @@ class ResourceController extends BaseResourceController
         $dataResponse = $this->get('api.json_ld.normalizer.item')
             ->normalize($data, 'json-ld', $resource->getNormalizationContext() + $additionalContext);
 
-
-        return new Response(
+        return $this->getResponse(
             $dataResponse,
             $status,
             $headers
         );
+    }
+
+    /**
+     * @param $data
+     * @param $status
+     * @param $headers
+     *
+     * @return Response|XmlResponse
+     */
+    private function getResponse($data, $status, $headers)
+    {
+        $request = $this->container->get('request_stack')->getCurrentRequest();
+        $context = HeaderHelper::getContext($request);
+
+        if ('xml' === $context) {
+            return new XmlResponse($data, $status, $headers);
+        }
+
+        return new Response($data, $status, $headers);
     }
 
     /**
@@ -325,7 +347,7 @@ class ResourceController extends BaseResourceController
      */
     public function cgetEmbedAction(Request $request, $id, $embed)
     {
-        $resourceEmbed    = $this->get('api.init.filter.embed')->initFilterEmbed($id, $embed);
+        $resourceEmbed = $this->get('api.init.filter.embed')->initFilterEmbed($id, $embed);
         if (!$resourceEmbed->isGranted(['VIEW'])) {
             throw new AccessDeniedException('Acl permission for this object is not granted.');
         }
@@ -337,7 +359,10 @@ class ResourceController extends BaseResourceController
         $parentClassMeta  = $em->getClassMetadata($resource->getEntityClass());
 
         $propertyName = $parentClassMeta->hasAssociation($embed) ? $embed : $resourceEmbed->shortName;
-        $data = call_user_func([$object, 'get'.ucfirst($embed)], $resourceEmbed->getEmbedParams(strtolower($resource->getShortName())));
+        $data         = call_user_func(
+            [$object, 'get' . ucfirst($embed)],
+            $resourceEmbed->getEmbedParams(strtolower($resource->getShortName()))
+        );
 
         if (is_null($data)) {
             if (!is_null($resourceEmbed->getEmbedAlias($embed))) {
@@ -353,7 +378,7 @@ class ResourceController extends BaseResourceController
         }
 
         if ($dataResponse instanceof ArrayCollection && $dataResponse->count() === 0) {
-            return new Response([]);
+            return $this->getResponse([]);
         }
 
         $this->get('event_dispatcher')->dispatch(Events::RETRIEVE_LIST, new DataEvent($resourceEmbed, $dataResponse));
@@ -362,9 +387,10 @@ class ResourceController extends BaseResourceController
     }
 
     /**
-     * @param $object
+     * @param                                  $object
      * @param ConstraintViolationListInterface $violations
-     * @param ResourceInterface $resource
+     * @param ResourceInterface                $resource
+     *
      * @return Response
      */
     protected function formResponse(
@@ -373,7 +399,7 @@ class ResourceController extends BaseResourceController
         ResourceInterface $resource
     ) {
         if (0 === count($violations)) {
-            $request = $this->get('request_stack')->getCurrentRequest();
+            $request      = $this->get('request_stack')->getCurrentRequest();
             $codeResponse = in_array($request->getMethod(), ['PUT', 'PATCH']) ? 200 : 201;
 
             return $this->getSuccessResponse($resource, $object, $codeResponse);

@@ -3,13 +3,13 @@
 namespace Eliberty\ApiBundle\Fractal\Serializer;
 
 use Doctrine\ORM\PersistentCollection;
+use Eliberty\ApiBundle\Fractal\Scope;
 use League\Fractal\Manager;
 use Dunglas\ApiBundle\Model\PaginatorInterface;;
 use League\Fractal\Serializer\DataArraySerializer as BaseDataArraySerializer;
 use Eliberty\ApiBundle\Doctrine\Orm\Filter\EmbedFilter;
 use League\Fractal\Pagination\PaginatorInterface as FractalPaginatorInterface;
 use League\Fractal\Resource\ResourceInterface;
-use League\Fractal\Resource\Collection;
 use Dunglas\ApiBundle\Api\ResourceInterface as DunglasResource;
 
 /**
@@ -17,7 +17,7 @@ use Dunglas\ApiBundle\Api\ResourceInterface as DunglasResource;
  *
  * @package Eliberty\ApiBundle\Fractal\Serializer
  */
-class DataHydraSerializer extends BaseDataArraySerializer
+class DataHydraSerializer extends BaseDataArraySerializer implements SerializerInterface
 {
 
     /**
@@ -30,16 +30,16 @@ class DataHydraSerializer extends BaseDataArraySerializer
     const HYDRA_PAGED_COLLECTION = 'hydra:PagedCollection';
 
     /**
-     * @var \Eliberty\ApiBundle\Fractal\Scope;
+     * @var Scope;
      */
     protected $scope;
 
     /**
-     * @param \Eliberty\ApiBundle\Fractal\Scope $scope
+     * @param Scope $scope
      *
      * @return $this
      */
-    public function setScope($scope)
+    public function setScope(Scope $scope)
     {
         $this->scope = $scope;
 
@@ -93,7 +93,7 @@ class DataHydraSerializer extends BaseDataArraySerializer
 
         $object = $this->getResource()->getData();
 
-        if($object instanceof Collection) {
+        if($object instanceof PaginatorInterface) {
             $hydra['@id'] = $this->getResourceRoute();
         }
 
@@ -260,4 +260,5 @@ class DataHydraSerializer extends BaseDataArraySerializer
 
         $data['hydra:firstPage'] = $baseUrl;
     }
+
 }

@@ -4,9 +4,6 @@ namespace Eliberty\ApiBundle\Handler;
 use Eliberty\ApiBundle\Resolver\BaseResolver;
 use Symfony\Bundle\FrameworkBundle\Routing\Router;
 use Eliberty\ApiBundle\Versioning\Router\ApiRouter;
-use Symfony\Component\HttpFoundation\AcceptHeader;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Class HandlerResolver

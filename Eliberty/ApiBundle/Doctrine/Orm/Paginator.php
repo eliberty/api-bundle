@@ -38,4 +38,5 @@ class Paginator extends BasePaginator
     {
         return $this->paginator;
     }
+
 }

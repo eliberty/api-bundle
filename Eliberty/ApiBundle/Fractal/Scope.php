@@ -12,13 +12,12 @@
 namespace Eliberty\ApiBundle\Fractal;
 
 use Doctrine\Common\Inflector\Inflector;
-use Dunglas\ApiBundle\Model\PaginatorInterface;
-use Eliberty\ApiBundle\Doctrine\Orm\Filter\EmbedFilter;
-use League\Fractal\Pagination\PaginatorInterface as FractalPaginatorInterface;
+use Eliberty\ApiBundle\Fractal\Serializer\DataHydraSerializer;
 use League\Fractal\Resource\ResourceInterface;
 use League\Fractal\Scope as BaseFractalScope;
 use League\Fractal\Resource\Collection;
 use Dunglas\ApiBundle\Api\ResourceInterface as DunglasResource;
+use League\Fractal\Serializer\SerializerAbstract;
 use League\Fractal\TransformerAbstract;
 
 /**
@@ -72,6 +71,8 @@ class Scope extends BaseFractalScope
      */
     public function toArray()
     {
+        $this->resource->setResourceKey($this->scopeIdentifier);
+
         if ($this->resource instanceof Collection) {
             return $this->collectionNormalizer();
         }
@@ -89,80 +90,37 @@ class Scope extends BaseFractalScope
         // Don't use hydra:Collection in sub levels
         $context['json_ld_sub_level'] = true;
 
-        $this->dunglasResource = $this->getDunglasResource();
-
         list($rawData, $rawIncludedData) = $this->executeResourceTransformers();
 
         if (count($rawData) === 0) {
             return [];
         }
 
-        $data['@context'] = $this->getContext($this->dunglasResource);
+        $data = $this->serializeResource($serializer, $rawData);
 
-        if (!$this->resource->getTransformer()->isChild()) {
-            $data['@embed'] = implode(',', $this->resource->getTransformer()->getAvailableIncludes());
-        }
-
-        if (!is_null($this->resource)) {
-            foreach ($this->dunglasResource->getFilters() as $filter) {
-                if ($filter instanceof EmbedFilter) {
-                    $route = $this->getGenerateRoute($filter->getRouteName(), $filter->getParameters());
-                    break;
-                }
+        if ($this->resource instanceof Collection) {
+            if ($this->resource->hasCursor()) {
+                $pagination = $serializer->cursor($this->resource->getCursor());
+            } elseif ($this->resource->hasPaginator()) {
+                $pagination = $serializer->paginator($this->resource->getPaginator());
             }
-            if (empty($route)) {
-                $parameters = [];
-                if (
-                    $this->dunglasResource->getParent() instanceof DunglasResource
-                ) {
-                    $dunglasParentResource = $this->dunglasResource->getParent();
-                    $parameters = $dunglasParentResource->getRouteKeyParams($this->getParent()->getData());
-                }
-                try {
-                    $route = $this->getGenerateRoute($this->dunglasResource, $parameters);
-                } catch (\Exception $e) {
-                   // var_dump($e);exit;
-                    $route = null;
-                }
+
+            if (! empty($pagination)) {
+                $this->resource->setMetaValue(key($pagination), current($pagination));
             }
-            $data['@id'] = $route;
         }
 
-        $object = $this->resource->getData();
+        // Pull out all of OUR metadata and any custom meta data to merge with the main level data
+        $meta = $serializer->meta($this->resource->getMeta());
 
-        if ($this->resource->hasPaginator()) {
-            $object = $this->resource->getPaginator();
-        }
-
-        if ($object instanceof PaginatorInterface || $object instanceof FractalPaginatorInterface) {
-            $data['@type'] = self::HYDRA_PAGED_COLLECTION;
-
-            $currentPage = (int) $object->getCurrentPage();
-            $lastPage    = (int) $object->getLastPage();
-
-            $baseUrl = $data['@id'];
-            $paginatedUrl = $baseUrl.'?perpage='.$object->getItemsPerPage().'&page=';
-
-            $this->getPreviewPage($data, $object, $currentPage, $paginatedUrl, $baseUrl);
-            $this->getNextPage($data, $object, $currentPage, $lastPage, $paginatedUrl);
-
-            $data['hydra:totalItems'] =  $object->getTotalItems();
-            $data['hydra:itemsPerPage'] = $object->getItemsPerPage();
-            $this->getFirstPage($data, $object, $currentPage, $lastPage, $baseUrl);
-            $this->getLastPage($data, $object, $currentPage, $lastPage, $paginatedUrl);
-        } else {
-            $data['@type'] = self::HYDRA_COLLECTION;
-        }
-
-        $data = array_merge($data, $this->serializeResource($serializer, $rawData));
-
-        return $data;
+        return array_merge($meta, $data);
     }
 
     /**
      * check if scope has parent
      */
-    protected function hasParent() {
+    public function hasParent()
+    {
         return ($this->parent instanceof Scope);
     }
 
@@ -173,7 +131,6 @@ class Scope extends BaseFractalScope
      */
     protected function itemNormalizer()
     {
-
         $serializer = $this->manager->getSerializer();
 
         // Don't use hydra:Collection in sub levels
@@ -181,18 +138,9 @@ class Scope extends BaseFractalScope
 
         $this->dunglasResource = $this->getDunglasResource();
 
-        $data = [];
-        if ($this->dunglasResource instanceof DunglasResource) {
-            $data['@context'] = $this->getContext($this->dunglasResource);
-        }
-
-        if (!$this->resource->getTransformer()->isChild()) {
-            $data['@embed'] = implode(',', $this->resource->getTransformer()->getAvailableIncludes());
-        }
-
         list($rawData, $rawIncludedData) = $this->executeResourceTransformers();
 
-        $data = array_merge($data, $this->serializeResource($serializer, $rawData));
+        $data = $this->serializeResource($serializer, $rawData);
 
         // If the serializer wants the includes to be side-loaded then we'll
         // serialize the included data and merge it with the data.
@@ -205,7 +153,7 @@ class Scope extends BaseFractalScope
         // Pull out all of OUR metadata and any custom meta data to merge with the main level data
         $meta = $serializer->meta($this->resource->getMeta());
 
-        return array_merge($data, $meta);
+        return array_merge($meta, $data);
     }
 
     /**
@@ -234,16 +182,18 @@ class Scope extends BaseFractalScope
 
     /**
      * @param $entityName
+     *
      * @return mixed
      * @throws \Exception
      */
-    protected function findDunglasResource($entityName) {
+    protected function findDunglasResource($entityName)
+    {
         $resource = $this->manager->getResourceCollection()->getResourceForShortName(
             $entityName,
             $this->getApiVersion()
         );
         if (null === $resource) {
-            throw new \Exception('resource not found for entityname : '.$entityName);
+            throw new \Exception('resource not found for entityname : ' . $entityName);
         }
 
         return $resource;
@@ -252,7 +202,8 @@ class Scope extends BaseFractalScope
     /**
      * @throws \Exception
      */
-    protected function getApiVersion() {
+    protected function getApiVersion()
+    {
         $version = 'v2';
         if ($this->parent instanceof Scope && $this->parent->getDunglasResource() instanceof DunglasResource) {
             $version = $this->parent->getDunglasResource()->getVersion();
@@ -261,18 +212,6 @@ class Scope extends BaseFractalScope
         return $version;
     }
 
-    /**
-     * @param DunglasResource $resource
-     *
-     * @return mixed
-     */
-    protected function getContext(DunglasResource $resource)
-    {
-        return $this->manager->getRouter()->generate(
-            'api_json_ld_context',
-            ['shortName' => $resource->getShortName()]
-        );
-    }
 
     /**
      * Fire the main transformer.
@@ -290,11 +229,11 @@ class Scope extends BaseFractalScope
         $includedData = [];
         $transformedData = [];
 
-        if (!empty($data)) {
+        if ($this->getManager()->getSerializer() instanceof DataHydraSerializer && !empty($data)) {
             $transformedData['@id'] = $this->getGenerateRoute($data);
         }
 
-        if (!empty($this->getEntityName())) {
+        if ($this->getManager()->getSerializer() instanceof DataHydraSerializer && !empty($this->getEntityName())) {
             $transformedData['@type'] = $this->getEntityName();
         }
 
@@ -312,103 +251,7 @@ class Scope extends BaseFractalScope
                 $transformedData = array_merge($transformedData, $includedData);
             }
         }
-
         return array($transformedData, $includedData);
-    }
-
-    /**
-     * @param $data
-     * @param $object
-     * @param $currentPage
-     * @param $paginatedUrl
-     * @param $baseUrl
-     * @return bool
-     */
-    protected function getPreviewPage(&$data, $object, $currentPage, $paginatedUrl, $baseUrl)
-    {
-        if (0 !== ($currentPage - 1)) {
-            $previousPage = $currentPage - 1.;
-            if ($object instanceof FractalPaginatorInterface) {
-                $data['hydra:previousPage'] = $object->getUrl($currentPage - 1);
-
-                return true;
-            }
-
-            $data['hydra:previousPage'] = 1 === $previousPage ? $baseUrl : $paginatedUrl.$previousPage;
-        }
-    }
-
-    /**
-     * @param $data
-     * @param $object
-     * @param $currentPage
-     * @param $lastPage
-     * @param $paginatedUrl
-     * @return bool
-     */
-    protected function getNextPage(&$data, $object, $currentPage, $lastPage, $paginatedUrl)
-    {
-        if ($currentPage !== $lastPage) {
-            if ($object instanceof FractalPaginatorInterface) {
-                $data['hydra:nextPage'] = $object->getUrl($currentPage + 1);
-
-                return true;
-            }
-
-            $data['hydra:nextPage'] = $paginatedUrl.($currentPage + 1.);
-        }
-    }
-
-    /**
-     * @param $data
-     * @param $object
-     * @param $currentPage
-     * @param $lastPage
-     * @param $paginatedUrl
-     *
-     * @return bool
-     */
-    protected function getLastPage(&$data, $object, $currentPage, $lastPage, $paginatedUrl)
-    {
-        if ($object instanceof FractalPaginatorInterface) {
-            $data['hydra:lastPage'] = $object->getUrl($lastPage);
-
-            return true;
-        }
-
-        $data['hydra:lastPage'] = $paginatedUrl.$lastPage;
-    }
-
-    /**
-     * @param $data
-     * @param $object
-     * @param $currentPage
-     * @param $lastPage
-     * @param $baseUrl
-     *
-     * @return bool
-     */
-    protected function getFirstPage(&$data, $object, $currentPage, $lastPage, $baseUrl)
-    {
-        if ($object instanceof FractalPaginatorInterface) {
-            $data['hydra:firstPage'] = $object->getUrl(1);
-
-            return true;
-        }
-
-        $data['hydra:firstPage'] = $baseUrl;
-    }
-
-    /**
-     * @param $data
-     *
-     * @return mixed
-     */
-    protected function getGenerateRoute($data, $params = [])
-    {
-        $this->manager->getRouter()->setScope($this);
-
-        return $this->manager->getRouter()->generate($data, $params);
     }
 
     /**
@@ -492,20 +335,23 @@ class Scope extends BaseFractalScope
 
     /**
      * @param string $position
+     *
      * @return mixed
      */
-    public function getSingleIdentifier($position = 'desc') {
+    public function getSingleIdentifier($position = 'desc')
+    {
         $identifiers = explode('.', $this->getIdentifier());
+
         return ('desc' === $position) ? array_pop($identifiers) : array_shift($identifiers);
     }
 
     /**
      * @return string
      */
-    public function getIdentifierWithoutSourceIdentifier() {
-        return str_replace($this->getSingleIdentifier('asc').'.', '', $this->getIdentifier());
+    public function getIdentifierWithoutSourceIdentifier()
+    {
+        return str_replace($this->getSingleIdentifier('asc') . '.', '', $this->getIdentifier());
     }
-
 
 
     /**
@@ -520,5 +366,32 @@ class Scope extends BaseFractalScope
         return $this;
     }
 
+    /**
+     * @param $data
+     *
+     * @return mixed
+     */
+    public function getGenerateRoute($data, $params = [])
+    {
+        $this->getManager()->getRouter()->setScope($this);
+
+        return $this->getManager()->getRouter()->generate($data, $params);
+    }
+
+    /**
+     * Serialize a resource
+     *
+     * @internal
+     *
+     * @param SerializerAbstract $serializer
+     * @param mixed              $data
+     *
+     * @return array
+     */
+    protected function serializeResource(SerializerAbstract $serializer, $data)
+    {
+        $serializer->setScope($this);
+        return parent::serializeResource($serializer, $data);
+    }
 
 }

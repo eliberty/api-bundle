@@ -77,6 +77,4 @@ class ObjectDenormalizer
 
         return $this;
     }
-
-
 }

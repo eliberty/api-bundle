@@ -2,18 +2,16 @@
 
 namespace Eliberty\ApiBundle\Fractal\Serializer;
 
+use Doctrine\Common\Util\Inflector;
 use Eliberty\ApiBundle\Fractal\Scope;
-use League\Fractal\Pagination\PaginatorInterface;
-use League\Fractal\Serializer\ArraySerializer as BaseArraySerializer;
-use League\Fractal\Resource\ResourceAbstract;
+
 /**
- * Class ArraySerializer
+ * Class DataXmlSerializer
  *
  * @package Eliberty\ApiBundle\Fractal\Serializer
  */
-class ArraySerializer extends BaseArraySerializer implements SerializerInterface
+class DataXmlSerializer extends ArraySerializer implements SerializerInterface
 {
-
     /**
      * @var Scope;
      */
@@ -41,25 +39,17 @@ class ArraySerializer extends BaseArraySerializer implements SerializerInterface
      */
     public function collection($resourceKey, array $data)
     {
+        $dataResponse             = [];
+        $resourceKey              = strtolower($resourceKey);
+        $pluralize                = Inflector::pluralize($resourceKey);
+        $singularize              = Inflector::singularize($resourceKey);
         if (!$this->scope->hasParent()) {
-            return ['data' => $data];
+            $dataResponse[$pluralize] = [$singularize => $data];
+        } else {
+            $dataResponse = [$singularize => $data];
         }
 
-        return $data;
+        return $dataResponse;
     }
 
-    /**
-     * Serialize the paginator.
-     *
-     * @param PaginatorInterface $paginator
-     *
-     * @return array
-     */
-    public function paginator(PaginatorInterface $paginator)
-    {
-        $data = parent::paginator($paginator);
-        unset($data['pagination']['links']);
-
-        return $data;
-    }
 }

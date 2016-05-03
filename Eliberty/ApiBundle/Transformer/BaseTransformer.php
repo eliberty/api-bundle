@@ -411,7 +411,9 @@ class BaseTransformer extends TransformerAbstract
      */
     protected function callIncludeMethod(Scope $scope, $includeName, $data)
     {
-        $scope->setData($data);
+        if (method_exists($scope , 'setData')) {
+            $scope->setData($data);
+        }
         return parent::callIncludeMethod($scope, $includeName, $data);
     }
 
@@ -462,7 +464,6 @@ class BaseTransformer extends TransformerAbstract
         if ($this->objectTranslations[$object->getId()]->count() > 0) {
             return $this->getCurrentTranslation($object, $field);
         }
-
 
         $repoTranslation = $this->em->getRepository('Gedmo\\Translatable\\Entity\\Translation');
         $languages = array_merge(
