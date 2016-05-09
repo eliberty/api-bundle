@@ -242,7 +242,9 @@ class Scope extends BaseFractalScope
         } else {
             $transformedData = array_merge($transformedData, $transformer->transform($data));
         }
-
+        $transformedData = $this->getManager()
+            ->getGroupsContextChainer()
+            ->serialize($this->transformer->getCurrentResourceKey(), $transformedData);
         if ($this->transformerHasIncludes($transformer)) {
             $includedData = $this->fireIncludedTransformers($transformer, $data);
             // If the serializer does not want the includes to be side-loaded then

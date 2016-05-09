@@ -62,10 +62,10 @@ services:
             - '@api.router'
             - '@api.mapping.class_metadata_factory'
             - '@api.json_ld.context_builder'
-            - '@property_accessor'
             - '@api.transformer.helper'
             - '@request_stack'
             - '@doctrine.orm.entity_manager'
+            - '@api.group.context.chainer'
             - '@logger'
         tags:
             - { name: serializer.normalizer }
@@ -171,3 +171,14 @@ services:
             - '@api.hydra.normalizer.error'
         tags:
             - { name: kernel.event_listener, event: kernel.exception, method: onKernelException }
+
+    api.group.context.resolver:
+      class: 'Eliberty\ApiBundle\Context\GroupsContextResolver'
+      arguments:
+          - '@request_stack'
+
+    api.group.context.chainer:
+      class: 'Eliberty\ApiBundle\Context\GroupsContextChainer'
+      arguments:
+          - '@request_stack'
+          - '@api.group.context.resolver'

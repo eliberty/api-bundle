@@ -14,6 +14,7 @@ namespace Eliberty\ApiBundle\JsonLd\Serializer;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Persistence\ObjectManager;
 use Doctrine\ORM\PersistentCollection;
+use Eliberty\ApiBundle\Context\GroupsContextChainer;
 use Eliberty\ApiBundle\Fractal\Manager;
 use Eliberty\ApiBundle\Fractal\Pagination\DunglasPaginatorAdapter;
 use Eliberty\ApiBundle\Fractal\Pagination\PagerfantaPaginatorAdapter;
@@ -46,7 +47,7 @@ use Dunglas\ApiBundle\Doctrine\Orm\Paginator;
 /**
  * Converts between objects and array including JSON-LD and Hydra metadata.
  */
-class Normalizer extends AbstractNormalizer
+class Normalizer
 {
     use ResourceResolverTrait;
 
@@ -67,24 +68,11 @@ class Normalizer extends AbstractNormalizer
      * @var ClassMetadataFactory
      */
     private $apiClassMetadataFactory;
-    /**
-     * @var PropertyAccessorInterface
-     */
-    private $propertyAccessor;
+
     /**
      * @var ContextBuilder
      */
     private $contextBuilder;
-
-    /**
-     * @var Manager
-     */
-    private $fractal;
-
-    /**
-     * @var TransformerAbstract
-     */
-    private $transformer;
 
     /**
      * @var Request
@@ -104,14 +92,10 @@ class Normalizer extends AbstractNormalizer
      * @var ObjectManager
      */
     private $objectManager;
-
     /**
-     * List of denormalizing object.
-     *
-     * @var ArrayCollection
+     * @var GroupsContextChainer
      */
-    private $denormalizingObjects;
-
+    private $contextChainer;
 
     /**
      * @param ResourceCollectionInterface $resourceCollection
@@ -119,12 +103,11 @@ class Normalizer extends AbstractNormalizer
      * @param RouterInterface             $router
      * @param ClassMetadataFactory        $apiClassMetadataFactory
      * @param ContextBuilder              $contextBuilder
-     * @param PropertyAccessorInterface   $propertyAccessor
      * @param TransformerHelper           $transformerHelper
      * @param RequestStack                $requestStack
      * @param ObjectManager               $objectManager
+     * @param GroupsContextChainer        $contextChainer
      * @param Logger                      $logger
-     * @param NameConverterInterface      $nameConverter
      *
      * @internal param ValidatorMetadataLoader $validatorMetadataLoader
      * @internal param Request $request
@@ -136,24 +119,22 @@ class Normalizer extends AbstractNormalizer
         RouterInterface $router,
         ClassMetadataFactory $apiClassMetadataFactory,
         ContextBuilder $contextBuilder,
-        PropertyAccessorInterface $propertyAccessor,
         TransformerHelper $transformerHelper,
         RequestStack $requestStack,
         ObjectManager $objectManager,
-        Logger $logger,
-        NameConverterInterface $nameConverter = null
+        GroupsContextChainer $contextChainer,
+        Logger $logger
     ) {
         $this->resourceCollection      = $resourceCollection;
         $this->dataProvider            = $dataProvider;
         $this->router                  = $router;
         $this->apiClassMetadataFactory = $apiClassMetadataFactory;
         $this->contextBuilder          = $contextBuilder;
-        $this->propertyAccessor        = $propertyAccessor;
         $this->request                 = $requestStack->getCurrentRequest();
         $this->logger                  = $logger;
         $this->transformerHelper       = $transformerHelper;
         $this->objectManager           = $objectManager;
-        $this->denormalizingObjects    = new ArrayCollection();
+        $this->contextChainer          = $contextChainer;
     }
 
     /**
@@ -173,33 +154,31 @@ class Normalizer extends AbstractNormalizer
     public function normalize($object, $format = null, array $context = [], $defaultIncludes = true)
     {
         $dunglasResource = $this->guessResource($object, $context);
-
-        $this->transformer = $this->transformerHelper->getTransformer($dunglasResource->getShortName());
-
+        $transformer = $this->transformerHelper->getTransformer($dunglasResource->getShortName());
         $fractal = $this->getManager();
 
         if ($this->request) {
-            $fractal->parseIncludes($this->getEmbedsWithoutOptions());
+            $fractal->parseIncludes($this->getEmbedsWithoutOptions($transformer));
         }
 
         if ($object instanceof Paginator || $object instanceof PersistentCollection) {
-            $resource = new Collection($object, $this->transformer);
+            $resource = new Collection($object, $transformer);
             if ($fractal->getSerializer() instanceof ArraySerializer) {
                 $resource->setPaginator(
                     new DunglasPaginatorAdapter($object, $resource)
                 );
             }
         } else {
-            $resource = new Item($object, $this->transformer);
+            $resource = new Item($object, $transformer);
         }
 
         $rootScope = $fractal->createData($resource, $dunglasResource->getShortName());
 
         if ($defaultIncludes === false) {
-            $this->transformer->setDefaultIncludes([]);
+            $transformer->setDefaultIncludes([]);
         }
 
-        $this->transformer
+        $transformer
             ->setCurrentScope($rootScope)
             ->setEmbed($dunglasResource->getShortName());
 
@@ -217,10 +196,10 @@ class Normalizer extends AbstractNormalizer
             ->setContextBuilder($this->contextBuilder)
             ->setRouter($this->router)
             ->setResourceCollection($this->resourceCollection)
-            ->setSerializer(SerializerFactory::getSerializer($this->request));
+            ->setSerializer(SerializerFactory::getSerializer($this->request))
+            ->setGroupsContextChainer($this->contextChainer);
 
         return $manager;
-
     }
 
     /**
@@ -236,22 +215,24 @@ class Normalizer extends AbstractNormalizer
     }
 
     /**
+     * @param TransformerAbstract $transformer
+     *
      * @return array
      */
-    private function getEmbedsWithoutOptions()
+    private function getEmbedsWithoutOptions(TransformerAbstract $transformer)
     {
         $embeds = $this->request->get('embed', null);
 
         if (null === $embeds) {
-            $embeds = implode(',', $this->transformer->getDefaultIncludes());
+            $embeds = implode(',', $transformer->getDefaultIncludes());
         }
 
         if ($this->request->headers->get('e-embed-available', 0)) {
             if (is_null($embeds)) {
-                $embeds = implode(',', $this->transformer->getAvailableIncludes());
+                $embeds = implode(',', $transformer->getAvailableIncludes());
             } else {
-                $arrayEmbed = array_merge(explode(',', $embeds), $this->transformer->getAvailableIncludes());
-                $embeds = implode(',', $arrayEmbed);
+                $arrayEmbed = array_merge(explode(',', $embeds), $transformer->getAvailableIncludes());
+                $embeds     = implode(',', $arrayEmbed);
             }
         }
 
@@ -259,7 +240,7 @@ class Normalizer extends AbstractNormalizer
         preg_match_all('|{(.*)}|U', $embeds, $datas);
         $withoutEmbeds = $embeds;
         foreach ($datas[1] as $data) {
-            $withoutEmbeds = str_replace('{'.$data.'}', "", $embeds);
+            $withoutEmbeds = str_replace('{' . $data . '}', "", $embeds);
         }
 
         return explode(',', $withoutEmbeds);
@@ -291,7 +272,8 @@ class Normalizer extends AbstractNormalizer
      *
      * @return object
      */
-    public function denormalize($data, $class, $format = null, array $context = array()){
+    public function denormalize($data, $class, $format = null, array $context = array())
+    {
         return null;
     }
 
@@ -304,7 +286,8 @@ class Normalizer extends AbstractNormalizer
      *
      * @return bool
      */
-    public function supportsDenormalization($data, $type, $format = null){
+    public function supportsDenormalization($data, $type, $format = null)
+    {
         return null;
     }
 }

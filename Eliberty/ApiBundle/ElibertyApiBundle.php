@@ -4,6 +4,7 @@ namespace Eliberty\ApiBundle;
 
 use Eliberty\ApiBundle\DependencyInjection\Compiler\DataProviderPass;
 use Eliberty\ApiBundle\DependencyInjection\Compiler\DoctrineEntityListenerPass;
+use Eliberty\ApiBundle\DependencyInjection\Compiler\GroupsContextPass;
 use Eliberty\ApiBundle\DependencyInjection\Compiler\HandlerPass;
 use Eliberty\ApiBundle\DependencyInjection\Compiler\RegisterExtractorParsersPass;
 use Eliberty\ApiBundle\DependencyInjection\Compiler\ResourcePass;
@@ -33,5 +34,6 @@ class ElibertyApiBundle extends Bundle
         $container->addCompilerPass(new DoctrineEntityListenerPass());
         $container->addCompilerPass(new TransformerRessourcePass());
         $container->addCompilerPass(new RegisterExtractorParsersPass());
+        $container->addCompilerPass(new GroupsContextPass());
     }
 }
