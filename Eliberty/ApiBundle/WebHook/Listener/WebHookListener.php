@@ -5,6 +5,7 @@ namespace Eliberty\ApiBundle\WebHook\Listener;
 use Dunglas\ApiBundle\Mapping\ClassMetadataFactory;
 use Dunglas\ApiBundle\Api\ResourceCollectionInterface;
 use Eliberty\ApiBundle\JsonLd\ContextBuilder;
+use Eliberty\ApiBundle\Transformer\BaseTransformer;
 use Eliberty\ApiBundle\Transformer\Listener\TransformerResolver;
 use Eliberty\ApiBundle\WebHook\Event\EntityListenerEvent;
 use Eliberty\ApiBundle\Fractal\Manager;
@@ -93,14 +94,14 @@ class WebHookListener implements EventSubscriberInterface
     private $transformerResolver;
 
     /**
-     * @param EntityManager $em
-     * @param RouterInterface $router
-     * @param ClassMetadataFactory $apiClassMetadataFactory
-     * @param ContextBuilder $contextBuilder
+     * @param EntityManager               $em
+     * @param RouterInterface             $router
+     * @param ClassMetadataFactory        $apiClassMetadataFactory
+     * @param ContextBuilder              $contextBuilder
      * @param ResourceCollectionInterface $resourceCollection
-     * @param TransformerResolver $transformerResolver
-     * @param RequestStack $requestStack
-     * @param LoggerInterface $logger
+     * @param TransformerResolver         $transformerResolver
+     * @param RequestStack                $requestStack
+     * @param LoggerInterface             $logger
      */
     public function __construct(
         EntityManager $em,
@@ -116,7 +117,7 @@ class WebHookListener implements EventSubscriberInterface
         $this->entityManager = $em;
         $this->logger        = $logger;
 
-        $this->fractal       = new Manager();
+        $this->fractal = new Manager();
         $this->fractal
             ->setApiClassMetadataFactory($apiClassMetadataFactory)
             ->setRouter($router)
@@ -140,10 +141,10 @@ class WebHookListener implements EventSubscriberInterface
             'webhook.persist.entity' => [
                 ['processPersistEntity', 245],
             ],
-            'kernel.controller'       => [
+            'kernel.controller'      => [
                 ['onKernelController', 0],
             ],
-            'kernel.terminate'        => [
+            'kernel.terminate'       => [
                 ['onKernelTerminate', 0],
             ],
         ];
@@ -160,6 +161,7 @@ class WebHookListener implements EventSubscriberInterface
 
     /**
      * send a update message.
+     *
      * @param $objects
      * @param $action
      */
@@ -171,26 +173,23 @@ class WebHookListener implements EventSubscriberInterface
                 foreach ($config as $version => $data) {
                     $classTransformer = $this->getConfigByKey($data, 'Transformer');
                     if (null !== $classTransformer && class_exists($classTransformer)) {
-                        $dataResponse = [];
-                        $transformer  = new $classTransformer($this->entityManager);
+                        $dataResponse          = [];
+                        $transformer           = new $classTransformer($this->entityManager);
+                        $transformer           = $this->initTransformer($transformer);
                         $currentObjectResponse = $this->getTransformerData($transformer, $object, $version);
 
                         foreach ($data["Target"] as $embed => $target) {
                             $parentObject = $this->isEmbed($transformer, $object, $embed);
-                            if (false === $parentObject) {
-                                continue;
-                            }
-
                             $dataResponse[$transformer->getCurrentResourceKey()] = $currentObjectResponse;
 
-                            $this->sendMessage(
-                                array_merge(
-                                    $this->getEmbedData($embed ,$parentObject, $version),
+                            if (null !== $parentObject) {
+                                $dataResponse = array_merge(
+                                    $this->getEmbedData($embed, $parentObject, $version),
                                     $dataResponse
-                                ),
-                                $target,
-                                $action
-                            );
+                                );
+                            }
+
+                            $this->sendMessage($dataResponse, $target, $action);
                         }
                     }
                 }
@@ -200,15 +199,35 @@ class WebHookListener implements EventSubscriberInterface
         }
     }
 
+
+    /**
+     * @param BaseTransformer $transformer
+     *
+     * @return BaseTransformer
+     */
+    protected function initTransformer(BaseTransformer $transformer)
+    {
+        $defaultIncludes = [];
+        if (in_array('user', $transformer->getAvailableIncludes())) {
+            $defaultIncludes[] = 'user';
+        }
+        $transformer->setDefaultIncludes($defaultIncludes);
+
+        return $transformer;
+    }
+
     /**
      * get the current object data transforme
+     *
      * @param $transformer
      * @param $object
      * @param $version
+     *
      * @return array
      * @internal param $classTransformer
      */
-    public function getTransformerData(TransformerAbstract $transformer, $object, $version) {
+    public function getTransformerData(TransformerAbstract $transformer, $object, $version)
+    {
         $scope = $this->initScope($transformer, $object, $version);
 
         return $scope->toArray();
@@ -216,7 +235,7 @@ class WebHookListener implements EventSubscriberInterface
 
     /**
      * @param TransformerAbstract $transformer
-     * @param $object
+     * @param                     $object
      * @param string              $apiVersion
      *
      * @return Scope
@@ -238,11 +257,14 @@ class WebHookListener implements EventSubscriberInterface
      * @param $embed
      * @param $parentObject
      * @param $version
+     *
      * @return array
      * @throws \Exception
      */
-    protected function getEmbedData($embed, $parentObject, $version = "v2") {
-        $transformer  = $this->transformerResolver->resolve($embed);
+    protected function getEmbedData($embed, $parentObject, $version = "v2")
+    {
+        $transformer = $this->transformerResolver->resolve($embed);
+        $transformer = $this->initTransformer($transformer);
 
         return [
             $transformer->getCurrentResourceKey() => $this->getTransformerData($transformer, $parentObject, $version)
@@ -251,22 +273,24 @@ class WebHookListener implements EventSubscriberInterface
 
     /**
      * @param TransformerAbstract $transformer
-     * @param $object
-     * @param $embed
-     * @param string $version
+     * @param                     $object
+     * @param                     $embed
+     * @param string              $version
+     *
      * @return bool
      */
     protected function isEmbed(TransformerAbstract $transformer, $object, $embed, $version = 'v2')
     {
         if (in_array($embed, $transformer->getAvailableIncludes())) {
-             return call_user_func([$object, 'get'.ucfirst($embed)]);
+            return call_user_func([$object, 'get' . ucfirst($embed)]);
         }
 
-        return true;
+        return null;
     }
 
     /**
      * @param FilterControllerEvent $event
+     *
      * @return bool
      */
     public function onKernelController(FilterControllerEvent $event)
@@ -300,7 +324,7 @@ class WebHookListener implements EventSubscriberInterface
     public function processPersistEntity(EntityListenerEvent $event)
     {
         $this->logger->info('processPersistEntity');
-        $entity = $event->getLifecycleEventArgs()->getEntity();
+        $entity                              = $event->getLifecycleEventArgs()->getEntity();
         $this->persistData[$entity->getId()] = $entity;
     }
 
@@ -310,7 +334,7 @@ class WebHookListener implements EventSubscriberInterface
     public function processUpdateEntity(EntityListenerEvent $event)
     {
         $this->logger->info('processUpdateEntity');
-        $entity = $event->getLifecycleEventArgs()->getEntity();
+        $entity                             = $event->getLifecycleEventArgs()->getEntity();
         $this->updateData[$entity->getId()] = $entity;
     }
 
@@ -319,7 +343,7 @@ class WebHookListener implements EventSubscriberInterface
      *
      * @return array
      */
-    private function getConfiguration($object, $action)
+    protected function getConfiguration($object, $action)
     {
         $className = get_class($object);
 
@@ -327,12 +351,13 @@ class WebHookListener implements EventSubscriberInterface
     }
 
     /**
-     * @param $config
-     * @param $key
+     * @param      $config
+     * @param      $key
      * @param null $default
+     *
      * @return null
      */
-    private function getConfigByKey($config, $key, $default = null)
+    protected function getConfigByKey($config, $key, $default = null)
     {
         return isset($config[$key]) ? $config[$key] : $default;
     }

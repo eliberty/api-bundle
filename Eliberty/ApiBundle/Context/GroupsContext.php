@@ -2,8 +2,6 @@
 
 namespace Eliberty\ApiBundle\Context;
 
-use Dunglas\ApiBundle\Api\ResourceInterface;
-
 /**
  * Interface GroupsContextInterface
  *
@@ -27,14 +25,15 @@ class GroupsContext implements GroupsContextInterface
     protected $groupName;
 
     /**
+     * @var int
+     */
+    protected $priority;
+
+    /**
      * @var array
      */
     private $properties;
 
-    /**
-     * @var ResourceInterface
-     */
-    private $resource;
 
     /**
      * @var string
@@ -44,41 +43,15 @@ class GroupsContext implements GroupsContextInterface
     /**
      * GroupsContext constructor.
      *
-     * @param                   $groupName
-     * @param ResourceInterface $resource
-     * @param array|null        $properties
-     * @param string            $strategy
+     * @param $data
+     * @param $groupName
      */
-    public function __construct(
-        $groupName,
-        ResourceInterface $resource,
-        array $properties = null,
-        $strategy = self::STRATEGY_REMOVING
-    ) {
-        $this->properties = $properties;
-        $this->resource   = $resource;
+    public function __construct($data, $groupName)
+    {
+        $this->properties = isset($data['properties']) ? array_flip($data['properties']) : [];
+        $this->strategy   = isset($data['strategy']) ? $data['strategy'] : self::STRATEGY_ADDING;
+        $this->priority   = isset($data['priority']) ? $data['priority'] : 0;
         $this->groupName  = $groupName;
-        $this->strategy   = $strategy;
-    }
-
-    /**
-     * @return ResourceInterface
-     */
-    public function getResource()
-    {
-        return $this->resource;
-    }
-
-    /**
-     * @param ResourceInterface $resource
-     *
-     * @return $this
-     */
-    public function setResouce($resource)
-    {
-        $this->resource = $resource;
-
-        return $this;
     }
 
     /**
@@ -137,6 +110,26 @@ class GroupsContext implements GroupsContextInterface
     public function setStrategy($strategy)
     {
         $this->strategy = $strategy;
+
+        return $this;
+    }
+
+    /**
+     * @return int
+     */
+    public function getPriority()
+    {
+        return $this->priority;
+    }
+
+    /**
+     * @param int $priority
+     *
+     * @return $this
+     */
+    public function setPriority($priority)
+    {
+        $this->priority = $priority;
 
         return $this;
     }

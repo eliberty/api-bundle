@@ -172,13 +172,15 @@ services:
         tags:
             - { name: kernel.event_listener, event: kernel.exception, method: onKernelException }
 
-    api.group.context.resolver:
-      class: 'Eliberty\ApiBundle\Context\GroupsContextResolver'
+    api.group.context.loader:
+      class: 'Eliberty\ApiBundle\Context\GroupsContextLoader'
       arguments:
+          - '%kernel.bundles%'
           - '@request_stack'
+          - '@generic_cache'
 
     api.group.context.chainer:
       class: 'Eliberty\ApiBundle\Context\GroupsContextChainer'
       arguments:
           - '@request_stack'
-          - '@api.group.context.resolver'
+          - '@api.group.context.loader'

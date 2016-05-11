@@ -2,7 +2,6 @@
 
 namespace Eliberty\ApiBundle\Context;
 
-use Dunglas\ApiBundle\Api\Resource;
 
 /**
  * Interface GroupsContextInterface
@@ -11,18 +10,6 @@ use Dunglas\ApiBundle\Api\Resource;
  */
 interface GroupsContextInterface
 {
-    /**
-     * @return ResourceInterface
-     */
-    public function getResource();
-
-    /**
-     * @param ResourceInterface $resource
-     *
-     * @return $this
-     */
-    public function setResouce($resource);
-
     /**
      * @return array
      */
@@ -58,4 +45,16 @@ interface GroupsContextInterface
      * @return $this
      */
     public function setStrategy($strategy);
+
+    /**
+     * @return int
+     */
+    public function getPriority();
+
+    /**
+     * @param int $priority
+     *
+     * @return $this
+     */
+    public function setPriority($priority);
 }

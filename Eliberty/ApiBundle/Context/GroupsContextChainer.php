@@ -19,9 +19,10 @@ class GroupsContextChainer extends BaseResolver
 {
 
     /**
-     * @var GroupsContextResolver
+     * @var GroupsContextLoader
      */
-    protected $contextResolver;
+    protected $contextLoader;
+
     /**
      * @var string
      */
@@ -30,15 +31,14 @@ class GroupsContextChainer extends BaseResolver
     /**
      * GroupsContextChainer constructor.
      *
-     * @param RequestStack          $requestStack
-     * @param GroupsContextResolver $contextResolver
+     * @param RequestStack        $requestStack
+     * @param GroupsContextLoader $contextLoader
      */
-    public function __construct(RequestStack $requestStack, GroupsContextResolver $contextResolver)
+    public function __construct(RequestStack $requestStack, GroupsContextLoader $contextLoader)
     {
         parent::__construct($requestStack);
-        $this->contextResolver = $contextResolver;
+        $this->contextLoader = $contextLoader;
         $this->setGroupName($this->request->headers->get('e-serializer-group', 'api_'.$this->version));
-
     }
 
 
@@ -47,8 +47,22 @@ class GroupsContextChainer extends BaseResolver
      *
      * @return array
      */
-    public function getGroupsContext($entityName) {
-        return $this->contextResolver->resolve($entityName);
+    public function getContext($entityName) {
+        return $this->contextLoader->getContexts($entityName);
+    }
+
+    /**
+     * @param $data
+     *
+     * @return array
+     */
+    public function getGroupsContexts($data) {
+        $grpContexts = [];
+        foreach ($data as $group => $property) {
+            $grpContexts[] = new GroupsContext($property, $group);
+        }
+
+        return $grpContexts;
     }
 
     /**
@@ -58,15 +72,15 @@ class GroupsContextChainer extends BaseResolver
      * @return array
      */
     public function serialize($shortname, $data = []) {
-        $groupsData = $this->getGroupsContext($shortname);
+        $groupsData = $this->getContext($shortname);
 
         if (empty($groupsData)) {
             return $data;
         }
 
         $dataResponse = [];
-        /** inverse array for respect priority */
-        $groups = array_reverse($groupsData);
+//        /** inverse array for respect priority */
+        $groups = $this->getGroupsContexts($groupsData);
         /** @var GroupsContext $group */
         foreach ($groups as $group) {
             if ($group->getGroupName() !== $this->groupName || null === $group->getProperties()) {
