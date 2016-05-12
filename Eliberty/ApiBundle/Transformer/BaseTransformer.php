@@ -502,9 +502,22 @@ class BaseTransformer extends TransformerAbstract
      * @return null
      */
     public function getIdOrNull($entity) {
+
         if (is_null($entity)) {
             return null;
         }
+
+        if ($entity instanceof Collection) {
+            $response = [];
+            if ($entity->count() > 0) {
+                foreach ($entity as $data) {
+                    $response[] = $data->getId();
+                }
+            }
+
+            return $response;
+        }
+
 
         return $entity->getId();
     }

@@ -2,6 +2,8 @@
 
 namespace Eliberty\ApiBundle\Fractal;
 
+use Eliberty\ApiBundle\Context\GroupsContextChainer;
+use Eliberty\ApiBundle\Context\GroupsContextResolver;
 use Eliberty\ApiBundle\Fractal\Serializer\DataHydraSerializer;
 use League\Fractal\Serializer\DataArraySerializer;
 use Dunglas\ApiBundle\Api\ResourceCollection;
@@ -42,6 +44,11 @@ class Manager extends BaseFractalManager
      * @var ResourceCollection
      */
     private $resourceCollection;
+
+    /**
+     * @var GroupsContextChainer
+     */
+    private $groupsContextChainer;
 
     /**
      * Get Serializer.
@@ -164,5 +171,26 @@ class Manager extends BaseFractalManager
 
         return $this;
     }
+
+    /**
+     * @return GroupsContextChainer
+     */
+    public function getGroupsContextChainer()
+    {
+        return $this->groupsContextChainer;
+    }
+
+    /**
+     * @param GroupsContextChainer $groupsContextChainer
+     *
+     * @return $this
+     */
+    public function setGroupsContextChainer($groupsContextChainer)
+    {
+        $this->groupsContextChainer = $groupsContextChainer;
+
+        return $this;
+    }
+
 
 }
