@@ -11,10 +11,10 @@
 
 namespace Dunglas\ApiBundle\Tests\Api\Operation;
 
-use Dunglas\ApiBundle\Api\Operation\OperationFactory;
+use Eliberty\ApiBundle\Api\Operation\OperationFactory;
 
 /**
- * @author Kévin Dunglas <dunglas@gmail.com>
+ * @author Philippe Vesin <pvesin@eliberty.fr>
  */
 class OperationFactoryTest extends \PHPUnit_Framework_TestCase
 {
@@ -25,7 +25,7 @@ class OperationFactoryTest extends \PHPUnit_Framework_TestCase
     {
         $this->operationFactory = new OperationFactory();
 
-        $prophecy = $this->prophesize('Dunglas\ApiBundle\Api\ResourceInterface');
+        $prophecy = $this->prophesize('Eliberty\ApiBundle\Api\ResourceInterface');
         $prophecy->getShortName()->willReturn('Foo');
         $this->resource = $prophecy->reveal();
     }
@@ -38,7 +38,7 @@ class OperationFactoryTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(['GET', 'DELETE'], $operation->getRoute()->getMethods());
 
         $defaults = $operation->getRoute()->getDefaults();
-        $this->assertEquals('DunglasApiBundle:Resource:cget', $defaults['_controller']);
+        $this->assertEquals('ElibertyApiBundle:Resource:cget', $defaults['_controller']);
         $this->assertEquals('Foo', $defaults['_resource']);
 
         $this->assertEquals('api_foos_cget', $operation->getRouteName());
@@ -70,7 +70,7 @@ class OperationFactoryTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(['GET', 'DELETE'], $operation->getRoute()->getMethods());
 
         $defaults = $operation->getRoute()->getDefaults();
-        $this->assertEquals('DunglasApiBundle:Resource:get', $defaults['_controller']);
+        $this->assertEquals('ElibertyApiBundle:Resource:get', $defaults['_controller']);
         $this->assertEquals('Foo', $defaults['_resource']);
 
         $this->assertEquals('api_foos_get', $operation->getRouteName());
