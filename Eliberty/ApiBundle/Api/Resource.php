@@ -553,13 +553,22 @@ class Resource implements ResourceInterface
     /**
      * @param array $mask
      *
+     * @param bool  $entityUcFirst
+     *
      * @return bool
-     * @throws InvalidAclException
-     * @throws InvalidAclException
      */
-    public function isGranted($mask = [])
+    public function isGranted($mask = [], $entityUcFirst = false)
     {
-        $objIdentity = new ObjectIdentity('class', $this->entityClass);
+        $entityClass = $this->entityClass;
+
+        if ($entityUcFirst) {
+            $tab            = explode('\\', $this->entityClass);
+            $last_key       = key(array_slice($tab, -1, 1, true));
+            $tab[$last_key] = $this->getShortName();
+            $entityClass = implode('\\', $tab);
+        }
+
+        $objIdentity = new ObjectIdentity('class', $entityClass);
 
         return $this->authorizationChecker->isGranted($mask, $objIdentity);
     }
