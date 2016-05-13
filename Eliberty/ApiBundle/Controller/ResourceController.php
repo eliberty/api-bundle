@@ -83,7 +83,8 @@ class ResourceController extends BaseResourceController
     {
         return $this->getResponse(
             $this->get('eliberty.api.hydra.normalizer.violation.list.error')->normalize($violations, 'hydra-error'),
-            400
+            400,
+            []
         );
     }
 
