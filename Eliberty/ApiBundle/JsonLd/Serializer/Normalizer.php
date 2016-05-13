@@ -227,7 +227,12 @@ class Normalizer
             $embeds = implode(',', $transformer->getDefaultIncludes());
         }
 
-        if ($this->request->headers->get('e-embed-available', 0)) {
+        $embedAvailable = $this->request->headers->get('e-embed-available', 0);
+        if ($this->request->headers->has('e-embed-available') && !$embedAvailable) {
+            $transformer->setDefaultIncludes([]);
+        }
+
+        if ($embedAvailable) {
             if (is_null($embeds)) {
                 $embeds = implode(',', $transformer->getAvailableIncludes());
             } else {
