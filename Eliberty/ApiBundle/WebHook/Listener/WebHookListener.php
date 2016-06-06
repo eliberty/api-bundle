@@ -189,7 +189,9 @@ class WebHookListener implements EventSubscriberInterface
                                 );
                             }
 
-                            $this->sendMessage($dataResponse, $target, $action);
+                            if (isset($dataResponse[$embed])) {
+                                $this->sendMessage($dataResponse, $target, $action);
+                            }
                         }
                     }
                 }
@@ -341,12 +343,13 @@ class WebHookListener implements EventSubscriberInterface
     /**
      * @param $object
      *
+     * @param $action
+     *
      * @return array
      */
     protected function getConfiguration($object, $action)
     {
         $className = get_class($object);
-
         return isset($this->configuration[$className][$action]) ? $this->configuration[$className][$action] : [];
     }
 

@@ -100,6 +100,7 @@ class ResourceController extends BaseResourceController
      */
     protected function findOrThrowNotFound(ResourceInterface $resource, $id)
     {
+        $resource->isGranted(['VIEW']);
         $item = $this->get('api.data_provider')->getItem($resource, $id, true);
         if (!$item) {
             throw $this->createNotFoundException();
@@ -131,11 +132,6 @@ class ResourceController extends BaseResourceController
     public function cgetAction(Request $request)
     {
         $resource = $this->getResource($request);
-
-        if (!$resource->isGranted(['VIEW'])) {
-            throw new AccessDeniedException('Acl permission for this object is not granted.');
-        }
-
 
         $data = $this->getCollectionData($resource, $request);
 
@@ -212,7 +208,6 @@ class ResourceController extends BaseResourceController
     public function getAction(Request $request, $id)
     {
         $resource = $this->getResource($request);
-        $resource->isGranted([MaskBuilder::MASK_VIEW]);
 
         $object = $this->findOrThrowNotFound($resource, $id);
 
@@ -316,6 +311,7 @@ class ResourceController extends BaseResourceController
      */
     protected function getCollectionData(ResourceInterface $resource, Request $request)
     {
+        $this->resource->isGranted(['VIEW']);
         return $this->get('api.data_provider')->getCollection(
             $resource,
             $request
@@ -348,16 +344,14 @@ class ResourceController extends BaseResourceController
      */
     public function cgetEmbedAction(Request $request, $id, $embed)
     {
-        $resourceEmbed = $this->get('api.init.filter.embed')->initFilterEmbed($id, $embed);
-        if (!$resourceEmbed->isGranted(['VIEW'])) {
-            throw new AccessDeniedException('Acl permission for this object is not granted.');
-        }
-
+        $resourceEmbed    = $this->get('api.init.filter.embed')->initFilterEmbed($id, $embed);
         $em               = $this->get('doctrine.orm.entity_manager');
         $propertyAccessor = $this->get('property_accessor');
         $resource         = $this->getResource($request);
         $object           = $this->findOrThrowNotFound($resource, $id);
         $parentClassMeta  = $em->getClassMetadata($resource->getEntityClass());
+
+        $resourceEmbed->isGranted(['VIEW'], true);
 
         $propertyName = $parentClassMeta->hasAssociation($embed) ? $embed : $resourceEmbed->shortName;
         $data         = call_user_func(

@@ -13,6 +13,7 @@ use Dunglas\ApiBundle\Api\Filter\FilterInterface;
 use Dunglas\ApiBundle\Api\Operation\OperationInterface;
 use Dunglas\ApiBundle\Api\ResourceInterface;
 use Doctrine\Common\Inflector\Inflector;
+use Symfony\Component\Finder\Exception\AccessDeniedException;
 use Symfony\Component\Security\Acl\Domain\ObjectIdentity;
 use Symfony\Component\Security\Acl\Permission\MaskBuilder;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
@@ -552,10 +553,9 @@ class Resource implements ResourceInterface
 
     /**
      * @param array $mask
-     *
      * @param bool  $entityUcFirst
      *
-     * @return bool
+     * @throws AccessDeniedException
      */
     public function isGranted($mask = [], $entityUcFirst = false)
     {
@@ -564,12 +564,26 @@ class Resource implements ResourceInterface
         if ($entityUcFirst) {
             $tab            = explode('\\', $this->entityClass);
             $last_key       = key(array_slice($tab, -1, 1, true));
-            $tab[$last_key] = $this->getShortName();
+            $tab[$last_key] = $this->isAlias() === false ? $this->getShortName() : ucfirst($this->shortName);
             $entityClass = implode('\\', $tab);
         }
 
         $objIdentity = new ObjectIdentity('class', $entityClass);
 
-        return $this->authorizationChecker->isGranted($mask, $objIdentity);
+        if (!$this->authorizationChecker->isGranted($mask, $objIdentity)) {
+            throw new AccessDeniedException('Acl permission for this object is not granted.');
+        }
+    }
+
+    /**
+     * @return mixed
+     */
+    public function isAlias() {
+
+        if (null === $this->config) {
+            return false;
+        }
+
+        return false !== array_search($this->getShortName(), $this->config->getAlias());
     }
 }
