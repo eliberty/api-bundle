@@ -12,6 +12,7 @@
 namespace Eliberty\ApiBundle\Fractal;
 
 use Doctrine\Common\Inflector\Inflector;
+use Eliberty\ApiBundle\Context\GroupsContextChainer;
 use Eliberty\ApiBundle\Fractal\Serializer\DataHydraSerializer;
 use League\Fractal\Resource\ResourceInterface;
 use League\Fractal\Scope as BaseFractalScope;
@@ -242,9 +243,13 @@ class Scope extends BaseFractalScope
         } else {
             $transformedData = array_merge($transformedData, $transformer->transform($data));
         }
-        $transformedData = $this->getManager()
-            ->getGroupsContextChainer()
-            ->serialize($this->transformer->getCurrentResourceKey(), $transformedData);
+
+        if ($this->getManager()->getGroupsContextChainer() instanceof GroupsContextChainer) {
+            $transformedData = $this->getManager()
+                ->getGroupsContextChainer()
+                ->serialize($this->transformer->getCurrentResourceKey(), $transformedData);
+        }
+
         if ($this->transformerHasIncludes($transformer)) {
             $includedData = $this->fireIncludedTransformers($transformer, $data);
             // If the serializer does not want the includes to be side-loaded then

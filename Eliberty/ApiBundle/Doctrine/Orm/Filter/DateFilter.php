@@ -25,6 +25,7 @@ use Dunglas\ApiBundle\Doctrine\Orm\Filter\DateFilter as BaseDateFilter;
  */
 class DateFilter extends AbstractFilter
 {
+    const PARAMETER_EQUAL = 'e';
     const PARAMETER_LESS = 'lt';
     const PARAMETER_LESS_EQUAL = 'lte';
     const PARAMETER_GREATER = 'gt';
@@ -60,6 +61,16 @@ class DateFilter extends AbstractFilter
 
             if (self::EXCLUDE_NULL === $nullManagement) {
                 $queryBuilder->andWhere($queryBuilder->expr()->isNotNull(sprintf('o.%s', $property)));
+            }
+
+            if (isset($values[self::PARAMETER_EQUAL])) {
+                $this->addWhere(
+                    $queryBuilder,
+                    $property,
+                    self::PARAMETER_EQUAL,
+                    $values[self::PARAMETER_EQUAL],
+                    $nullManagement
+                );
             }
 
             if (isset($values[self::PARAMETER_LESS])) {
@@ -153,6 +164,9 @@ class DateFilter extends AbstractFilter
         $value = null;
 
         switch($parameter) {
+            case self::PARAMETER_EQUAL:
+                    $value = '=';
+                break;
             case self::PARAMETER_LESS:
                     $value = '<';
                 break;

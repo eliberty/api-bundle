@@ -36,16 +36,13 @@ abstract class FormResourceController extends ResourceController
     {
         $resource = $this->getResource($this->container->get('request'));
 
-        if (!$resource->isGranted(['EDIT'])) {
-            throw new AccessDeniedException('Acl permission for this object is not granted.');
-        }
+        $resource->isGranted(['EDIT']);
 
         if (null === $object) {
-            $object   = $this->findOrThrowNotFound($resource, $id);
+            $object = $this->findOrThrowNotFound($resource, $id);
         }
 
-        $form = $this->processForm($object);
-
+        $form       = $this->processForm($object);
         $violations = new ConstraintViolationList($this->constraintViolation($form->getErrors(true)));
 
         return $this->formResponse($object, $violations, $resource, $eventName);
@@ -61,12 +58,10 @@ abstract class FormResourceController extends ResourceController
      */
     public function handleCreateRequest($eventName = Events::PRE_CREATE, $entity = null)
     {
-        $request = $this->container->get('request');
+        $request  = $this->container->get('request');
         $resource = $this->getResource($request);
 
-        if (!$resource->isGranted(['CREATE'])) {
-            throw new AccessDeniedException('Acl permission for this object is not granted.');
-        }
+        $resource->isGranted(['CREATE']);
 
         if (null === $entity) {
             $entityName = $this->get('doctrine')->getManager()->getClassMetadata($resource->getEntityClass())->getName();
@@ -116,8 +111,7 @@ abstract class FormResourceController extends ResourceController
     protected function fixRequestAttributes()
     {
         $request    = $this->container->get('request');
-
-        $data = $request->request->all();
+        $data       = $request->request->all();
 
         // save fixed values for named form
         $request->request->set($this->getForm()->getName(), $data);
