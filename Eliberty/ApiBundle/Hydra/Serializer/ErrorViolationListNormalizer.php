@@ -65,8 +65,7 @@ class ErrorViolationListNormalizer implements NormalizerInterface
         $data = [
             '@context'    => $this->router->generate('api_json_ld_context', ['shortName' => 'ConstraintViolationList']),
             '@type'       => 'ConstraintViolationList',
-            'hydra:title' => isset($context['title']) ? $context['title'] : 'An error occurred',
-            //'hydra:description' => isset($message) ? $message : (string) $violationList,
+            'title'       => 'An error occurred',
             'violations'  => [],
         ];
 
@@ -101,6 +100,6 @@ class ErrorViolationListNormalizer implements NormalizerInterface
      */
     public function supportsNormalization($data, $format = null)
     {
-        return 'hydra-error' === $format && $data instanceof \Exception;
+        return 'ld+json' === $format && $data instanceof ConstraintViolationList;
     }
 }

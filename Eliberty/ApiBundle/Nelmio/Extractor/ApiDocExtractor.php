@@ -54,6 +54,11 @@ class ApiDocExtractor extends BaseApiDocExtractor
     protected $reader;
 
     /**
+     * @var ClassMetadataFactory
+     */
+    protected $classMetadataFactory;
+
+    /**
      * @var DocCommentExtractor
      */
     private $commentExtractor;
@@ -134,22 +139,22 @@ class ApiDocExtractor extends BaseApiDocExtractor
         FormRegistryInterface $registry
     )
     {
-        $this->container          = $container;
-        $this->router             = $router;
-        $this->commentExtractor   = $commentExtractor;
-        $this->reader             = $reader;
-        $this->handlers           = $handlers;
-        $this->transformerHelper  = $transformerHelper;
-        $this->resourceCollection = $resourceCollection;
-        $this->normailzer         = $normailzer;
-
-        $nelmioDocStandard = $this->container->hasParameter('nelmio.extractor.standard.api.version');
+        $this->container            = $container;
+        $this->router               = $router;
+        $this->commentExtractor     = $commentExtractor;
+        $this->reader               = $reader;
+        $this->handlers             = $handlers;
+        $this->transformerHelper    = $transformerHelper;
+        $this->resourceCollection   = $resourceCollection;
+        $this->normailzer           = $normailzer;
+        $this->classMetadataFactory = $this->container->get('api.mapping.class_metadata_factory');
+        $nelmioDocStandard          = $this->container->hasParameter('nelmio.extractor.standard.api.version');
 
         if ($nelmioDocStandard) {
             $this->nelmioDocStandardVersion = $this->container->getParameter('nelmio.extractor.standard.api.version');
         }
 
-        $this->transformerHelper->setClassMetadataFactory($normailzer->getClassMetadataFactory());
+        $this->transformerHelper->setClassMetadataFactory($this->classMetadataFactory);
 
         $this->annotationsProviders = $annotationsProviders;
 
@@ -404,7 +409,7 @@ class ApiDocExtractor extends BaseApiDocExtractor
         if (!is_null($formParams) && isset($formParams[$formName]['children'])) {
             $parameters         = $formParams[$formName]['children'];
             $entityClass        = $dunglasResource->getEntityClass();
-            $metadataAttributes = $this->normailzer->getClassMetadataFactory()->getMetadataFor(new $entityClass)->getAttributes();
+            $metadataAttributes = $this->classMetadataFactory->getMetadataFor(new $entityClass)->getAttributes();
             $classMetadata      = $this->entityManager->getClassMetadata($entityClass);
             $metadataAttributesValidation = isset($this->attributesValidationParser[$dunglasResource->getShortName()])?$this->attributesValidationParser[$dunglasResource->getShortName()] : [] ;
 

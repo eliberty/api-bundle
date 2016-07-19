@@ -1,23 +1,26 @@
 <?php
 
-namespace Eliberty\ApiBundle\Helper;
 /*
- * This file is part of the ElibertyApiBundle package.
+ * This file is part of the DunglasApiBundle package.
  *
- * (c) Vesin Philippe <pvesin@eliberty.fr>
+ * (c) Kévin Dunglas <dunglas@gmail.com>
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
-use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+
+namespace Eliberty\ApiBundle\Resolver;
+
 use Symfony\Component\HttpFoundation\AcceptHeader;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
- * Class HeaderHelper
+ * This class helps to guess api context of serialization which header is associated from the request.
+ *
+ * @author Philippe Vesin <pvesin@gmail.com>
  */
-class HeaderHelper {
-
+trait ContextResolverTrait
+{
     /**
      * @param Request $request
      *

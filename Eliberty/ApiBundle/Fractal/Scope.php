@@ -247,7 +247,11 @@ class Scope extends BaseFractalScope
         if ($this->getManager()->getGroupsContextChainer() instanceof GroupsContextChainer) {
             $transformedData = $this->getManager()
                 ->getGroupsContextChainer()
-                ->serialize($this->transformer->getCurrentResourceKey(), $transformedData);
+                ->serialize(
+                    $this->transformer->getCurrentResourceKey(),
+                    $transformedData,
+                    $this->getDunglasResource()->getVersion()
+                );
         }
 
         if ($this->transformerHasIncludes($transformer)) {

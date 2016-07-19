@@ -12,7 +12,7 @@
 namespace Eliberty\ApiBundle\Routing;
 
 use Doctrine\Common\Inflector\Inflector;
-use Dunglas\ApiBundle\Api\ResourceCollectionInterface;
+use Eliberty\ApiBundle\Api\ResourceCollectionInterface;
 use Dunglas\ApiBundle\Api\ResourceInterface;
 use Eliberty\ApiBundle\Api\Resource;
 use Eliberty\ApiBundle\Doctrine\Orm\MappingsFilter;
@@ -181,7 +181,7 @@ class Router implements RouterInterface
         $parentResource = null;
         $parameters = [];
         $version = $this->getScope()->getDunglasResource()->getVersion();
-        if ($resource = $this->resourceCollection->getResourceForEntity($name, $version)) {
+        if ($resource = $this->resourceCollection->getResourceForEntityWithVersion($name, $version)) {
             $parameters = $resource->getRouteKeyParams($name);
             if (empty($parameters)) {
                 $parameters['id'] = $this->propertyAccessor->getValue($name, 'id');

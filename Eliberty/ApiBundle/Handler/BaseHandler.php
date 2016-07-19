@@ -4,12 +4,15 @@ namespace Eliberty\ApiBundle\Handler;
 
 use Doctrine\Common\Persistence\ObjectManager;
 use Eliberty\ApiBundle\Helper\EventHelper;
+use Eliberty\ApiBundle\Versioning\Router\ApiRouter;
+use Symfony\Bundle\FrameworkBundle\Routing\Router;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Dunglas\ApiBundle\Api\ResourceCollectionInterface;
 use Dunglas\ApiBundle\Event\Events;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\Routing\RouterInterface;
 
 /**
  * Class BaseHandler.
@@ -43,27 +46,31 @@ abstract class BaseHandler implements HandlerInterface
      * @var EventHelper
      */
     protected $eventHelper;
+    /**
+     * @var Router
+     */
+    private $router;
 
     /**
      * @param FormInterface               $form
-     * @param RequestStack                $requestStack
+     * @param RouterInterface             $router
      * @param ObjectManager               $manager
      * @param ResourceCollectionInterface $resourceResolver
      * @param EventDispatcherInterface    $dispatcher
      */
     public function __construct(
         FormInterface $form,
-        RequestStack $requestStack,
+        RouterInterface $router,
         ObjectManager $manager,
         ResourceCollectionInterface $resourceResolver,
         EventDispatcherInterface $dispatcher
     ) {
         $this->form             = $form;
-        $this->request          = $requestStack->getCurrentRequest();
         $this->manager          = $manager;
         $this->resourceResolver = $resourceResolver;
         $this->dispatcher       = $dispatcher;
         $this->eventHelper      = new EventHelper();
+        $this->router           = $router;
     }
 
     /**
@@ -76,40 +83,48 @@ abstract class BaseHandler implements HandlerInterface
     public function onSuccess($entity)
     {
         $this->manager->persist($entity);
-        $this->sendEvent();
+        $this->sendEvent($this->getApiVersion());
     }
 
     /**
      * send created event.
+     *
+     * @param $version
      */
-    public function sendEvent()
+    public function sendEvent($version)
     {
         $entityInsertions = $this->manager->getUnitOfWork()->getScheduledEntityInsertions();
         foreach ($entityInsertions as $entityInsertion) {
-            $this->dispatchEvent($entityInsertion, Events::PRE_CREATE);
+            $this->dispatchEvent($entityInsertion, Events::PRE_CREATE, $version);
         }
 
         $this->manager->getUnitOfWork()->computeChangeSets();
         $entityUpdateds = $this->manager->getUnitOfWork()->getScheduledEntityUpdates();
         foreach ($entityUpdateds as $entityUpdated) {
-            $this->dispatchEvent($entityUpdated, Events::PRE_UPDATE);
+            $this->dispatchEvent($entityUpdated, Events::PRE_UPDATE, $version);
         }
     }
 
     /**
      * send updated event.
+     *
+     * @param $entity
+     * @param $eventName
+     * @param $version
      */
-    public function dispatchEvent($entity, $eventName)
+    public function dispatchEvent($entity, $eventName, $version)
     {
-        $this->eventHelper->dispatchEvent($entity, $eventName, $this->resourceResolver, $this->dispatcher);
+        $this->eventHelper->dispatchEvent($version, $entity, $eventName, $this->resourceResolver, $this->dispatcher);
     }
 
     /**
      * @param $entity
+     * @param $version
+     *
      * @return \Dunglas\ApiBundle\Api\ResourceInterface|null
      */
-    public function getResource($entity) {
-        return $this->resourceResolver->getResourceForEntity(get_class($entity));
+    public function getResource($entity, $version) {
+        return $this->resourceResolver->getResourceForEntityWithVersion(get_class($entity), $version);
     }
 
 
@@ -119,5 +134,12 @@ abstract class BaseHandler implements HandlerInterface
     public function getForm()
     {
         return $this->form;
+    }
+
+    /**
+     * return string
+     */
+    protected function getApiVersion() {
+        $this->router->getContext()->getApiVersion();
     }
 }

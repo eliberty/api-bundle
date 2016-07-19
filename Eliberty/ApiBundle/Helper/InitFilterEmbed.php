@@ -44,30 +44,29 @@ class InitFilterEmbed
      * @var ResourceCollection
      */
     private $resourceResolver;
-
     /**
-     * @var RequestStack
+     * @var ApiRouter
      */
-    private $requestStack;
+    private $router;
+
 
     /**
-     * @param RequestStack $requestStack
+     * @param ApiRouter $router
      * @param ResourceCollection $resourceResolver
      * @param ManagerRegistry $managerRegistry
      * @param PropertyAccessorInterface $propertyAccessor
      */
     public function __construct(
-        RequestStack $requestStack,
+        ApiRouter $router,
         ResourceCollection $resourceResolver,
         ManagerRegistry $managerRegistry,
         PropertyAccessorInterface $propertyAccessor
     )
     {
         $this->resourceResolver = $resourceResolver;
-        $this->requestStack     = $requestStack;
-        $this->request          = $requestStack->getCurrentRequest();
         $this->managerRegistry  = $managerRegistry;
         $this->propertyAccessor = $propertyAccessor;
+        $this->router           = $router;
     }
 
     /**
@@ -80,7 +79,7 @@ class InitFilterEmbed
         $embedShortname = ucwords(Inflector::singularize($embed));
 
         /** @var $resourceEmbed ResourceInterface */
-        $resourceEmbed = $this->resourceResolver->getResourceForShortName($embedShortname);
+        $resourceEmbed = $this->resourceResolver->getResourceForShortName($embedShortname, $this->router->getContext()->getApiVersion());
 
         $filter = new EmbedFilter($this->managerRegistry, $this->propertyAccessor);
 

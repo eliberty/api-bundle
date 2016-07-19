@@ -122,4 +122,12 @@ class ApiRouter extends Router implements RequestMatcherInterface
 
         return $version;
     }
+
+    /**
+     *
+     */
+    public function getApiVersion() {
+        return $this->getContext()->getApiVersion();
+    }
+
 }

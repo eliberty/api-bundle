@@ -122,7 +122,7 @@ abstract class FormResourceController extends ResourceController
      */
     protected function getForm()
     {
-        return $this->get('api.form.resolver')->resolve($this->getEntityName());
+        return $this->get('api.form.resolver')->resolve($this->getEntityName(), $this->getApiVersion());
     }
 
     /**
@@ -130,7 +130,7 @@ abstract class FormResourceController extends ResourceController
      */
     protected function getFormHandler()
     {
-        return $this->get('api.handler.resolver')->resolve($this->getEntityName());
+        return $this->get('api.handler.resolver')->resolve($this->getEntityName(), $this->getApiVersion());
     }
 
     /**

@@ -23,6 +23,7 @@ use Symfony\Component\Templating\EngineInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Doctrine\Common\Persistence\ManagerRegistry;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
+
 /**
  * Class MkDocsFormatter
  *
@@ -30,7 +31,6 @@ use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
  */
 class MkDocsFormatter extends AbstractFormatter
 {
-
     /**
      * @var ManagerRegistry
      */
@@ -87,6 +87,10 @@ class MkDocsFormatter extends AbstractFormatter
      * @var array
      */
     protected $enums = [];
+    /**
+     * @var DataProviderInterface
+     */
+    private $dataProvider;
 
     /**
      * @param                           $routeDir
@@ -102,17 +106,19 @@ class MkDocsFormatter extends AbstractFormatter
         AbstractNormalizer $normalizer,
         ResourceCollection $resourceCollection,
         ManagerRegistry $managerRegistry,
-        PropertyAccessorInterface $propertyAccessor
+        PropertyAccessorInterface $propertyAccessor,
+        DataProviderInterface $dataProvider
     ) {
-        $this->routeDir = $routeDir;
-        $this->engine   = $engine;
-        $this->fs = new Filesystem();
+        $this->routeDir    = $routeDir;
+        $this->engine      = $engine;
+        $this->fs          = new Filesystem();
         $this->currentPath = $this->routeDir . '/../apidoc/docs/metadata/';
         $this->fs->mkdir($this->currentPath);
-        $this->normalizer = $normalizer;
+        $this->normalizer         = $normalizer;
         $this->resourceCollection = $resourceCollection;
-        $this->managerRegistry  = $managerRegistry;
-        $this->propertyAccessor = $propertyAccessor;
+        $this->managerRegistry    = $managerRegistry;
+        $this->propertyAccessor   = $propertyAccessor;
+        $this->dataProvider       = $dataProvider;
     }
 
     /**
@@ -130,7 +136,7 @@ class MkDocsFormatter extends AbstractFormatter
      */
     protected function renderOne(array $data)
     {
-        $path = $data['methodePath'];
+        $path     = $data['methodePath'];
         $markdown = sprintf("### `%s` %s ###\n", $data['method'], $data['uri']);
 
         if (isset($data['deprecated']) && false !== $data['deprecated']) {
@@ -151,48 +157,52 @@ class MkDocsFormatter extends AbstractFormatter
             }
         }
 
-        if (isset($data['requirements']) && !empty($data['requirements']) && !$this->fs->exists($path. '/requirements.html')) {
-            $dataFilters =  $this->engine->render('ElibertyApiBundle:nelmio:requirements.html.twig', ['data' => $data]);
+        if (isset($data['requirements']) && !empty($data['requirements']) && !$this->fs->exists(
+                $path . '/requirements.html'
+            )
+        ) {
+            $dataFilters = $this->engine->render('ElibertyApiBundle:nelmio:requirements.html.twig', ['data' => $data]);
             $this->fs->dumpFile($path . '/requirements.html', $dataFilters);
         }
 
-        if (isset($data['filters']) && !$this->fs->exists($path. '/filters.html')) {
-            $dataFilters =  $this->engine->render('ElibertyApiBundle:nelmio:filters.html.twig', ['data' => $data]);
+        if (isset($data['filters']) && !$this->fs->exists($path . '/filters.html')) {
+            $dataFilters = $this->engine->render('ElibertyApiBundle:nelmio:filters.html.twig', ['data' => $data]);
             $this->fs->dumpFile($path . '/filters.html', $dataFilters);
         }
 
-        if (isset($data['parameters']) && !$this->fs->exists($path. '/parameters.html')) {
-            $dataFilters =  $this->engine->render(
+        if (isset($data['parameters']) && !$this->fs->exists($path . '/parameters.html')) {
+            $dataFilters = $this->engine->render(
                 'ElibertyApiBundle:nelmio:parameters.html.twig',
                 ['data' => $data]
             );
             $this->fs->dumpFile($path . '/parameters.html', $dataFilters);
         }
 
-        if (isset($data['statusCodes']) && !$this->fs->exists($path. '/statusCodes.html')) {
-            $dataFilters =  $this->engine->render('ElibertyApiBundle:nelmio:statusCodes.html.twig', ['data' => $data]);
+        if (isset($data['statusCodes']) && !$this->fs->exists($path . '/statusCodes.html')) {
+            $dataFilters = $this->engine->render('ElibertyApiBundle:nelmio:statusCodes.html.twig', ['data' => $data]);
             $this->fs->dumpFile($path . '/statusCodes.html', $dataFilters);
 
         }
 
         if (isset($data['response'])) {
-            if (!$this->fs->exists($path. '/responses.html')) {
-                $dataFilters = $this->engine->render('ElibertyApiBundle:nelmio:responses.html.twig',
+            if (!$this->fs->exists($path . '/responses.html')) {
+                $dataFilters = $this->engine->render(
+                    'ElibertyApiBundle:nelmio:responses.html.twig',
                     [
-                        'data' => $data,
-                        'enums' => $this->enums,
+                        'data'       => $data,
+                        'enums'      => $this->enums,
                         'entityName' => strtolower($this->apiResource->getShortName())
-                    ]);
+                    ]
+                );
                 $this->fs->dumpFile($path . '/responses.html', $dataFilters);
             }
 
-            $dataprovider    = $this->normalizer->getDataProvider();
-            $dataToSerialize = $dataprovider->getCollection($this->apiResource, new Request());
+            $dataToSerialize = $this->dataProvider->getCollection($this->apiResource, new Request());
             if (!isset($data['tags']['collection']) && $dataToSerialize instanceof Paginator) {
                 $dataToSerialize = $dataToSerialize->getIterator()->current();
             }
 
-            if (!$this->fs->exists($path. '/json/responses.json')) {
+            if (!$this->fs->exists($path . '/json/responses.json')) {
                 try {
                     if (
                         isset($data['tags']['embed']) &&
@@ -220,7 +230,8 @@ class MkDocsFormatter extends AbstractFormatter
      * @param $data
      * @param $dataToSerialize
      */
-    protected function setEmbed($data, $dataToSerialize) {
+    protected function setEmbed($data, $dataToSerialize)
+    {
         if (
             isset($data['tags']['embed']) &&
             isset($data['tags']['collection'])
@@ -232,7 +243,7 @@ class MkDocsFormatter extends AbstractFormatter
                 $params['id'] = $this->propertyAccessor->getValue($item, 'id');
             }
 
-            $params['embed']  = $this->apiResource->getShortName();
+            $params['embed'] = $this->apiResource->getShortName();
 
             $filter->setParameters($params);
             $filter->setRouteName($data['routeName']);
@@ -262,11 +273,16 @@ class MkDocsFormatter extends AbstractFormatter
         }
 
 
-
         foreach ($resources as $resource => $methods) {
-            $this->resourceName   = strtolower($section);
-            if (!($this->apiResource = $this->resourceCollection->getResourceForShortName(ucfirst($this->resourceName), 'v2'))) {
-                throw new \InvalidArgumentException(sprintf('The resource "%s" cannot be found.', ucfirst($this->resourceName)));
+            $this->resourceName = strtolower($section);
+            if (!($this->apiResource = $this->resourceCollection->getResourceForShortName(
+                ucfirst($this->resourceName),
+                'v2'
+            ))
+            ) {
+                throw new \InvalidArgumentException(
+                    sprintf('The resource "%s" cannot be found.', ucfirst($this->resourceName))
+                );
             }
 
             if ('_others' === $section && 'others' !== $resource) {
@@ -276,10 +292,10 @@ class MkDocsFormatter extends AbstractFormatter
             }
 
             foreach ($methods as $method) {
-                $basePath = $this->currentPath . '/resources/' . $this->resourceName;
-                $method['methodePath'] = $basePath .'/'.strtolower($method['method']);
+                $basePath              = $this->currentPath . '/resources/' . $this->resourceName;
+                $method['methodePath'] = $basePath . '/' . strtolower($method['method']);
                 if (isset($method['tags']['collection'])) {
-                    $method['methodePath'] = $basePath .'/collection/'.strtolower($method['method']);
+                    $method['methodePath'] = $basePath . '/collection/' . strtolower($method['method']);
                 }
 
                 $this->fs->mkdir($method['methodePath']);
@@ -292,14 +308,18 @@ class MkDocsFormatter extends AbstractFormatter
     }
 
     /**
-     * @param  array[ApiDoc] $collection
+     * @param  array [ApiDoc] $collection
+     *
      * @return array
      */
     protected function processCollection(array $collection)
     {
         $array = array();
         foreach ($collection as $coll) {
-            $array[$coll['annotation']->getSection()][$coll['resource']][] = array_merge($coll['annotation']->toArray(), ['routeName' => $coll['routeName']]);
+            $array[$coll['annotation']->getSection()][$coll['resource']][] = array_merge(
+                $coll['annotation']->toArray(),
+                ['routeName' => $coll['routeName']]
+            );
         }
 
         $processedCollection = array();

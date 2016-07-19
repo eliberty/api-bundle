@@ -12,9 +12,9 @@
 namespace  Eliberty\ApiBundle\Hydra\Serializer;
 
 use Symfony\Component\Routing\RouterInterface;
-use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 use Symfony\Component\Translation\TranslatorInterface;
 use Dunglas\ApiBundle\Hydra\Serializer\ErrorNormalizer as BaseErrorNormalizer;
+use Eliberty\ApiBundle\Helper\HeaderHelper;
 /**
  * Converts {@see \Exception} to a Hydra error representation.
  *
@@ -24,15 +24,16 @@ use Dunglas\ApiBundle\Hydra\Serializer\ErrorNormalizer as BaseErrorNormalizer;
  */
 class ErrorNormalizer extends  BaseErrorNormalizer
 {
+
     /**
      * @var TranslatorInterface
      */
     private $translator;
 
     /**
-     * @param RouterInterface $router
+     * @param RouterInterface     $router
      * @param TranslatorInterface $translator
-     * @param bool $debug
+     * @param bool                $debug
      */
     public function __construct(RouterInterface $router, TranslatorInterface $translator, $debug)
     {
@@ -49,7 +50,6 @@ class ErrorNormalizer extends  BaseErrorNormalizer
     public function normalize($object, $format = null, array $context = array())
     {
         $data = parent::normalize($object, $format, $context);
-
         $msgError = $object->getMessage();
         if (method_exists($object, 'getErrors')) {
             $errors = [];
@@ -58,10 +58,10 @@ class ErrorNormalizer extends  BaseErrorNormalizer
                     $errors[$key][$name] =  $this->translator->trans($message);
                 }
             }
-            if (!empty($errors)) {
+            if (!empty($errors) && isset($data['hydra:description'])) {
                 $data['hydra:description'] = [
-                    'hydra:title' => isset($msgError) ? $msgError : (string) $object,
-                    'hydra-error'  =>  $errors
+                    'hydra:title' => isset($msgError) ? $msgError : (string)$object,
+                    'hydra-error' => $errors
                 ];
             }
         }
@@ -69,4 +69,11 @@ class ErrorNormalizer extends  BaseErrorNormalizer
         return $data;
     }
 
+    /**
+     * {@inheritdoc}
+     */
+    public function supportsNormalization($data, $format = null)
+    {
+        return 'ld+json' === $format && $data instanceof \Exception;
+    }
 }
