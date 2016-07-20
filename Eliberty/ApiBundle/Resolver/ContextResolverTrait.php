@@ -26,14 +26,16 @@ trait ContextResolverTrait
      *
      * @return mixed|string
      */
-    public function getContext(Request $request)
+    public function getContext(Request $request = null)
     {
         $context = 'ld-json';
-        $acceptHeader = AcceptHeader::fromString($request->headers->get('Accept'))->all();
-        foreach ($acceptHeader as $acceptHeaderItem) {
-            if ($acceptHeaderItem->hasAttribute('version')) {
-                $context = str_ireplace('application/', '', $acceptHeaderItem->getValue());
-                break;
+        if (null !== $request) {
+            $acceptHeader = AcceptHeader::fromString($request->headers->get('Accept'))->all();
+            foreach ($acceptHeader as $acceptHeaderItem) {
+                if ($acceptHeaderItem->hasAttribute('version')) {
+                    $context = str_ireplace('application/', '', $acceptHeaderItem->getValue());
+                    break;
+                }
             }
         }
         return $context;
