@@ -76,9 +76,11 @@ class ApplyCriteriaEmbed
     }
 
     /**
+     * @param Request         $request
      * @param FilterInterface $filter
-     * @param Criteria $criteria
-     * @param ClassMetadata $embedClassMeta
+     * @param Criteria        $criteria
+     * @param ClassMetadata   $embedClassMeta
+     *
      * @return null
      */
     protected function applyFilter(
@@ -87,7 +89,7 @@ class ApplyCriteriaEmbed
         Criteria $criteria,
         ClassMetadata $embedClassMeta
     ) {
-        $properties = $filter->getRequestProperties($this->requestStack->getCurrentRequest());
+        $properties = $filter->getRequestProperties($request);
         if ($filter instanceof OrderFilter && !empty($properties)) {
             $criteria->orderBy($properties);
             return null;

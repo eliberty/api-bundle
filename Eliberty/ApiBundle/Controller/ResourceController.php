@@ -350,7 +350,7 @@ class ResourceController extends BaseResourceController
      */
     public function cgetEmbedAction(Request $request, $id, $embed)
     {
-        $resourceEmbed    = $this->get('api.init.filter.embed')->initFilterEmbed($id, $embed);
+        $resourceEmbed    = $this->get('api.init.filter.embed')->initFilterEmbed($request, $id, $embed);
         $em               = $this->get('doctrine.orm.entity_manager');
         $propertyAccessor = $this->get('property_accessor');
         $resource         = $this->getResource($request);

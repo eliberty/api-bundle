@@ -162,7 +162,7 @@ services:
     api.init.filter.embed:
         class: 'Eliberty\ApiBundle\Helper\InitFilterEmbed'
         arguments:
-            - '@api.route_loader'
+            - '@router'
             - '@api.resource_collection'
             - '@doctrine'
             - '@property_accessor'

@@ -15,10 +15,12 @@ use Eliberty\ApiBundle\Doctrine\Orm\Filter\DateFilter;
 use Eliberty\ApiBundle\Doctrine\Orm\Filter\EmbedFilter;
 use Eliberty\ApiBundle\Doctrine\Orm\Filter\OrderFilter;
 use Eliberty\ApiBundle\Doctrine\Orm\Filter\SearchFilter;
+use Eliberty\ApiBundle\Versioning\Router\ApiRouter;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Doctrine\Common\Inflector\Inflector;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
+use Symfony\Component\Routing\RouterInterface;
 
 /**
  * Class InitFilterEmbed
@@ -45,19 +47,19 @@ class InitFilterEmbed
      */
     private $resourceResolver;
     /**
-     * @var ApiRouter
+     * @var RouterInterface
      */
     private $router;
 
 
     /**
-     * @param ApiRouter $router
+     * @param RouterInterface $router
      * @param ResourceCollection $resourceResolver
      * @param ManagerRegistry $managerRegistry
      * @param PropertyAccessorInterface $propertyAccessor
      */
     public function __construct(
-        ApiRouter $router,
+        RouterInterface $router,
         ResourceCollection $resourceResolver,
         ManagerRegistry $managerRegistry,
         PropertyAccessorInterface $propertyAccessor
@@ -70,11 +72,13 @@ class InitFilterEmbed
     }
 
     /**
-     * @param $id
-     * @param $embed
+     * @param Request $request
+     * @param         $id
+     * @param         $embed
+     *
      * @return ResourceInterface
      */
-    public function initFilterEmbed($id, $embed)
+    public function initFilterEmbed(Request $request ,$id, $embed)
     {
         $embedShortname = ucwords(Inflector::singularize($embed));
 
@@ -83,14 +87,14 @@ class InitFilterEmbed
 
         $filter = new EmbedFilter($this->managerRegistry, $this->propertyAccessor);
 
-        $params = !$this->request->request->has('embedParams') ? [
+        $params = !$request->request->has('embedParams') ? [
             'embed' => $embed,
             'id'    => $id,
-        ] : $this->request->request->get('embedParams');
+        ] : $request->request->get('embedParams');
 
         $filter->setParameters($params);
 
-        $filter->setRouteName($this->request->get('_route'));
+        $filter->setRouteName($request->get('_route'));
 
         $resourceEmbed->addFilter($filter);
 
