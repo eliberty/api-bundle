@@ -33,10 +33,15 @@ class ApplyCriteriaEmbed
      * @var DataProviderChain
      */
     private $dataProviderChain;
+
     /**
-     * @var RequestStack
+     * @var array
      */
-    private $requestStack;
+    private $mappingFilterVar = [
+        'boolean' => FILTER_VALIDATE_BOOLEAN,
+        'integer' => FILTER_VALIDATE_INT,
+        'float' => FILTER_VALIDATE_FLOAT,
+    ];
 
     /**
      * @param EntityManagerInterface $em
@@ -67,9 +72,9 @@ class ApplyCriteriaEmbed
             foreach ($resourceEmbed->getFilters() as $filter) {
                 if ($filter instanceof FilterInterface) {
                     $this->applyFilter($request, $filter, $criteria, $embedClassMeta);
+                    $data = $data->matching($criteria);
                 }
             }
-            $data = $data->matching($criteria);
         }
 
         return $data;
@@ -107,9 +112,12 @@ class ApplyCriteriaEmbed
                         $whereCriteria = $expCriterial->in($name, [$propertyObj]);
                         $criteria->where($whereCriteria);
                     }
-                } else {
+                } else if ($embedClassMeta->hasField($name)) {
+                    $fieldMapping =$embedClassMeta->getFieldMapping($name);
+                    $type  = isset($fieldMapping['type']) ? $fieldMapping['type'] : null;
+                    $value =  isset($this->mappingFilterVar[$type]) ? filter_var($propertie['value'], $this->mappingFilterVar[$type]) : $propertie['value'] ;
                     $whereCriteria = isset($propertie['precision']) && $propertie['precision'] === 'exact' ?
-                        $expCriterial->eq($name, $propertie['value']) :
+                        $expCriterial->eq($name, $value) :
                         $expCriterial->contains($name, $propertie['value']);
                     $criteria->where($whereCriteria);
                 }

@@ -296,7 +296,7 @@ class ResourceController extends BaseResourceController
      *
      * @return Response|XmlResponse
      */
-    private function getResponse($data, $status, $headers)
+    private function getResponse($data = [], $status = 200, $headers = [])
     {
         $request  = $this->container->get('request_stack')->getCurrentRequest();
         $context  = $this->getContext($request);
@@ -379,7 +379,7 @@ class ResourceController extends BaseResourceController
         }
 
         if ($dataResponse instanceof ArrayCollection && $dataResponse->count() === 0) {
-            return $this->getResponse([]);
+            return $this->getResponse();
         }
 
         $this->get('event_dispatcher')->dispatch(Events::RETRIEVE_LIST, new DataEvent($resourceEmbed, $dataResponse));
