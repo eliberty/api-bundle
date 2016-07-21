@@ -18,8 +18,6 @@ services:
              - '@api.iri_converter'
              - '@api.router'
 
-
-
     api.doctrine.orm.data_provider:
         class: '%eliberty_api.doctrine.orm.data_provider.class%'
         arguments:
@@ -35,6 +33,9 @@ services:
         tags:
              - { name: api.data_provider }
 
+    eliberty.api.serializer:
+        class: 'Eliberty\ApiBundle\Api\ApiSerializer'
+
     eliberty.api.hydra.normalizer.violation.list.error:
         class: 'Eliberty\ApiBundle\Hydra\Serializer\ErrorViolationListNormalizer'
         arguments:
@@ -43,7 +44,7 @@ services:
              - '@property_accessor'
         lazy: true
         tags:
-             - { name: serializer.normalizer }
+             - { name: api.serializer.normalizer }
 
     api.hydra.normalizer.error:
         class: 'Eliberty\ApiBundle\Hydra\Serializer\ErrorNormalizer'
@@ -52,20 +53,28 @@ services:
              - '@translator'
              - '%kernel.debug%'
         tags:
-             - { name: serializer.normalizer }
+             - { name: api.serializer.normalizer }
 
-    api.json_ld.normalizer.item:
+    api.jsonld.normalizer.error:
+        class: 'Eliberty\ApiBundle\JsonLd\Serializer\ErrorNormalizer'
+        arguments:
+             - '@translator'
+             - '%kernel.debug%'
+        tags:
+             - { name: api.serializer.normalizer }
+
+    api.xml.normalizer.error:
+        class: 'Eliberty\ApiBundle\Xml\Serializer\ErrorNormalizer'
+        arguments:
+             - '@translator'
+             - '%kernel.debug%'
+        tags:
+             - { name: api.serializer.normalizer }
+
+    api.normalizer.item:
         class: '%eliberty_api.normalizer.item.class%'
         arguments:
-            - '@api.resource_collection'
-            - '@api.data_provider'
-            - '@api.router'
-            - '@api.mapping.class_metadata_factory'
-            - '@api.json_ld.context_builder'
             - '@api.transformer.helper'
-            - '@request_stack'
-            - '@doctrine.orm.entity_manager'
-            - '@api.group.context.chainer'
             - '@logger'
         tags:
             - { name: serializer.normalizer }
@@ -77,18 +86,12 @@ services:
 
     api.handler.resolver:
         class: 'Eliberty\ApiBundle\Handler\HandlerResolver'
-        arguments:
-            - '@request_stack'
 
     api.form.resolver:
         class: 'Eliberty\ApiBundle\Form\FormResolver'
-        arguments:
-            - '@request_stack'
 
     api.resource_collection:
         class: 'Eliberty\ApiBundle\Api\ResourceCollection'
-        arguments:
-            - '@request_stack'
         lazy: true
 
     api.operation_factory:
@@ -152,7 +155,6 @@ services:
     api.helper.apply.criteria:
         class: 'Eliberty\ApiBundle\Helper\ApplyCriteriaEmbed'
         arguments:
-            - '@request_stack'
             - '@doctrine.orm.entity_manager'
             - '@api.resource_collection'
             - '@api.data_provider'
@@ -160,15 +162,16 @@ services:
     api.init.filter.embed:
         class: 'Eliberty\ApiBundle\Helper\InitFilterEmbed'
         arguments:
-            - '@request_stack'
+            - '@router'
             - '@api.resource_collection'
             - '@doctrine'
             - '@property_accessor'
 
     api.hydra.listener.request_exception:
-        class: 'Eliberty\ApiBundle\Hydra\EventListener\RequestExceptionListener'
+        class: 'Eliberty\ApiBundle\Api\EventListener\RequestExceptionListener'
         arguments:
-            - '@api.hydra.normalizer.error'
+            - '@request_stack'
+            - '@eliberty.api.serializer'
         tags:
             - { name: kernel.event_listener, event: kernel.exception, method: onKernelException }
 
@@ -176,11 +179,20 @@ services:
       class: 'Eliberty\ApiBundle\Context\GroupsContextLoader'
       arguments:
           - '%kernel.bundles%'
-          - '@request_stack'
           - '@generic_cache'
 
     api.group.context.chainer:
       class: 'Eliberty\ApiBundle\Context\GroupsContextChainer'
       arguments:
-          - '@request_stack'
           - '@api.group.context.loader'
+      call:
+          - [ setRequestStack, [ '@request_stack' ] ]
+
+    parent.handler.api.v2:
+        class: Eliberty\ApiBundle\Handler\BaseHandler
+        arguments:
+            - '@instance.form.contact.api.v2'
+            - '@router'
+            - '@doctrine.orm.entity_manager'
+            - '@api.resource_collection'
+            - '@event_dispatcher'

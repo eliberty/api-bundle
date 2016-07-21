@@ -11,7 +11,6 @@ namespace Eliberty\ApiBundle\Helper;
  */
 use Dunglas\ApiBundle\Api\ResourceCollectionInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
-use Eliberty\ApiBundle\Api\Resource;
 /**
  * Class EventHelper
  */
@@ -46,26 +45,30 @@ class EventHelper {
 
     /**
      * read the configuration and dispatch event
-     * @param $entity
-     * @param $eventName
+     *
+     * @param                             $version
+     * @param                             $entity
+     * @param                             $eventName
      * @param ResourceCollectionInterface $resourceResolver
-     * @param EventDispatcherInterface $dispatcher
+     * @param EventDispatcherInterface    $dispatcher
+     *
      * @return null
      * @throws \Exception
      */
     public function dispatchEvent(
+        $version,
         $entity,
         $eventName,
         ResourceCollectionInterface $resourceResolver,
         EventDispatcherInterface $dispatcher
     ) {
         /** @var \Eliberty\ApiBundle\Api\Resource $resource */
-        $resource = $resourceResolver->getResourceForEntity(get_class($entity));
+        $resource = $resourceResolver->getResourceForEntityWithVersion(get_class($entity), $version);
 
         if (null === $resource) {
             $entityClass = get_class($entity);
             $shortName = substr($entityClass, strrpos($entityClass, '\\') + 1);
-            $resource = $resourceResolver->getResourceForShortName($shortName);
+            $resource = $resourceResolver->getResourceForShortNameWithVersion($shortName, $version);
         }
 
         if (null === $resource) {

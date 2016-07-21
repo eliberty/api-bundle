@@ -12,9 +12,11 @@
 namespace Eliberty\ApiBundle\Controller;
 
 use Doctrine\Common\Collections\ArrayCollection;
+use Eliberty\ApiBundle\Resolver\ContextResolverTrait;
 use Dunglas\ApiBundle\Event\Events;
 use Eliberty\ApiBundle\Doctrine\Orm\ArrayPaginator;
-use Eliberty\ApiBundle\Helper\HeaderHelper;
+use Eliberty\ApiBundle\Fractal\Manager;
+use Eliberty\ApiBundle\Fractal\SerializerFactory;
 use Nelmio\ApiDocBundle\Annotation\ApiDoc;
 use Dunglas\ApiBundle\Event\DataEvent;
 use Dunglas\ApiBundle\Exception\DeserializationException;
@@ -27,7 +29,6 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Security\Acl\Permission\MaskBuilder;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
-use Symfony\Component\Serializer\Exception\Exception;
 use Dunglas\ApiBundle\Controller\ResourceController as BaseResourceController;
 use Eliberty\ApiBundle\Xml\Response as XmlResponse;
 
@@ -36,6 +37,9 @@ use Eliberty\ApiBundle\Xml\Response as XmlResponse;
  */
 class ResourceController extends BaseResourceController
 {
+
+    use ContextResolverTrait;
+
     /**
      * enable send event because is delagate to the handler
      */
@@ -67,7 +71,7 @@ class ResourceController extends BaseResourceController
         }
 
         $shortName = $request->attributes->get('_resource');
-        if (!($this->resource = $this->get('api.resource_collection')->getResourceForShortName($shortName))) {
+        if (!($this->resource = $this->get('api.resource_collection')->getResourceForShortNameWithVersion($shortName, $this->getApiVersion()))) {
             throw new \InvalidArgumentException(sprintf('The resource "%s" cannot be found.', $shortName));
         }
 
@@ -81,8 +85,10 @@ class ResourceController extends BaseResourceController
      */
     protected function getErrorResponse(ConstraintViolationListInterface $violations)
     {
+        $request = $this->get('request_stack')->getCurrentRequest();
+        $format  = $this->getContext($request);
         return $this->getResponse(
-            $this->get('eliberty.api.hydra.normalizer.violation.list.error')->normalize($violations, 'hydra-error'),
+            $this->get('eliberty.api.serializer')->serialize($violations, $format),
             400,
             []
         );
@@ -272,8 +278,9 @@ class ResourceController extends BaseResourceController
         array $headers = [],
         array $additionalContext = []
     ) {
-        $dataResponse = $this->get('api.json_ld.normalizer.item')
-            ->normalize($data, 'json-ld', $resource->getNormalizationContext() + $additionalContext);
+        $request = $this->get('request_stack')->getCurrentRequest();
+        $dataResponse = $this->get('api.normalizer.item')
+            ->normalize($data, $resource, $this->getFractalManager($request), $request);
 
         return $this->getResponse(
             $dataResponse,
@@ -291,9 +298,8 @@ class ResourceController extends BaseResourceController
      */
     private function getResponse($data, $status, $headers)
     {
-        $request = $this->container->get('request_stack')->getCurrentRequest();
-        $context = HeaderHelper::getContext($request);
-
+        $request  = $this->container->get('request_stack')->getCurrentRequest();
+        $context  = $this->getContext($request);
         if ('xml' === $context) {
             return new XmlResponse($data, $status, $headers);
         }
@@ -344,7 +350,7 @@ class ResourceController extends BaseResourceController
      */
     public function cgetEmbedAction(Request $request, $id, $embed)
     {
-        $resourceEmbed    = $this->get('api.init.filter.embed')->initFilterEmbed($id, $embed);
+        $resourceEmbed    = $this->get('api.init.filter.embed')->initFilterEmbed($request, $id, $embed);
         $em               = $this->get('doctrine.orm.entity_manager');
         $propertyAccessor = $this->get('property_accessor');
         $resource         = $this->getResource($request);
@@ -366,7 +372,7 @@ class ResourceController extends BaseResourceController
             $data = $propertyAccessor->getValue($object, $propertyName);
         }
 
-        $dataResponse = $this->get('api.helper.apply.criteria')->ApplyCriteria($resourceEmbed, $data);
+        $dataResponse = $this->get('api.helper.apply.criteria')->ApplyCriteria($request, $resourceEmbed, $data);
 
         if ($dataResponse instanceof ArrayCollection && $dataResponse->count() > 0) {
             $dataResponse = new ArrayPaginator(new ArrayAdapter($dataResponse->toArray()), $request);
@@ -394,7 +400,7 @@ class ResourceController extends BaseResourceController
         ResourceInterface $resource
     ) {
         if (0 === count($violations)) {
-            $request      = $this->get('request_stack')->getCurrentRequest();
+            $request = $this->get('request_stack')->getCurrentRequest();
             $codeResponse = in_array($request->getMethod(), ['PUT', 'PATCH']) ? 200 : 201;
 
             return $this->getSuccessResponse($resource, $object, $codeResponse);
@@ -421,10 +427,40 @@ class ResourceController extends BaseResourceController
                 'json-ld',
                 $resource->getDenormalizationContext()
             );
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             throw new DeserializationException($e->getMessage(), $e->getCode(), $e);
         }
 
         return $object;
+    }
+
+
+    /**
+     * return string
+     */
+    protected function getApiVersion() {
+        return $this->get('router')->getContext()->getApiVersion();
+    }
+
+
+    /**
+     * @param Request $request
+     *
+     * @return Manager
+     */
+    protected function getFractalManager(Request $request)
+    {
+        $serializer = new SerializerFactory();
+
+        $manager = new Manager();
+        $manager
+            ->setApiClassMetadataFactory($this->get('api.mapping.class_metadata_factory'))
+            ->setContextBuilder($this->get('api.json_ld.context_builder'))
+            ->setRouter($this->get('api.router'))
+            ->setResourceCollection($this->get('api.resource_collection'))
+            ->setSerializer($serializer->getSerializer($request))
+            ->setGroupsContextChainer($this->get('api.group.context.chainer'));
+
+        return $manager;
     }
 }

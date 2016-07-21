@@ -1,7 +1,6 @@
 <?php
 namespace Eliberty\ApiBundle\Form;
 
-use Eliberty\ApiBundle\Resolver\BaseResolver;
 use Symfony\Bundle\FrameworkBundle\Routing\Router;
 use Eliberty\ApiBundle\Versioning\Router\ApiRouter;
 use Symfony\Component\Form\AbstractType;
@@ -10,7 +9,7 @@ use Symfony\Component\Form\AbstractType;
  * Class FormResolver
  * @package Eliberty\ApiBundle\Form
  */
-class FormResolver extends BaseResolver
+class FormResolver
 {
     /**
      * @param AbstractType $form
@@ -23,12 +22,14 @@ class FormResolver extends BaseResolver
 
     /**
      * @param $entityName
-     * @return object
+     * @param $version
+     *
+     * @return mixed
      * @throws \Exception
      */
-    public function resolve($entityName)
+    public function resolve($entityName, $version)
     {
-        $serviceId = 'form.'.strtolower($entityName).'.api.'.$this->version;
+        $serviceId = 'form.'.strtolower($entityName).'.api.'.$version;
         if (isset($this->mapping[$serviceId])) {
             return $this->mapping[$serviceId];
         }

@@ -9,16 +9,9 @@
  */
 namespace Eliberty\ApiBundle\Api;
 
-use Dunglas\ApiBundle\Api\ResourceCollection as BaseResourceCollection;
-
-use Dunglas\ApiBundle\Api\ResourceCollectionInterface;
 use Dunglas\ApiBundle\Api\ResourceInterface;
 use Dunglas\ApiBundle\Util\ClassInfoTrait;
 use Eliberty\ApiBundle\Versioning\Router\ApiRouter;
-use Symfony\Component\HttpFoundation\AcceptHeader;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\RequestStack;
-
 
 /**
  * Class ResourceCollection
@@ -32,33 +25,11 @@ class ResourceCollection extends \ArrayObject implements ResourceCollectionInter
      * @var array
      */
     private $entityClassIndex = [];
+
     /**
      * @var array
      */
     private $shortNameIndex = [];
-
-    /**
-     * @var string
-     */
-    protected $version = 'v1';
-
-    /**
-     * @param RequestStack $requestStack
-     */
-    public function __construct(RequestStack $requestStack)
-    {
-        $request = $requestStack->getCurrentRequest();
-        if ($request instanceof Request) {
-            $acceptHeader = AcceptHeader::fromString($request->headers->get('Accept'))->all();
-
-            foreach ($acceptHeader as $acceptHeaderItem) {
-                if ($acceptHeaderItem->hasAttribute('version')) {
-                    $this->version = $acceptHeaderItem->getAttribute('version');
-                    break;
-                }
-            }
-        }
-    }
 
     /**
      * @param array $resources
@@ -109,14 +80,10 @@ class ResourceCollection extends \ArrayObject implements ResourceCollectionInter
      * @param null $version
      * @return ResourceInterface|null
      */
-    public function getResourceForEntity($entityClass, $version = null)
+    public function getResourceForEntityWithVersion($entityClass, $version)
     {
         if (is_object($entityClass)) {
             $entityClass = $this->getObjectClass($entityClass);
-        }
-
-        if (is_null($version)) {
-            $version = $this->version;
         }
 
         if (isset($this->entityClassIndex[$version][$entityClass])) {
@@ -128,18 +95,47 @@ class ResourceCollection extends \ArrayObject implements ResourceCollectionInter
     }
 
     /**
+     * @param object|string $entityClass
+     *
+     * @return null
+     */
+    public function getResourceForEntity($entityClass)
+    {
+        if (is_object($entityClass)) {
+            $entityClass = $this->getObjectClass($entityClass);
+        }
+
+        if (isset($this->entityClassIndex['v2'][$entityClass])) {
+            return $this->entityClassIndex['v2'][$entityClass];
+        }
+
+        return null;
+
+    }
+
+    /**
      * @param string $shortName
      * @param null $version
      * @return ResourceInterface|null
      */
-    public function getResourceForShortName($shortName, $version = null)
+    public function getResourceForShortNameWithVersion($shortName, $version)
     {
-        if (is_null($version)) {
-            $version = $this->version;
-        }
-
         if (isset($this->shortNameIndex[$version][$shortName])) {
             return $this->shortNameIndex[$version][$shortName];
+        }
+
+        return null;
+    }
+
+    /**
+     * @param string $shortName
+     *
+     * @return null
+     */
+    public function getResourceForShortName($shortName)
+    {
+        if (isset($this->shortNameIndex['v2'][$shortName])) {
+            return $this->shortNameIndex['v2'][$shortName];
         }
 
         return null;

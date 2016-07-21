@@ -9,7 +9,7 @@ use Eliberty\ApiBundle\Versioning\Router\ApiRouter;
  * Class HandlerResolver
  * @package Eliberty\ApiBundle\Handler
  */
-class HandlerResolver extends BaseResolver
+class HandlerResolver
 {
     /**
      * @param HandlerInterface $handler
@@ -22,12 +22,14 @@ class HandlerResolver extends BaseResolver
 
     /**
      * @param $entityName
-     * @return object
+     * @param $version
+     *
+     * @return mixed
      * @throws \Exception
      */
-    public function resolve($entityName)
+    public function resolve($entityName, $version)
     {
-        $serviceId = 'handler.'.strtolower($entityName).'.api.'.$this->version;
+        $serviceId = 'handler.'.strtolower($entityName).'.api.'.$version;
         if (isset($this->mapping[$serviceId])) {
             return $this->mapping[$serviceId];
         }

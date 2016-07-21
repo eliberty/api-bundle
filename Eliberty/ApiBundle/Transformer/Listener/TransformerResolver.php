@@ -1,19 +1,43 @@
 <?php
 namespace Eliberty\ApiBundle\Transformer\Listener;
 
-use Doctrine\ORM\Mapping\DefaultEntityListenerResolver;
+use Eliberty\ApiBundle\Resolver\VersionResolverTrait;
 use Eliberty\ApiBundle\Api\Resource;
-use Eliberty\ApiBundle\Resolver\BaseResolver;
+use Eliberty\ApiBundle\Helper\HeaderHelper;
 use Symfony\Bundle\FrameworkBundle\Routing\Router;
 use Eliberty\ApiBundle\Versioning\Router\ApiRouter;
 use League\Fractal\TransformerAbstract;
-use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\HttpFoundation\AcceptHeader;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 
-class TransformerResolver extends BaseResolver
+/**
+ * Class TransformerResolver
+ *
+ * @package Eliberty\ApiBundle\Transformer\Listener
+ */
+class TransformerResolver
 {
+
+    use VersionResolverTrait;
+    /**
+     * @var Request
+     */
+    protected $request;
+    /**
+     * @var string
+     */
+    protected $version;
+
+    /**
+     * TransformerResolver constructor.
+     *
+     * @param RequestStack $requestStack
+     */
+    public function __construct(RequestStack $requestStack)
+    {
+        $this->request = $requestStack->getCurrentRequest();
+        $this->version = $this->getVersion($this->request);
+    }
 
     /**
      * @param TransformerAbstract $transformer
@@ -42,5 +66,12 @@ class TransformerResolver extends BaseResolver
         }
 
         throw new \Exception('transformer not found for '.$serviceId);
+    }
+
+    /**
+     * @param $version
+     */
+    public function setVersion($version) {
+        $this->version = $version;
     }
 }
