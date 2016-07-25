@@ -192,5 +192,16 @@ class Manager extends BaseFractalManager
         return $this;
     }
 
+    /**
+     * @param $groupName
+     *
+     * @return $this
+     */
+    public function setSerializationGroupName($groupName)
+    {
+        $this->groupsContextChainer->setGroupName($groupName);
+
+        return $this;
+    }
 
 }

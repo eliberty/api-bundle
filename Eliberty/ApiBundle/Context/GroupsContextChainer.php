@@ -43,6 +43,14 @@ class GroupsContextChainer extends BaseResolver
 
 
     /**
+     * @param RequestStack $requestStack
+     */
+    public function setRequestStack(RequestStack $requestStack) {
+        $this->setGroupName($requestStack->getCurrentRequest()->headers->get('e-serializer-group', null));
+    }
+
+
+    /**
      * @param $entityName
      *
      * @return array
@@ -74,7 +82,7 @@ class GroupsContextChainer extends BaseResolver
     public function serialize($shortname, $data = []) {
         $groupsData = $this->getContext($shortname);
 
-        if (empty($groupsData)) {
+        if (empty($groupsData) || null === $this->groupName) {
             return $data;
         }
 
