@@ -247,7 +247,7 @@ class WebHookListener implements EventSubscriberInterface
         $resource  = new Item($object, $transformer);
         $scope     = $this->fractal->createData($resource);
         $shortName = $transformer->getCurrentResourceKey();
-        if (!($dunglasResource = $this->resourceCollection->getResourceForShortName(ucfirst($shortName), $apiVersion))) {
+        if (!($dunglasResource = $this->resourceCollection->getResourceForShortNameWithVersion(ucfirst($shortName), $apiVersion))) {
             throw new \InvalidArgumentException(sprintf('The resource "%s" cannot be found.', $shortName));
         }
         $scope->setDunglasResource($dunglasResource);

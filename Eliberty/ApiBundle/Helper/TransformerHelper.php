@@ -160,14 +160,6 @@ class TransformerHelper
     }
 
     /**
-     * @return ClassMetadataFactory
-     */
-    public function getClassMetadataFactory()
-    {
-        return $this->classMetadataFactory;
-    }
-
-    /**
      * List of resources possible to embed via this processor.
      * @param null $shortname
      * @return array

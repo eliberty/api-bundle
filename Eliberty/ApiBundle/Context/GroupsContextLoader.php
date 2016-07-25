@@ -5,11 +5,9 @@
 namespace Eliberty\ApiBundle\Context;
 
 use Doctrine\Common\Cache\Cache;
-use Eliberty\ApiBundle\Resolver\BaseResolver as BaseVersioning;
 use Symfony\Bundle\FrameworkBundle\Routing\Router;
 use Eliberty\ApiBundle\Versioning\Router\ApiRouter;
 use Symfony\Component\Finder\Finder;
-use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Yaml\Yaml;
 use Symfony\Component\Config\FileLocator;
 
@@ -18,7 +16,7 @@ use Symfony\Component\Config\FileLocator;
  *
  * @package Eliberty\ApiBundle\Context
  */
-class GroupsContextLoader extends BaseVersioning
+class GroupsContextLoader
 {
 
     /**
@@ -31,28 +29,26 @@ class GroupsContextLoader extends BaseVersioning
      */
     protected $cache;
 
-
     /**
      * GroupsContextLoader constructor.
      *
-     * @param RequestStack $bundles
-     * @param RequestStack $requestStack
+     * @param              $bundles
      * @param Cache        $cache
      */
-    public function __construct($bundles, RequestStack $requestStack, Cache $cache)
+    public function __construct($bundles, Cache $cache)
     {
-        $this->cache        = $cache;
-        $this->bundles      = $bundles;
-        parent::__construct($requestStack);
+        $this->cache   = $cache;
+        $this->bundles = $bundles;
     }
 
     /**
      * @param $entityName
+     * @param $version
      *
      * @return null
      */
-    public function getContexts($entityName) {
-        $cache = $this->getCacheContext();
+    public function getContexts($entityName, $version) {
+        $cache = $this->getCacheContext($version);
 
         return isset($cache[$entityName]) ? $cache[$entityName] : null;
     }
@@ -60,12 +56,14 @@ class GroupsContextLoader extends BaseVersioning
     /**
      * get config webhook for current webinstance
      *
+     * @param $version
+     *
      * @return mixed
      */
-    public function getCacheContext()
+    public function getCacheContext($version)
     {
         if (!$config = $this->cache->fetch($this->getCacheKey())) {
-            $config = $this->createConfig();
+            $config = $this->createConfig($version);
             $this->cache->save($this->getCacheKey(), $config, 86400);
         }
 
@@ -74,10 +72,14 @@ class GroupsContextLoader extends BaseVersioning
 
     /**
      * created the config for cache
+     *
+     * @param $version
+     *
+     * @return array
      */
-    protected function createConfig() {
+    protected function createConfig($version) {
         $cacheData = [];
-        $basedir = '/Resources/config/api/' . $this->version . '/context';
+        $basedir = '/Resources/config/api/' . $version . '/context';
         foreach ($this->bundles as $bundle) {
             $reflection = new \ReflectionClass($bundle);
             $dirname    = dirname($reflection->getFileName());

@@ -2,6 +2,7 @@
 
 namespace Eliberty\ApiBundle\Fractal;
 
+use Eliberty\ApiBundle\Resolver\ContextResolverTrait;
 use Eliberty\ApiBundle\Fractal\Serializer\DataHydraSerializer;
 use Eliberty\ApiBundle\Fractal\Serializer\DataXmlSerializer;
 use Eliberty\ApiBundle\Fractal\Serializer\ArraySerializer;
@@ -15,6 +16,7 @@ use Symfony\Component\HttpFoundation\Request;
  */
 class SerializerFactory
 {
+    use ContextResolverTrait;
     /**
      *  hydra serializer
      */
@@ -40,7 +42,7 @@ class SerializerFactory
     public function getSerializer(Request $request)
     {
         $serializer = null;
-        switch(HeaderHelper::getContext($request)) {
+        switch($this->getContext($request)) {
             case 'json':
                 $serializer = new ArraySerializer();
                 break;

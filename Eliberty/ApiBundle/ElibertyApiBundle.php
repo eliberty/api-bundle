@@ -8,6 +8,7 @@ use Eliberty\ApiBundle\DependencyInjection\Compiler\HandlerPass;
 use Eliberty\ApiBundle\DependencyInjection\Compiler\RegisterExtractorParsersPass;
 use Eliberty\ApiBundle\DependencyInjection\Compiler\ResourcePass;
 use Eliberty\ApiBundle\DependencyInjection\Compiler\FormPass;
+use Eliberty\ApiBundle\DependencyInjection\Compiler\SerializerPass;
 use Eliberty\ApiBundle\DependencyInjection\Compiler\TransformerRessourcePass;
 use Eliberty\ApiBundle\DependencyInjection\Compiler\ValidatorPass;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -33,5 +34,6 @@ class ElibertyApiBundle extends Bundle
         $container->addCompilerPass(new DoctrineEntityListenerPass());
         $container->addCompilerPass(new TransformerRessourcePass());
         $container->addCompilerPass(new RegisterExtractorParsersPass());
+        $container->addCompilerPass(new SerializerPass());
     }
 }

@@ -15,10 +15,12 @@ use Eliberty\ApiBundle\Doctrine\Orm\Filter\DateFilter;
 use Eliberty\ApiBundle\Doctrine\Orm\Filter\EmbedFilter;
 use Eliberty\ApiBundle\Doctrine\Orm\Filter\OrderFilter;
 use Eliberty\ApiBundle\Doctrine\Orm\Filter\SearchFilter;
+use Eliberty\ApiBundle\Versioning\Router\ApiRouter;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Doctrine\Common\Inflector\Inflector;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
+use Symfony\Component\Routing\RouterInterface;
 
 /**
  * Class InitFilterEmbed
@@ -44,54 +46,55 @@ class InitFilterEmbed
      * @var ResourceCollection
      */
     private $resourceResolver;
-
     /**
-     * @var RequestStack
+     * @var RouterInterface
      */
-    private $requestStack;
+    private $router;
+
 
     /**
-     * @param RequestStack $requestStack
+     * @param RouterInterface $router
      * @param ResourceCollection $resourceResolver
      * @param ManagerRegistry $managerRegistry
      * @param PropertyAccessorInterface $propertyAccessor
      */
     public function __construct(
-        RequestStack $requestStack,
+        RouterInterface $router,
         ResourceCollection $resourceResolver,
         ManagerRegistry $managerRegistry,
         PropertyAccessorInterface $propertyAccessor
     )
     {
         $this->resourceResolver = $resourceResolver;
-        $this->requestStack     = $requestStack;
-        $this->request          = $requestStack->getCurrentRequest();
         $this->managerRegistry  = $managerRegistry;
         $this->propertyAccessor = $propertyAccessor;
+        $this->router           = $router;
     }
 
     /**
-     * @param $id
-     * @param $embed
+     * @param Request $request
+     * @param         $id
+     * @param         $embed
+     *
      * @return ResourceInterface
      */
-    public function initFilterEmbed($id, $embed)
+    public function initFilterEmbed(Request $request ,$id, $embed)
     {
         $embedShortname = ucwords(Inflector::singularize($embed));
 
         /** @var $resourceEmbed ResourceInterface */
-        $resourceEmbed = $this->resourceResolver->getResourceForShortName($embedShortname);
+        $resourceEmbed = $this->resourceResolver->getResourceForShortName($embedShortname, $this->router->getContext()->getApiVersion());
 
         $filter = new EmbedFilter($this->managerRegistry, $this->propertyAccessor);
 
-        $params = !$this->request->request->has('embedParams') ? [
+        $params = !$request->request->has('embedParams') ? [
             'embed' => $embed,
             'id'    => $id,
-        ] : $this->request->request->get('embedParams');
+        ] : $request->request->get('embedParams');
 
         $filter->setParameters($params);
 
-        $filter->setRouteName($this->request->get('_route'));
+        $filter->setRouteName($request->get('_route'));
 
         $resourceEmbed->addFilter($filter);
 

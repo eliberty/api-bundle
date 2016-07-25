@@ -9,15 +9,19 @@
  * file that was distributed with this source code.
  */
 
-namespace Eliberty\ApiBundle\Hydra\EventListener;
+namespace Eliberty\ApiBundle\Api\EventListener;
+
 
 use Dunglas\ApiBundle\Exception\DeserializationException;
 use Dunglas\ApiBundle\JsonLd\Response;
+use Eliberty\ApiBundle\Api\ApiSerializer;
+use Eliberty\ApiBundle\Resolver\ContextResolverTrait;
+use Eliberty\ApiBundle\Api\NormalizeSerializer;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Event\GetResponseForExceptionEvent;
 use Symfony\Component\HttpKernel\Exception\HttpException;
-use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 use Dunglas\ApiBundle\Hydra\EventListener\RequestExceptionListener as BaseRequestExceptionListener;
-
+use Eliberty\ApiBundle\Xml\Response as XmlResponse;
 /**
  * Handle requests errors.
  *
@@ -27,14 +31,27 @@ use Dunglas\ApiBundle\Hydra\EventListener\RequestExceptionListener as BaseReques
  */
 class RequestExceptionListener extends BaseRequestExceptionListener
 {
+    use ContextResolverTrait;
     /**
-     * @var NormalizerInterface
+     * @var mixed|string
      */
-    private $normalizer;
+    protected $format;
 
-    public function __construct(NormalizerInterface $normalizer)
+    /**
+     * @var ApiSerializer
+     */
+    protected $serializer;
+
+    /**
+     * RequestExceptionListener constructor.
+     *
+     * @param RequestStack  $requestStack
+     * @param ApiSerializer $serializer
+     */
+    public function __construct(RequestStack $requestStack, ApiSerializer $serializer)
     {
-        $this->normalizer = $normalizer;
+        $this->serializer = $serializer;
+        $this->format     = $this->getContext($requestStack->getCurrentRequest());
     }
 
     /**
@@ -45,28 +62,29 @@ class RequestExceptionListener extends BaseRequestExceptionListener
         if (!$event->isMasterRequest()) {
             return;
         }
-        $request = $event->getRequest();
+        $request   = $event->getRequest();
         $exception = $event->getException();
 
         if ($exception instanceof HttpException) {
-            $status = $exception->getStatusCode();
+            $status  = $exception->getStatusCode();
             $headers = $exception->getHeaders();
         } elseif ($exception instanceof DeserializationException) {
-            $status = Response::HTTP_BAD_REQUEST;
+            $status  = Response::HTTP_BAD_REQUEST;
             $headers = [];
         } else {
-            $code = method_exists($exception, 'getStatusCode') ? $exception->getStatusCode() : $exception->getCode();
-            $status = $code === 0 ? Response::HTTP_INTERNAL_SERVER_ERROR : $code;
+            $code    = method_exists($exception, 'getStatusCode') ? $exception->getStatusCode() : $exception->getCode();
+            $status  = $code === 0 ? Response::HTTP_INTERNAL_SERVER_ERROR : $code;
             $headers = [];
         }
 
         // Normalize exceptions with hydra errors only for resources
         if ($request->attributes->has('_resource')) {
-            $event->setResponse(new Response(
-                $this->normalizer->normalize($exception, 'hydra-error'),
-                $status,
-                $headers
-            ));
+            $dataResponse = $this->serializer->serialize($exception, $this->format);
+            $response = new Response($dataResponse, $status, $headers);
+            if ($this->format === 'xml') {
+                $response = new XmlResponse($dataResponse, $status, $headers);
+            }
+            $event->setResponse($response);
         }
     }
 }

@@ -19,13 +19,8 @@ use Doctrine\Common\Inflector\Inflector;
  * Class ApplyCriteriaEmbed
  * @package Eliberty\ApiBundle\Helper
  */
-class ApplyCriteriaEmbed {
-
-    /**
-     * @var Request
-     */
-    protected $request;
-
+class ApplyCriteriaEmbed
+{
     /**
      * @var EntityManagerInterface
      */
@@ -38,19 +33,22 @@ class ApplyCriteriaEmbed {
      * @var DataProviderChain
      */
     private $dataProviderChain;
-    /**
-     * @var RequestStack
-     */
-    private $requestStack;
 
     /**
-     * @param RequestStack $requestStack
+     * @var array
+     */
+    private $mappingFilterVar = [
+        'boolean' => FILTER_VALIDATE_BOOLEAN,
+        'integer' => FILTER_VALIDATE_INT,
+        'float' => FILTER_VALIDATE_FLOAT,
+    ];
+
+    /**
      * @param EntityManagerInterface $em
      * @param ResourceCollection $resourceResolver
      * @param DataProviderChain $dataProviderChain
      */
     public function __construct(
-        RequestStack $requestStack,
         EntityManagerInterface $em,
         ResourceCollection $resourceResolver,
         DataProviderChain $dataProviderChain
@@ -58,42 +56,45 @@ class ApplyCriteriaEmbed {
         $this->em                = $em;
         $this->resourceResolver  = $resourceResolver;
         $this->dataProviderChain = $dataProviderChain;
-        $this->requestStack      = $requestStack;
-        $this->request           = $requestStack->getCurrentRequest();
     }
 
     /**
+     * @param Request           $request
      * @param ResourceInterface $resourceEmbed
-     * @param $data
+     * @param                   $data
+     *
      * @return \Doctrine\Common\Collections\Collection|PersistentCollection
      */
-    public function ApplyCriteria(ResourceInterface $resourceEmbed, $data) {
+    public function ApplyCriteria(Request $request, ResourceInterface $resourceEmbed, $data) {
         if ($data instanceof PersistentCollection && $data->count() > 0) {
             $embedClassMeta =  $this->em->getClassMetadata($resourceEmbed->getEntityClass());
             $criteria = Criteria::create();
             foreach ($resourceEmbed->getFilters() as $filter) {
                 if ($filter instanceof FilterInterface) {
-                    $this->applyFilter($filter, $criteria, $embedClassMeta);
+                    $this->applyFilter($request, $filter, $criteria, $embedClassMeta);
+                    $data = $data->matching($criteria);
                 }
             }
-            $data = $data->matching($criteria);
         }
 
         return $data;
     }
 
     /**
+     * @param Request         $request
      * @param FilterInterface $filter
-     * @param Criteria $criteria
-     * @param ClassMetadata $embedClassMeta
+     * @param Criteria        $criteria
+     * @param ClassMetadata   $embedClassMeta
+     *
      * @return null
      */
     protected function applyFilter(
+        Request $request,
         FilterInterface $filter ,
         Criteria $criteria,
         ClassMetadata $embedClassMeta
     ) {
-        $properties = $filter->getRequestProperties($this->requestStack->getCurrentRequest());
+        $properties = $filter->getRequestProperties($request);
         if ($filter instanceof OrderFilter && !empty($properties)) {
             $criteria->orderBy($properties);
             return null;
@@ -111,9 +112,12 @@ class ApplyCriteriaEmbed {
                         $whereCriteria = $expCriterial->in($name, [$propertyObj]);
                         $criteria->where($whereCriteria);
                     }
-                } else {
+                } else if ($embedClassMeta->hasField($name)) {
+                    $fieldMapping =$embedClassMeta->getFieldMapping($name);
+                    $type  = isset($fieldMapping['type']) ? $fieldMapping['type'] : null;
+                    $value =  isset($this->mappingFilterVar[$type]) ? filter_var($propertie['value'], $this->mappingFilterVar[$type]) : $propertie['value'] ;
                     $whereCriteria = isset($propertie['precision']) && $propertie['precision'] === 'exact' ?
-                        $expCriterial->eq($name, $propertie['value']) :
+                        $expCriterial->eq($name, $value) :
                         $expCriterial->contains($name, $propertie['value']);
                     $criteria->where($whereCriteria);
                 }

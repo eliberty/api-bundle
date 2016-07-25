@@ -15,7 +15,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
  *
  * @package Eliberty\ApiBundle\Context
  */
-class GroupsContextChainer extends BaseResolver
+class GroupsContextChainer
 {
 
     /**
@@ -31,16 +31,19 @@ class GroupsContextChainer extends BaseResolver
     /**
      * GroupsContextChainer constructor.
      *
-     * @param RequestStack        $requestStack
      * @param GroupsContextLoader $contextLoader
      */
-    public function __construct(RequestStack $requestStack, GroupsContextLoader $contextLoader)
+    public function __construct(GroupsContextLoader $contextLoader)
     {
-        parent::__construct($requestStack);
         $this->contextLoader = $contextLoader;
-        $this->setGroupName($this->request->headers->get('e-serializer-group', 'api_'.$this->version));
     }
 
+    /**
+     * @param RequestStack $requestStack
+     */
+    public function setRequestStack(RequestStack $requestStack) {
+        $this->setGroupName($this->request->headers->get('e-serializer-group', null));
+    }
 
     /**
      * @param RequestStack $requestStack
@@ -53,10 +56,12 @@ class GroupsContextChainer extends BaseResolver
     /**
      * @param $entityName
      *
+     * @param $version
+     *
      * @return array
      */
-    public function getContext($entityName) {
-        return $this->contextLoader->getContexts($entityName);
+    public function getContext($entityName, $version) {
+        return $this->contextLoader->getContexts($entityName, $version);
     }
 
     /**
@@ -79,8 +84,8 @@ class GroupsContextChainer extends BaseResolver
      *
      * @return array
      */
-    public function serialize($shortname, $data = []) {
-        $groupsData = $this->getContext($shortname);
+    public function serialize($shortname, $data = [], $version) {
+        $groupsData = $this->getContext($shortname, $version);
 
         if (empty($groupsData) || null === $this->groupName) {
             return $data;
