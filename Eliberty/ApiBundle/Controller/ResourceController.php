@@ -451,15 +451,15 @@ class ResourceController extends BaseResourceController
     protected function getFractalManager(Request $request)
     {
         $serializer = new SerializerFactory();
-
-        $manager = new Manager();
+        $manager    = new Manager();
         $manager
             ->setApiClassMetadataFactory($this->get('api.mapping.class_metadata_factory'))
             ->setContextBuilder($this->get('api.json_ld.context_builder'))
             ->setRouter($this->get('api.router'))
             ->setResourceCollection($this->get('api.resource_collection'))
             ->setSerializer($serializer->getSerializer($request))
-            ->setGroupsContextChainer($this->get('api.group.context.chainer'));
+            ->setGroupsContextChainer($this->get('api.group.context.chainer'))
+            ->setSerializationGroupName($request->headers->get('e-serializer-group', null));
 
         return $manager;
     }

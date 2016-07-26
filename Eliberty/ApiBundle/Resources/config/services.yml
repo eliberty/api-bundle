@@ -185,8 +185,6 @@ services:
       class: 'Eliberty\ApiBundle\Context\GroupsContextChainer'
       arguments:
           - '@api.group.context.loader'
-      call:
-          - [ setRequestStack, [ '@request_stack' ] ]
 
     parent.handler.api.v2:
         class: Eliberty\ApiBundle\Handler\BaseHandler

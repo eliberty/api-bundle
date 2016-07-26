@@ -39,13 +39,6 @@ class GroupsContextChainer
     }
 
     /**
-     * @param RequestStack $requestStack
-     */
-    public function setRequestStack(RequestStack $requestStack) {
-        $this->setGroupName($this->request->headers->get('e-serializer-group', null));
-    }
-
-    /**
      * @param $entityName
      *
      * @param $version
@@ -73,6 +66,8 @@ class GroupsContextChainer
     /**
      * @param       $shortname
      * @param array $data
+     *
+     * @param       $version
      *
      * @return array
      */
