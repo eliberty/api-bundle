@@ -13,6 +13,7 @@ namespace Eliberty\ApiBundle\Nelmio\Formatter;
 
 use Doctrine\ORM\Tools\Pagination\Paginator;
 use Dunglas\ApiBundle\Api\ResourceInterface as DunglasResource;
+use Dunglas\ApiBundle\Model\DataProviderInterface;
 use Eliberty\ApiBundle\Api\ResourceCollection;
 use Eliberty\ApiBundle\Doctrine\Orm\Filter\EmbedFilter;
 use Eliberty\RedpillBundle\Model\OrderitemInterface;
@@ -93,12 +94,15 @@ class MkDocsFormatter extends AbstractFormatter
     private $dataProvider;
 
     /**
+     * MkDocsFormatter constructor.
+     *
      * @param                           $routeDir
      * @param EngineInterface           $engine
      * @param AbstractNormalizer        $normalizer
      * @param ResourceCollection        $resourceCollection
      * @param ManagerRegistry           $managerRegistry
      * @param PropertyAccessorInterface $propertyAccessor
+     * @param DataProviderInterface     $dataProvider
      */
     public function __construct(
         $routeDir,

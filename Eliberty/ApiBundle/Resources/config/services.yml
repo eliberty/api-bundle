@@ -189,7 +189,7 @@ services:
     parent.handler.api.v2:
         class: Eliberty\ApiBundle\Handler\BaseHandler
         arguments:
-            - '@instance.form.contact.api.v2'
+            - '@request_stack'
             - '@router'
             - '@doctrine.orm.entity_manager'
             - '@api.resource_collection'
