@@ -51,26 +51,34 @@ abstract class BaseHandler implements HandlerInterface
      */
     private $router;
 
+
     /**
-     * @param FormInterface               $form
+     * @param RequestStack                $requestStack
      * @param RouterInterface             $router
      * @param ObjectManager               $manager
      * @param ResourceCollectionInterface $resourceResolver
      * @param EventDispatcherInterface    $dispatcher
      */
     public function __construct(
-        FormInterface $form,
+        RequestStack $requestStack,
         RouterInterface $router,
         ObjectManager $manager,
         ResourceCollectionInterface $resourceResolver,
         EventDispatcherInterface $dispatcher
     ) {
-        $this->form             = $form;
         $this->manager          = $manager;
         $this->resourceResolver = $resourceResolver;
         $this->dispatcher       = $dispatcher;
         $this->eventHelper      = new EventHelper();
         $this->router           = $router;
+        $this->request          = $requestStack->getCurrentRequest();
+    }
+
+    /**
+     * @param FormInterface $form
+     */
+    public function setForm(FormInterface $form) {
+        $this->form = $form;
     }
 
     /**
