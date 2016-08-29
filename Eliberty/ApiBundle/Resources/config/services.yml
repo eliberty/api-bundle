@@ -5,6 +5,8 @@ parameters:
 imports:
     - { resource: filter.yml }
     - { resource: webhook.yml }
+    - { resource: violations.yml }
+    - { resource: errors.yml }
 
 services:
     api.resource:
@@ -32,44 +34,6 @@ services:
         parent : 'api.doctrine.orm.data_provider'
         tags:
              - { name: api.data_provider }
-
-    eliberty.api.serializer:
-        class: 'Eliberty\ApiBundle\Api\ApiSerializer'
-
-    eliberty.api.hydra.normalizer.violation.list.error:
-        class: 'Eliberty\ApiBundle\Hydra\Serializer\ErrorViolationListNormalizer'
-        arguments:
-             - '@api.router'
-             - '%kernel.debug%'
-             - '@property_accessor'
-        lazy: true
-        tags:
-             - { name: api.serializer.normalizer }
-
-    api.hydra.normalizer.error:
-        class: 'Eliberty\ApiBundle\Hydra\Serializer\ErrorNormalizer'
-        arguments:
-             - '@api.router'
-             - '@translator'
-             - '%kernel.debug%'
-        tags:
-             - { name: api.serializer.normalizer }
-
-    api.jsonld.normalizer.error:
-        class: 'Eliberty\ApiBundle\JsonLd\Serializer\ErrorNormalizer'
-        arguments:
-             - '@translator'
-             - '%kernel.debug%'
-        tags:
-             - { name: api.serializer.normalizer }
-
-    api.xml.normalizer.error:
-        class: 'Eliberty\ApiBundle\Xml\Serializer\ErrorNormalizer'
-        arguments:
-             - '@translator'
-             - '%kernel.debug%'
-        tags:
-             - { name: api.serializer.normalizer }
 
     api.normalizer.item:
         class: '%eliberty_api.normalizer.item.class%'
@@ -158,14 +122,6 @@ services:
             - '@doctrine.orm.entity_manager'
             - '@api.resource_collection'
             - '@api.data_provider'
-
-    api.init.filter.embed:
-        class: 'Eliberty\ApiBundle\Helper\InitFilterEmbed'
-        arguments:
-            - '@router'
-            - '@api.resource_collection'
-            - '@doctrine'
-            - '@property_accessor'
 
     api.hydra.listener.request_exception:
         class: 'Eliberty\ApiBundle\Api\EventListener\RequestExceptionListener'

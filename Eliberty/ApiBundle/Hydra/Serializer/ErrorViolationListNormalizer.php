@@ -20,7 +20,7 @@ use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintViolationList;
 
 /**
- * Converts {@see \Exception} to a Hydra error representation.
+ * Converts {@see \Exception} to a Hydra violation error representation.
  *
  * @author Philippe Vesin <pvesin@eliberty.fr>
  */
