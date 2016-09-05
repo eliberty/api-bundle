@@ -106,9 +106,10 @@ class ApplyCriteriaEmbed
                 }
                 $expCriterial = Criteria::expr();
                 if ($embedClassMeta->hasAssociation($name)) {
-                    $propertyResource  = $this->resourceResolver->getResourceForShortName(ucwords(Inflector::singularize($name)));
+                    $associationTargetClass = $embedClassMeta->getAssociationTargetClass($name);
+                    $propertyResource  = $this->resourceResolver->getResourceForEntity($associationTargetClass);
                     $propertyObj = $this->dataProviderChain->getItem($propertyResource, (int)$propertie['value'], true);
-                    if ($propertyObj) {
+                    if ($propertyObj && $propertyResource instanceof ResourceInterface) {
                         $whereCriteria = $expCriterial->in($name, [$propertyObj]);
                         $criteria->where($whereCriteria);
                     }
