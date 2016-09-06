@@ -149,6 +149,6 @@ abstract class BaseHandler implements HandlerInterface
      * return string
      */
     protected function getApiVersion() {
-        $this->router->getContext()->getApiVersion();
+        return $this->router->getContext()->getApiVersion();
     }
 }
