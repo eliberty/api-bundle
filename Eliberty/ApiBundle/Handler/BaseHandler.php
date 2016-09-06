@@ -76,9 +76,13 @@ abstract class BaseHandler implements HandlerInterface
 
     /**
      * @param FormInterface $form
+     *
+     * @return $this
      */
     public function setForm(FormInterface $form) {
         $this->form = $form;
+
+        return $this;
     }
 
     /**
