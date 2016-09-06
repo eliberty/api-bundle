@@ -100,6 +100,6 @@ class ErrorViolationListNormalizer implements NormalizerInterface
      */
     public function supportsNormalization($data, $format = null)
     {
-        return 'ld+json' === $format && $data instanceof ConstraintViolationList;
+        return (('ld+json' === $format || 'json' === $format) && $data instanceof ConstraintViolationList);
     }
 }
