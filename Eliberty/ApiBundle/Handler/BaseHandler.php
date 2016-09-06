@@ -76,9 +76,13 @@ abstract class BaseHandler implements HandlerInterface
 
     /**
      * @param FormInterface $form
+     *
+     * @return $this
      */
     public function setForm(FormInterface $form) {
         $this->form = $form;
+
+        return $this;
     }
 
     /**
@@ -149,6 +153,6 @@ abstract class BaseHandler implements HandlerInterface
      * return string
      */
     protected function getApiVersion() {
-        $this->router->getContext()->getApiVersion();
+        return $this->router->getContext()->getApiVersion();
     }
 }
