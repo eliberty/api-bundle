@@ -20,7 +20,7 @@ use Dunglas\ApiBundle\JsonLd\EntrypointBuilder as BaseEntrypointBuilder;
  *
  * @author Vesin philippe <pvesin@eliberty.fr>
  */
-class zEntrypointBuilder extends BaseEntrypointBuilder
+class EntrypointBuilder extends BaseEntrypointBuilder
 {
 
     /**
