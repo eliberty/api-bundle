@@ -499,7 +499,7 @@ class BaseTransformer extends TransformerAbstract
 
     /**
      * @param $entity
-     * @return null
+     * @return mixed int|null
      */
     public function getIdOrNull($entity) {
 
@@ -511,7 +511,7 @@ class BaseTransformer extends TransformerAbstract
             $response = [];
             if ($entity->count() > 0) {
                 foreach ($entity as $data) {
-                    $response[] = $data->getId();
+                    $response[] = (int) $data->getId();
                 }
             }
 
@@ -519,7 +519,7 @@ class BaseTransformer extends TransformerAbstract
         }
 
 
-        return $entity->getId();
+        return (int) $entity->getId();
     }
 
 }
