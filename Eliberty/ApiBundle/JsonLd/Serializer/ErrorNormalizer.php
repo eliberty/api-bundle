@@ -85,7 +85,7 @@ class ErrorNormalizer implements NormalizerInterface
                 }
             }
             if (!empty($errors) && isset($data['description'])) {
-                $data['hydra:description'] = [
+                $data['description'] = [
                     'title'      => isset($msgError) ? $msgError : (string)$object,
                     'json-error' => $errors
                 ];

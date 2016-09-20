@@ -1,0 +1,33 @@
+services:
+    eliberty.api.serializer:
+        class: 'Eliberty\ApiBundle\Api\ApiSerializer'
+
+    eliberty.api.hydra.normalizer.violation.list.error:
+        class: 'Eliberty\ApiBundle\Hydra\Serializer\ErrorViolationListNormalizer'
+        arguments:
+             - '@api.router'
+             - '%kernel.debug%'
+             - '@property_accessor'
+        lazy: true
+        tags:
+             - { name: api.serializer.normalizer }
+
+    eliberty.api.jsonld.normalizer.violation.list.error:
+        class: 'Eliberty\ApiBundle\JsonLd\Serializer\ErrorViolationListNormalizer'
+        arguments:
+             - '@api.router'
+             - '%kernel.debug%'
+             - '@property_accessor'
+        lazy: true
+        tags:
+             - { name: api.serializer.normalizer }
+
+    eliberty.api.xml.normalizer.violation.list.error:
+        class: 'Eliberty\ApiBundle\Xml\Serializer\ErrorViolationListNormalizer'
+        arguments:
+             - '@api.router'
+             - '%kernel.debug%'
+             - '@property_accessor'
+        lazy: true
+        tags:
+             - { name: api.serializer.normalizer }

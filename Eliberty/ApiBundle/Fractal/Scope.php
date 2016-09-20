@@ -154,7 +154,29 @@ class Scope extends BaseFractalScope
         // Pull out all of OUR metadata and any custom meta data to merge with the main level data
         $meta = $serializer->meta($this->resource->getMeta());
 
+        if (!is_array($data)) {
+            return null;
+        }
+
         return array_merge($meta, $data);
+    }
+
+    /**
+     * Execute the resources transformer and return the data and included data.
+     *
+     * @internal
+     *
+     * @return array
+     */
+    protected function executeResourceTransformers()
+    {
+        $data = $this->resource->getData();
+
+        if (null ===  $data) {
+            return [null, []];
+        }
+
+        return parent::executeResourceTransformers();
     }
 
     /**
@@ -258,7 +280,7 @@ class Scope extends BaseFractalScope
             $includedData = $this->fireIncludedTransformers($transformer, $data);
             // If the serializer does not want the includes to be side-loaded then
             // the included data must be merged with the transformed data.
-            if (! $this->manager->getSerializer()->sideloadIncludes()) {
+            if (! $this->manager->getSerializer()->sideloadIncludes() && is_array($includedData)) {
                 $transformedData = array_merge($transformedData, $includedData);
             }
         }
@@ -402,7 +424,12 @@ class Scope extends BaseFractalScope
     protected function serializeResource(SerializerAbstract $serializer, $data)
     {
         $serializer->setScope($this);
-        return parent::serializeResource($serializer, $data);
+
+        if (is_array($data)) {
+            return parent::serializeResource($serializer, $data);
+        }
+
+        return null;
     }
 
 }

@@ -1,0 +1,25 @@
+services:
+      api.hydra.normalizer.error:
+          class: 'Eliberty\ApiBundle\Hydra\Serializer\ErrorNormalizer'
+          arguments:
+               - '@api.router'
+               - '@translator'
+               - '%kernel.debug%'
+          tags:
+               - { name: api.serializer.normalizer }
+
+      api.jsonld.normalizer.error:
+          class: 'Eliberty\ApiBundle\JsonLd\Serializer\ErrorNormalizer'
+          arguments:
+               - '@translator'
+               - '%kernel.debug%'
+          tags:
+               - { name: api.serializer.normalizer }
+
+      api.xml.normalizer.error:
+          class: 'Eliberty\ApiBundle\Xml\Serializer\ErrorNormalizer'
+          arguments:
+               - '@translator'
+               - '%kernel.debug%'
+          tags:
+               - { name: api.serializer.normalizer }

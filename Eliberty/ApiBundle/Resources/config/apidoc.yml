@@ -20,7 +20,7 @@ services:
         arguments:
             - '%kernel.root_dir%'
             - '@templating'
-            - '@api.json_ld.normalizer.item'
+            - '@api.normalizer.item'
             - '@api.resource_collection'
             - '@doctrine'
             - '@property_accessor'

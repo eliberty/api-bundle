@@ -20,7 +20,7 @@ use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintViolationList;
 
 /**
- * Converts {@see \Exception} to a Hydra error representation.
+ * Converts {@see \Exception} to a Hydra violation error representation.
  *
  * @author Philippe Vesin <pvesin@eliberty.fr>
  */
@@ -100,6 +100,6 @@ class ErrorViolationListNormalizer implements NormalizerInterface
      */
     public function supportsNormalization($data, $format = null)
     {
-        return 'ld+json' === $format && $data instanceof ConstraintViolationList;
+        return (('ld+json' === $format || 'json' === $format) && $data instanceof ConstraintViolationList);
     }
 }

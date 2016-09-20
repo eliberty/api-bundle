@@ -33,3 +33,11 @@ services:
         arguments:
             - '@doctrine'
             - '@property_accessor'
+
+    api.init.filter.embed:
+        class: 'Eliberty\ApiBundle\Helper\InitFilterEmbed'
+        arguments:
+            - '@router'
+            - '@api.resource_collection'
+            - '@doctrine'
+            - '@property_accessor'

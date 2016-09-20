@@ -106,7 +106,7 @@ class ResourceController extends BaseResourceController
      */
     protected function findOrThrowNotFound(ResourceInterface $resource, $id)
     {
-        $resource->isGranted(['VIEW']);
+        $resource->isGranted(['VIEW'], true);
         $item = $this->get('api.data_provider')->getItem($resource, $id, true);
         if (!$item) {
             throw $this->createNotFoundException();
@@ -244,7 +244,7 @@ class ResourceController extends BaseResourceController
     public function deleteAction(Request $request, $id)
     {
         $resource = $this->getResource($request);
-        $resource->isGranted(['DELETE']);
+        $resource->isGranted(['DELETE'], true);
 
         $object    = $this->findOrThrowNotFound($resource, $id);
         $eventName = Events::PRE_DELETE;
@@ -317,7 +317,7 @@ class ResourceController extends BaseResourceController
      */
     protected function getCollectionData(ResourceInterface $resource, Request $request)
     {
-        $this->resource->isGranted(['VIEW']);
+        $this->resource->isGranted(['VIEW'], true);
         return $this->get('api.data_provider')->getCollection(
             $resource,
             $request

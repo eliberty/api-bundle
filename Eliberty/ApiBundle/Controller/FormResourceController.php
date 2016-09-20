@@ -36,7 +36,7 @@ abstract class FormResourceController extends ResourceController
     {
         $resource = $this->getResource($this->container->get('request'));
 
-        $resource->isGranted(['EDIT']);
+        $resource->isGranted(['EDIT'], true);
 
         if (null === $object) {
             $object = $this->findOrThrowNotFound($resource, $id);
@@ -50,8 +50,6 @@ abstract class FormResourceController extends ResourceController
 
     /**
      * Create new.
-     *
-     *
      * @param string $eventName
      * @param null $entity
      * @return Response
@@ -61,7 +59,7 @@ abstract class FormResourceController extends ResourceController
         $request  = $this->container->get('request');
         $resource = $this->getResource($request);
 
-        $resource->isGranted(['CREATE']);
+        $resource->isGranted(['CREATE'], true);
 
         if (null === $entity) {
             $entityName = $this->get('doctrine')->getManager()->getClassMetadata($resource->getEntityClass())->getName();
