@@ -63,7 +63,7 @@ class ErrorViolationListNormalizer implements NormalizerInterface
         }
 
         $data = [
-            '@context'    => $this->router->generate('api_json_ld_context', ['shortName' => 'ConstraintViolationList']),
+            '@context'    => '/api/contexts/ConstraintViolationList',
             '@type'       => 'ConstraintViolationList',
             'title'       => 'An error occurred',
             'violations'  => [],
@@ -100,6 +100,6 @@ class ErrorViolationListNormalizer implements NormalizerInterface
      */
     public function supportsNormalization($data, $format = null)
     {
-        return (('ld+json' === $format || 'json' === $format) && $data instanceof ConstraintViolationList);
+        return ('ld+json' === $format && $data instanceof ConstraintViolationList);
     }
 }

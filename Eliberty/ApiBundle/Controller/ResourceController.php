@@ -12,6 +12,7 @@
 namespace Eliberty\ApiBundle\Controller;
 
 use Doctrine\Common\Collections\ArrayCollection;
+use Eliberty\ApiBundle\Helper\EventHelper;
 use Eliberty\ApiBundle\Resolver\ContextResolverTrait;
 use Dunglas\ApiBundle\Event\Events;
 use Eliberty\ApiBundle\Doctrine\Orm\ArrayPaginator;
@@ -245,17 +246,15 @@ class ResourceController extends BaseResourceController
     {
         $resource = $this->getResource($request);
         $resource->isGranted(['DELETE'], true);
-
         $object    = $this->findOrThrowNotFound($resource, $id);
-        $eventName = Events::PRE_DELETE;
-        $event     = new DataEvent($resource, $object);
-        if ($resource->hasEventListener($eventName)) {
-            $eventName  = $resource->getListener($eventName);
-            $eventClass = $resource->getListener('eventClass');
-            $event      = new $eventClass($object);
-        }
-
-        $this->get('event_dispatcher')->dispatch($eventName, $event);
+        $eventHelper = new EventHelper();
+        $eventHelper->dispatchEvent(
+            $this->getApiVersion(),
+            $object,
+            Events::PRE_DELETE,
+            $this->get('api.resource_collection'),
+            $this->get('event_dispatcher')
+        );
 
         return $this->getResponse(null, 204);
     }
