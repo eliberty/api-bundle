@@ -260,6 +260,16 @@ class ResourceController extends BaseResourceController
     }
 
     /**
+     * @param Request $request
+     * @param         $object
+     *
+     * @return bool
+     */
+    protected function checkDeletedContraint (Request $request, $object) {
+        return true;
+    }
+
+    /**
      * Normalizes data using the Symfony Serializer.
      *
      * @param ResourceInterface $resource
