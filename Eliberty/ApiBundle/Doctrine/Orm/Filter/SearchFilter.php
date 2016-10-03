@@ -19,7 +19,7 @@ use Dunglas\ApiBundle\Doctrine\Orm\Filter\AbstractFilter;
 use Dunglas\ApiBundle\Doctrine\Orm\Filter\SearchFilter as BaseSearchFilter;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
-use Doctrine\ORM\Query;
+
 /**
  * Filter the collection by given properties.
  *
