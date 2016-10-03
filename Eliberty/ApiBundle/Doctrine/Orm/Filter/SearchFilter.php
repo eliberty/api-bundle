@@ -105,12 +105,11 @@ class SearchFilter extends AbstractFilter
             $propertyValue = $partial ? sprintf('%%%s%%', $value) : $value;
 
             if (isset($fieldNames[$property])) {
-                $equalityString = $partial ? 'LOWER(o.%1$s) LIKE :%1$s' : 'o.%1$s = :%1$s';
+                $equalityString = $partial ? 'o.%1$s LIKE :%1$s' : 'o.%1$s = :%1$s';
 
                 $queryBuilder
                     ->andWhere(sprintf($equalityString, $property))
-                    ->setParameter($property, $propertyValue)
-                ;
+                    ->setParameter($property, $propertyValue);
             } elseif ($metadata->isSingleValuedAssociation($property)
                 || $metadata->isCollectionValuedAssociation($property)
             ) {
