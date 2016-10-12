@@ -14,7 +14,7 @@
         "php": ">=5.5.0",
         "nelmio/api-doc-bundle": "2.11.2",
         "league/fractal": "0.13.0",
-        "dunglas/api-bundle": "v1.0.1",
+        "dunglas/api-bundle": "v1.1.1",
         "white-october/pagerfanta-bundle": "~1.0.2"
     },
     "extra": {
