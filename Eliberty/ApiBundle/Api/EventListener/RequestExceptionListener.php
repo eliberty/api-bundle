@@ -22,6 +22,7 @@ use Symfony\Component\HttpKernel\Event\GetResponseForExceptionEvent;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Dunglas\ApiBundle\Hydra\EventListener\RequestExceptionListener as BaseRequestExceptionListener;
 use Eliberty\ApiBundle\Xml\Response as XmlResponse;
+
 /**
  * Handle requests errors.
  *
@@ -73,7 +74,7 @@ class RequestExceptionListener extends BaseRequestExceptionListener
             $headers = [];
         } else {
             $code    = method_exists($exception, 'getStatusCode') ? $exception->getStatusCode() : $exception->getCode();
-            $status  = $code === 0 ? Response::HTTP_BAD_REQUEST : $code;
+            $status  = isset(Response::$statusTexts[$code]) ? $code : Response::HTTP_BAD_REQUEST;
             $headers = [];
         }
 
