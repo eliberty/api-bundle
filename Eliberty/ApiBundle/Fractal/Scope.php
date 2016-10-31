@@ -12,8 +12,11 @@
 namespace Eliberty\ApiBundle\Fractal;
 
 use Doctrine\Common\Inflector\Inflector;
+use Doctrine\ORM\EntityNotFoundException;
 use Eliberty\ApiBundle\Context\GroupsContextChainer;
 use Eliberty\ApiBundle\Fractal\Serializer\DataHydraSerializer;
+use Eliberty\RedpillBundle\Model\OrderInterface;
+use League\Fractal\Resource\Item;
 use League\Fractal\Resource\ResourceInterface;
 use League\Fractal\Scope as BaseFractalScope;
 use League\Fractal\Resource\Collection;
@@ -137,11 +140,13 @@ class Scope extends BaseFractalScope
         // Don't use hydra:Collection in sub levels
         $context['json_ld_sub_level'] = true;
 
-        $this->dunglasResource = $this->getDunglasResource();
-
         list($rawData, $rawIncludedData) = $this->executeResourceTransformers();
 
         $data = $this->serializeResource($serializer, $rawData);
+
+        if (is_array($data) && null === $this->getDunglasResource()) {
+            return $data;
+        }
 
         // If the serializer wants the includes to be side-loaded then we'll
         // serialize the included data and merge it with the data.
@@ -172,8 +177,8 @@ class Scope extends BaseFractalScope
     {
         $data = $this->resource->getData();
 
-        if (null ===  $data) {
-            return [null, []];
+        if (null ===  $data || is_array($data)) {
+            return [$data, []];
         }
 
         return parent::executeResourceTransformers();
@@ -196,30 +201,14 @@ class Scope extends BaseFractalScope
      */
     public function getDunglasResource()
     {
-        if (!is_null($this->dunglasResource)) {
+        if (null !== $this->dunglasResource) {
             return $this->dunglasResource;
         }
 
-        return $this->findDunglasResource($this->getEntityName());
-    }
-
-    /**
-     * @param $entityName
-     *
-     * @return mixed
-     * @throws \Exception
-     */
-    protected function findDunglasResource($entityName)
-    {
-        $resource = $this->manager->getResourceCollection()->getResourceForShortName(
-            $entityName,
+        return $this->manager->getResourceCollection()->getResourceForShortName(
+            $this->getEntityName(),
             $this->getApiVersion()
         );
-        if (null === $resource) {
-            throw new \Exception('resource not found for entityname : ' . $entityName);
-        }
-
-        return $resource;
     }
 
     /**
@@ -245,12 +234,14 @@ class Scope extends BaseFractalScope
      * @param mixed                        $data
      *
      * @return array
+     * @throws EntityNotFoundException
      */
     protected function fireTransformer($transformer, $data)
     {
         $this->transformer = $transformer;
-        $includedData = [];
-        $transformedData = [];
+        $includedData      = [];
+        $transformedData   = [];
+        $dataTransformer   = [];
 
         if ($this->getManager()->getSerializer() instanceof DataHydraSerializer && !empty($data)) {
             $transformedData['@id'] = $this->getGenerateRoute($data);
@@ -260,11 +251,15 @@ class Scope extends BaseFractalScope
             $transformedData['@type'] = $this->getEntityName();
         }
 
-        if (is_callable($transformer)) {
-            $transformedData = array_merge($transformedData, call_user_func($transformer, $data));
-        } else {
-            $transformedData = array_merge($transformedData, $transformer->transform($data));
+        try {
+            $dataTransformer = is_callable($transformer) ? call_user_func($transformer, $data) : $transformer->transform($data);
+        } catch (EntityNotFoundException $e) {
+            if ($this->resource instanceof Item && !$this->parent instanceof Scope) {
+                throw new EntityNotFoundException();
+            }
         }
+
+        $transformedData = array_merge($transformedData, $dataTransformer);
 
         if ($this->getManager()->getGroupsContextChainer() instanceof GroupsContextChainer) {
             $transformedData = $this->getManager()
