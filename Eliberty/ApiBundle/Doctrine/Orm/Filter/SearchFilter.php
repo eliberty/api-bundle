@@ -102,10 +102,11 @@ class SearchFilter extends AbstractFilter
             }
 
             $partial = null !== $this->properties && self::STRATEGY_PARTIAL === $this->properties[$property];
-            $propertyValue = $partial ? sprintf('%%%s%%', $value) : $value;
+            $lcValue = strtolower($value);
+            $propertyValue = $partial ? sprintf('%%%s%%', $lcValue) : $lcValue;
 
             if (isset($fieldNames[$property])) {
-                $equalityString = $partial ? 'o.%1$s LIKE :%1$s' : 'o.%1$s = :%1$s';
+                $equalityString = $partial ? 'lower(o.%1$s) LIKE :%1$s' : 'lower(o.%1$s) = :%1$s';
 
                 $queryBuilder
                     ->andWhere(sprintf($equalityString, $property))
