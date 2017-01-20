@@ -106,7 +106,12 @@ class SearchFilter extends AbstractFilter
             $propertyValue = $partial ? sprintf('%%%s%%', $lcValue) : $lcValue;
 
             if (isset($fieldNames[$property])) {
-                $equalityString = $partial ? 'lower(o.%1$s) LIKE :%1$s' : 'lower(o.%1$s) = :%1$s';
+                $shouldLower = 'boolean' !== $metadata->getTypeOfField($property);
+                if ($shouldLower){
+                    $equalityString = $partial ? 'lower(o.%1$s) LIKE :%1$s' : 'lower(o.%1$s) = :%1$s';
+                } else {
+                    $equalityString = 'o.%1$s = :%1$s';
+                }
 
                 $queryBuilder
                     ->andWhere(sprintf($equalityString, $property))
@@ -122,6 +127,7 @@ class SearchFilter extends AbstractFilter
             }
         }
     }
+
 
     /**
      * {@inheritdoc}
