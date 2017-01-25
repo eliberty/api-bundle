@@ -106,7 +106,7 @@ class SearchFilter extends AbstractFilter
             $propertyValue = $partial ? sprintf('%%%s%%', $lcValue) : $lcValue;
 
             if (isset($fieldNames[$property])) {
-                $shouldLower = 'boolean' !== $metadata->getTypeOfField($property);
+                $shouldLower = 'string' === $metadata->getTypeOfField($property);
                 if ($shouldLower){
                     $equalityString = $partial ? 'lower(o.%1$s) LIKE :%1$s' : 'lower(o.%1$s) = :%1$s';
                 } else {
