@@ -10,12 +10,19 @@
             "email": "pvesin@eliberty.fr"
         }
     ],
+    "repositories": [
+        {
+            "type": "git",
+            "url": "git@github.com:eliberty/phplibs.git"
+        }
+    ],
     "require": {
         "php": ">=5.5.0",
         "nelmio/api-doc-bundle": "2.11.2",
         "league/fractal": "0.13.0",
         "dunglas/api-bundle": "v1.0.1",
-        "white-october/pagerfanta-bundle": "~1.0.2"
+        "white-october/pagerfanta-bundle": "~1.0.2",
+        "eliberty/phplibs": "~2.0"
     },
     "extra": {
     },

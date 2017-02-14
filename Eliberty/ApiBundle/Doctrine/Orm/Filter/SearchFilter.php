@@ -19,7 +19,7 @@ use Dunglas\ApiBundle\Doctrine\Orm\Filter\AbstractFilter;
 use Dunglas\ApiBundle\Doctrine\Orm\Filter\SearchFilter as BaseSearchFilter;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
-use Eliberty\RedpillBundle\Util\Canonicalizer;
+use Eliberty\Utils\StringCanonicalizer;
 
 /**
  * Filter the collection by given properties.
@@ -113,7 +113,7 @@ class SearchFilter extends AbstractFilter
                 $fieldToCompare = $property;
                 switch ($search_type) {
                     case self::STRATEGY_CANONICAL:
-                        $propertyValue = Canonicalizer::canonicalize($value, true);
+                        $propertyValue = StringCanonicalizer::canonicalize($value, true);
                         $isCanonical = true;
                         $canonicalField = sprintf('%sCanonical',$property);
                         if ($metadata->hasField($canonicalField)) {
