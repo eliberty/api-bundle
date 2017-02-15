@@ -19,6 +19,7 @@ use Dunglas\ApiBundle\Doctrine\Orm\Filter\AbstractFilter;
 use Dunglas\ApiBundle\Doctrine\Orm\Filter\SearchFilter as BaseSearchFilter;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
+use Eliberty\Utils\StringCanonicalizer;
 
 /**
  * Filter the collection by given properties.
@@ -35,6 +36,10 @@ class SearchFilter extends AbstractFilter
      * @var string The value must be contained in the field.
      */
     const STRATEGY_PARTIAL = 'partial';
+    /**
+     * @var string The value must match the canonical value of the field
+     */
+    const STRATEGY_CANONICAL = 'canonical';
 
     /**
      * @var PropertyAccessorInterface
@@ -100,21 +105,46 @@ class SearchFilter extends AbstractFilter
             if (!is_string($value) || !$this->isPropertyEnabled($property)) {
                 continue;
             }
+            $propertyValue = $value;
+            $isPartial = false;
+            $isCanonical = false;
+            if (null !== $this->properties) {
+                $search_type = array_key_exists($property,$this->properties) ? $this->properties[$property] : self::STRATEGY_EXACT;
+                $fieldToCompare = $property;
+                switch ($search_type) {
+                    case self::STRATEGY_CANONICAL:
+                        $propertyValue = StringCanonicalizer::canonicalize($value, true);
+                        $isCanonical = true;
+                        $canonicalField = sprintf('%sCanonical',$property);
+                        if ($metadata->hasField($canonicalField)) {
+                            $fieldToCompare = $canonicalField;
+                        }
+                        break;
 
-            $partial = null !== $this->properties && self::STRATEGY_PARTIAL === $this->properties[$property];
-            $lcValue = strtolower($value);
-            $propertyValue = $partial ? sprintf('%%%s%%', $lcValue) : $lcValue;
+                        break;
+                    case self::STRATEGY_EXACT:
+                        $propertyValue = strtolower($value);
+                        break;
+                    case self::STRATEGY_PARTIAL:
+                        $isPartial = true;
+                        $lcValue = strtolower($value);
+                        $propertyValue = sprintf('%%%s%%', $lcValue);
+                        break;
+                    default:
+                        $propertyValue = $value;
+                        break;
+                }
+            }
 
             if (isset($fieldNames[$property])) {
-                $shouldLower = 'string' === $metadata->getTypeOfField($property);
+                $shouldLower = 'string' === $metadata->getTypeOfField($property) && !$isCanonical;
                 if ($shouldLower){
-                    $equalityString = $partial ? 'lower(o.%1$s) LIKE :%1$s' : 'lower(o.%1$s) = :%1$s';
+                    $equalityString = $isPartial ? 'lower(o.%1$s) LIKE :%2$s' : 'lower(o.%1$s) = :%2$s';
                 } else {
-                    $equalityString = 'o.%1$s = :%1$s';
+                    $equalityString = 'o.%1$s = :%2$s';
                 }
-
                 $queryBuilder
-                    ->andWhere(sprintf($equalityString, $property))
+                    ->andWhere(sprintf($equalityString, $fieldToCompare, $property))
                     ->setParameter($property, $propertyValue);
             } elseif ($metadata->isSingleValuedAssociation($property)
                 || $metadata->isCollectionValuedAssociation($property)
