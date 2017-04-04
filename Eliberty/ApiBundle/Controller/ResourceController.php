@@ -373,12 +373,8 @@ class ResourceController extends BaseResourceController
 
         $dataResponse = $this->get('api.helper.apply.criteria')->ApplyCriteria($request, $resourceEmbed, $data);
 
-        if ($dataResponse instanceof ArrayCollection && $dataResponse->count() > 0) {
+        if ($dataResponse instanceof ArrayCollection) {
             $dataResponse = new ArrayPaginator(new ArrayAdapter($dataResponse->toArray()), $request);
-        }
-
-        if ($dataResponse instanceof ArrayCollection && $dataResponse->count() === 0) {
-            return $this->getResponse();
         }
 
         $this->get('event_dispatcher')->dispatch(Events::RETRIEVE_LIST, new DataEvent($resourceEmbed, $dataResponse));
