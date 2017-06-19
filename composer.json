@@ -20,14 +20,14 @@
         "php": ">=5.5.0",
         "nelmio/api-doc-bundle": "2.11.2",
         "league/fractal": "0.13.0",
-        "dunglas/api-bundle": "v1.0.1",
-        "white-october/pagerfanta-bundle": "~1.0.2",
-        "eliberty/phplibs": "~2.0"
+        "dunglas/api-bundle": "v1.1.1",
+        "white-october/pagerfanta-bundle": "~1.0.5",
+        "eliberty/phplibs": "dev-wip-guzzle6-sf3"
     },
     "extra": {
-    },
-    "branch-alias": {
-        "dev-master": "1.0-dev"
+        "branch-alias": {
+            "dev-master": "1.0-dev"
+        }
     },
     "autoload": {
         "psr-4": { "Eliberty\\Bundle\\ApiBundle\\": "" }
