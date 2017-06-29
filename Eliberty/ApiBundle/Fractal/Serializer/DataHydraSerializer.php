@@ -87,7 +87,11 @@ class DataHydraSerializer extends BaseDataArraySerializer implements SerializerI
     {
         $hydra['@context'] = $this->getContext();
 
-        if (!$this->getResource()->getTransformer()->isChild()) {
+
+        if (null !== $this->getResource()
+            && null !== $this->getResource()->getTransformer()
+            && !$this->getResource()->getTransformer()->isChild()
+        ) {
             $hydra['@embed'] = implode(',', $this->getResource()->getTransformer()->getAvailableIncludes());
         }
 
@@ -154,9 +158,12 @@ class DataHydraSerializer extends BaseDataArraySerializer implements SerializerI
      */
     protected function getContext()
     {
+        $shortname = null !== $this->getDunglasResource()
+                ? $this->getDunglasResource()->getShortName()
+                : 'mixed';
         return $this->getManager()->getRouter()->generate(
             'api_json_ld_context',
-            ['shortName' => $this->getDunglasResource()->getShortName()]
+            ['shortName' => $shortname]
         );
     }
 
