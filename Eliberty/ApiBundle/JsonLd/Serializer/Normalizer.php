@@ -80,7 +80,7 @@ class Normalizer
         }
 
         $resource = new Item($object, $transformer);
-        if ($object instanceof Paginator || $object instanceof PersistentCollection) {
+        if ($object instanceof Paginator || $object instanceof \Doctrine\Common\Collections\Collection) {
             $resource = new Collection($object, $transformer);
             if ($fractalManager->getSerializer() instanceof ArraySerializer && $object instanceof Paginator) {
                 $resource->setPaginator(
