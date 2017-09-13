@@ -176,7 +176,7 @@ class ApiDocExtractor extends BaseApiDocExtractor
     protected function setVersionApiDoc()
     {
         try {
-            $request     = $this->container->get('request');
+            $request     = $this->container->get('request_stack')->getCurrentRequest();
             $paramsRoute = $this->router->match($request->getPathInfo());
 
             $this->versionApi = isset($paramsRoute['version']) ? $paramsRoute['version'] : null;
