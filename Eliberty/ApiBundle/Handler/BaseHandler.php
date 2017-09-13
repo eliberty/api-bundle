@@ -155,4 +155,25 @@ abstract class BaseHandler implements HandlerInterface
     protected function getApiVersion() {
         return $this->router->getContext()->getApiVersion();
     }
+    /**
+     * Process form.
+     *
+     * @param Contact $contact
+     *
+     * @return bool True on successful processing, false otherwise
+     */
+    public function process($contact)
+    {
+        $method = $this->request->getMethod();
+        $this->form->setData($contact);
+        if (in_array($method, ['POST', 'PUT', 'PATCH'])) {
+            $data = $this->request->request->get($this->form->getName());
+            $this->form->submit($data, !in_array($method, ['PUT', 'PATCH']));
+            if ($this->form->isValid()) {
+                $this->onSuccess($contact);
+            }
+        }
+
+        return $this->form;
+    }
 }
