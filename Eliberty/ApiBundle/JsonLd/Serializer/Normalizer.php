@@ -110,7 +110,7 @@ class Normalizer
      */
     private function getEmbedsWithoutOptions(TransformerAbstract $transformer, Request $request)
     {
-        $embeds = $request->get('embed', null);
+        $embeds = $request->query->get('embed', null);
 
         if (null === $embeds) {
             $embeds = implode(',', $transformer->getDefaultIncludes());
