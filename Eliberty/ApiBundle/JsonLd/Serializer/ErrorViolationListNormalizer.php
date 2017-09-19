@@ -45,6 +45,7 @@ class ErrorViolationListNormalizer extends HydraErrorViolationListNormalizer
      */
     public function __construct(RouterInterface $router, $debug, PropertyAccessorInterface $propertyAccessor)
     {
+        parent::__construct($router, $debug, $propertyAccessor);
         $this->router           = $router;
         $this->debug            = $debug;
         $this->propertyAccessor = $propertyAccessor;
