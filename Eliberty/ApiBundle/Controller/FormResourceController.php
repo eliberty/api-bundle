@@ -34,7 +34,8 @@ abstract class FormResourceController extends ResourceController
      */
     public function handleUpdateRequest($id, $eventName = Events::PRE_UPDATE, $object = null)
     {
-        $resource = $this->getResource($this->container->get('request'));
+        $request  = $this->get('request_stack')->getCurrentRequest();
+        $resource = $this->getResource($request);
 
         $resource->isGranted(['EDIT'], true);
 
@@ -56,7 +57,7 @@ abstract class FormResourceController extends ResourceController
      */
     public function handleCreateRequest($eventName = Events::PRE_CREATE, $entity = null)
     {
-        $request  = $this->container->get('request');
+        $request  = $this->get('request_stack')->getCurrentRequest();
         $resource = $this->getResource($request);
 
         $resource->isGranted(['CREATE'], true);
@@ -108,8 +109,8 @@ abstract class FormResourceController extends ResourceController
      */
     protected function fixRequestAttributes()
     {
-        $request    = $this->container->get('request');
-        $data       = $request->request->all();
+        $request = $this->get('request_stack')->getCurrentRequest();
+        $data    = $request->request->all();
 
         // save fixed values for named form
         $request->request->set($this->getForm()->getName(), $data);
@@ -128,7 +129,8 @@ abstract class FormResourceController extends ResourceController
      */
     protected function getFormHandler()
     {
-        return $this->get('api.handler.resolver')->resolve($this->getEntityName(), $this->getApiVersion());
+        $resolver = $this->get('api.handler.resolver');
+        return $resolver->resolve($this->getEntityName(), $this->getApiVersion());
     }
 
     /**

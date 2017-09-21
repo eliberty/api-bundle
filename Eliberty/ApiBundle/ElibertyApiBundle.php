@@ -11,6 +11,7 @@ use Eliberty\ApiBundle\DependencyInjection\Compiler\FormPass;
 use Eliberty\ApiBundle\DependencyInjection\Compiler\SerializerPass;
 use Eliberty\ApiBundle\DependencyInjection\Compiler\TransformerRessourcePass;
 use Eliberty\ApiBundle\DependencyInjection\Compiler\ValidatorPass;
+use Eliberty\ApiBundle\DependencyInjection\Compiler\OverrideServicesCompilerPass;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\HttpKernel\Bundle\Bundle;
 
@@ -27,6 +28,7 @@ class ElibertyApiBundle extends Bundle
     public function build(ContainerBuilder $container)
     {
         parent::build($container);
+        $container->addCompilerPass(new OverrideServicesCompilerPass());
         $container->addCompilerPass(new ResourcePass());
         $container->addCompilerPass(new HandlerPass());
         $container->addCompilerPass(new FormPass());

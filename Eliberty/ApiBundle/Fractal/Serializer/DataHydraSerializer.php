@@ -5,7 +5,9 @@ namespace Eliberty\ApiBundle\Fractal\Serializer;
 use Doctrine\ORM\PersistentCollection;
 use Eliberty\ApiBundle\Fractal\Scope;
 use League\Fractal\Manager;
-use Dunglas\ApiBundle\Model\PaginatorInterface;;
+use Dunglas\ApiBundle\Model\PaginatorInterface;
+
+;
 use League\Fractal\Serializer\DataArraySerializer as BaseDataArraySerializer;
 use Eliberty\ApiBundle\Doctrine\Orm\Filter\EmbedFilter;
 use League\Fractal\Pagination\PaginatorInterface as FractalPaginatorInterface;
@@ -87,13 +89,17 @@ class DataHydraSerializer extends BaseDataArraySerializer implements SerializerI
     {
         $hydra['@context'] = $this->getContext();
 
-        if (!$this->getResource()->getTransformer()->isChild()) {
+
+        if (null !== $this->getResource()
+            && null !== $this->getResource()->getTransformer()
+            && !$this->getResource()->getTransformer()->isChild()
+        ) {
             $hydra['@embed'] = implode(',', $this->getResource()->getTransformer()->getAvailableIncludes());
         }
 
         $object = $this->getResource()->getData();
 
-        if($object instanceof PaginatorInterface) {
+        if ($object instanceof PaginatorInterface) {
             $hydra['@id'] = $this->getResourceRoute();
         }
 
@@ -113,7 +119,7 @@ class DataHydraSerializer extends BaseDataArraySerializer implements SerializerI
             $hydra['hydra:itemsPerPage'] = $object->getItemsPerPage();
             $this->getFirstPage($hydra, $object, $currentPage, $lastPage, $baseUrl);
             $this->getLastPage($hydra, $object, $currentPage, $lastPage, $paginatedUrl);
-        } else if ($object instanceof PersistentCollection) {
+        } elseif ($object instanceof PersistentCollection) {
             $hydra['@type'] = self::HYDRA_COLLECTION;
         }
 
@@ -123,7 +129,8 @@ class DataHydraSerializer extends BaseDataArraySerializer implements SerializerI
     /**
      * @return mixed|null
      */
-    protected function getResourceRoute() {
+    protected function getResourceRoute()
+    {
         if (!is_null($this->getResource())) {
             foreach ($this->getDunglasResource()->getFilters() as $filter) {
                 if ($filter instanceof EmbedFilter) {
@@ -154,9 +161,12 @@ class DataHydraSerializer extends BaseDataArraySerializer implements SerializerI
      */
     protected function getContext()
     {
+        $shortname = null !== $this->getDunglasResource()
+                ? $this->getDunglasResource()->getShortName()
+                : 'mixed';
         return $this->getManager()->getRouter()->generate(
             'api_json_ld_context',
-            ['shortName' => $this->getDunglasResource()->getShortName()]
+            ['shortName' => $shortname]
         );
     }
 
@@ -260,5 +270,4 @@ class DataHydraSerializer extends BaseDataArraySerializer implements SerializerI
 
         $data['hydra:firstPage'] = $baseUrl;
     }
-
 }
