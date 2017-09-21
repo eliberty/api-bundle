@@ -162,7 +162,7 @@ class Router implements RouterInterface
 
                 return $this->router->generate($name, $parameters, $referenceType);
             } catch (\Exception $e) {
-                throw new \Exception($e->getMessage(), $e->getCode());
+                return '';
             }
 
         } finally {
