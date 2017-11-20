@@ -97,6 +97,7 @@ abstract class BaseHandler implements HandlerInterface
         $this->manager->persist($entity);
         $this->sendEvent($this->getApiVersion());
         $this->manager->flush();
+        $this->manager->refresh($entity);
     }
 
     /**
