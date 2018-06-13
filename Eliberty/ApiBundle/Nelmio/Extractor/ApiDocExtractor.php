@@ -176,8 +176,11 @@ class ApiDocExtractor extends BaseApiDocExtractor
     protected function setVersionApiDoc()
     {
         try {
+            $paramsRoute = [];
             $request     = $this->container->get('request_stack')->getCurrentRequest();
-            $paramsRoute = $this->router->match($request->getPathInfo());
+            if (null !== $request) {
+                $paramsRoute = $this->router->match($request->getPathInfo());
+            }
 
             $this->versionApi = isset($paramsRoute['version']) ? $paramsRoute['version'] : null;
             if (isset($paramsRoute['view']) && is_null($this->versionApi)) {
@@ -252,7 +255,7 @@ class ApiDocExtractor extends BaseApiDocExtractor
                             $resources[] = $resource;
                         } else {
                             // remove format from routes used for resource grouping
-                            $resources[] = str_replace('.{_format}', '', $route->getPattern());
+                            $resources[] = str_replace('.{_format}', '', $route->getPath());
                         }
                     }
 
@@ -271,10 +274,15 @@ class ApiDocExtractor extends BaseApiDocExtractor
                         if (null === $dunglasResource) {
                             $dunglasResource = $this->resourceCollection->getResourceForShortName(ucfirst($include), $this->versionApi);
                         }
-                        $route->addDefaults(['_resource' => $dunglasResource->getShortName()]);
+
+                        if (null !== $dunglasResource) {
+                            $route->addDefaults(['_resource' => $dunglasResource->getShortName()]);
+                        }
                         $apiDoc =  $this->extractData($annotation, $route, $method, $dunglasResource);
-                        $routesNames[$apiDoc->getRoute()->getPattern()] = $routeName;
-                        $array[] = ['annotation' => $apiDoc];
+                        if (null !== $apiDoc->getRoute()) {
+                            $routesNames[$apiDoc->getRoute()->getPath()] = $routeName;
+                            $array[] = ['annotation' => $apiDoc];
+                        }
                     }
                 }
             }
@@ -283,7 +291,7 @@ class ApiDocExtractor extends BaseApiDocExtractor
         rsort($resources);
         foreach ($array as $index => $element) {
             $hasResource = false;
-            $pattern     = $element['annotation']->getRoute()->getPattern();
+            $pattern     = $element['annotation']->getRoute()->getPath();
             $routeName = isset($routesNames[$pattern]) ? $routesNames[$pattern] : null;
 
             foreach ($resources as $resource) {
@@ -304,7 +312,7 @@ class ApiDocExtractor extends BaseApiDocExtractor
         $methodOrder = array('GET', 'POST', 'PUT', 'DELETE');
         usort($array, function ($a, $b) use ($methodOrder) {
             if ($a['resource'] === $b['resource']) {
-                if ($a['annotation']->getRoute()->getPattern() === $b['annotation']->getRoute()->getPattern()) {
+                if ($a['annotation']->getRoute()->getPath() === $b['annotation']->getRoute()->getPath()) {
                     $methodA = array_search($a['annotation']->getRoute()->getRequirement('_method'), $methodOrder);
                     $methodB = array_search($b['annotation']->getRoute()->getRequirement('_method'), $methodOrder);
 
@@ -319,8 +327,8 @@ class ApiDocExtractor extends BaseApiDocExtractor
                 }
 
                 return strcmp(
-                    $a['annotation']->getRoute()->getPattern(),
-                    $b['annotation']->getRoute()->getPattern()
+                    $a['annotation']->getRoute()->getPath(),
+                    $b['annotation']->getRoute()->getPath()
                 );
             }
 
@@ -494,6 +502,10 @@ class ApiDocExtractor extends BaseApiDocExtractor
      */
     protected function extractData(ApiDoc $annotation, Route $route, \ReflectionMethod $method, DunglasResource $dunglasResource = null)
     {
+        if (null === $dunglasResource) {
+            return $annotation;
+            throw new \RuntimeException('Unable to proces null dunglas resource for route: ' . $route->getPath());
+        }
         //remove methode OPTIONS
         $methods = $route->getMethods();
         $optionIndex = array_search('OPTIONS', $methods);

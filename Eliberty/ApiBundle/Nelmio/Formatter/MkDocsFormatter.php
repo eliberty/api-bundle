@@ -11,15 +11,18 @@
 
 namespace Eliberty\ApiBundle\Nelmio\Formatter;
 
-use Doctrine\ORM\Tools\Pagination\Paginator;
+// use Doctrine\ORM\Tools\Pagination\Paginator;
+use Dunglas\ApiBundle\Doctrine\Orm\Paginator;
 use Dunglas\ApiBundle\Api\ResourceInterface as DunglasResource;
 use Dunglas\ApiBundle\Model\DataProviderInterface;
 use Eliberty\ApiBundle\Api\ResourceCollection;
 use Eliberty\ApiBundle\Doctrine\Orm\Filter\EmbedFilter;
 use Eliberty\RedpillBundle\Model\OrderitemInterface;
+use Eliberty\ApiBundle\Fractal\Manager as FractalManager;
 use Nelmio\ApiDocBundle\Formatter\AbstractFormatter;
 use Symfony\Component\Filesystem\Filesystem;
-use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
+use Eliberty\ApiBundle\JsonLd\Serializer\Normalizer;
+use Symfony\Component\Routing\RouterInterface;
 use Symfony\Component\Templating\EngineInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Doctrine\Common\Persistence\ManagerRegistry;
@@ -94,6 +97,11 @@ class MkDocsFormatter extends AbstractFormatter
     private $dataProvider;
 
     /**
+     * @var RouterInterface
+     */
+    private $router;
+
+    /**
      * MkDocsFormatter constructor.
      *
      * @param                           $routeDir
@@ -107,11 +115,12 @@ class MkDocsFormatter extends AbstractFormatter
     public function __construct(
         $routeDir,
         EngineInterface $engine,
-        AbstractNormalizer $normalizer,
+        Normalizer $normalizer,
         ResourceCollection $resourceCollection,
         ManagerRegistry $managerRegistry,
         PropertyAccessorInterface $propertyAccessor,
-        DataProviderInterface $dataProvider
+        DataProviderInterface $dataProvider,
+        RouterInterface $router
     ) {
         $this->routeDir    = $routeDir;
         $this->engine      = $engine;
@@ -123,6 +132,7 @@ class MkDocsFormatter extends AbstractFormatter
         $this->managerRegistry    = $managerRegistry;
         $this->propertyAccessor   = $propertyAccessor;
         $this->dataProvider       = $dataProvider;
+        $this->router = $router;
     }
 
     /**
@@ -201,7 +211,8 @@ class MkDocsFormatter extends AbstractFormatter
                 $this->fs->dumpFile($path . '/responses.html', $dataFilters);
             }
 
-            $dataToSerialize = $this->dataProvider->getCollection($this->apiResource, new Request());
+            $request = new Request(['perpage' => 2]);
+            $dataToSerialize = $this->dataProvider->getCollection($this->apiResource, $request);
             if (!isset($data['tags']['collection']) && $dataToSerialize instanceof Paginator) {
                 $dataToSerialize = $dataToSerialize->getIterator()->current();
             }
@@ -214,11 +225,12 @@ class MkDocsFormatter extends AbstractFormatter
                     ) {
                         $this->setEmbed($data, $dataToSerialize);
                     }
+                    $fmanager = new FractalManager();
+                    $fmanager->setRouter($this->router);
                     $dataJson = $this->normalizer->normalize(
                         $dataToSerialize,
-                        'json-ld',
-                        $this->apiResource->getNormalizationContext(),
-                        false
+                        $this->apiResource,
+                        $fmanager
                     );
                     $this->fs->dumpFile($path . '/json/responses.json', json_encode($dataJson, JSON_PRETTY_PRINT));
                 } catch (\Exception $ex) {
