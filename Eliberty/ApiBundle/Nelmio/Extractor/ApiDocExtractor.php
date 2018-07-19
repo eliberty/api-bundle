@@ -11,7 +11,6 @@ use Dunglas\ApiBundle\Doctrine\Orm\Filter\AbstractFilter;
 use Eliberty\ApiBundle\Api\Resource as DunglasResource;
 use Eliberty\ApiBundle\Api\Resource;
 use Eliberty\ApiBundle\Api\ResourceCollection;
-use Eliberty\ApiBundle\Doctrine\Orm\Filter\DateFilter;
 use Eliberty\ApiBundle\Doctrine\Orm\Filter\InListFilter;
 use Eliberty\ApiBundle\Doctrine\Orm\Filter\IsNullFilter;
 use Eliberty\ApiBundle\Helper\TransformerHelper;

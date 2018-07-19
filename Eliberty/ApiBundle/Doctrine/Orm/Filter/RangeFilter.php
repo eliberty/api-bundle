@@ -15,33 +15,41 @@ use Doctrine\ORM\QueryBuilder;
 use Dunglas\ApiBundle\Api\ResourceInterface;
 use Dunglas\ApiBundle\Doctrine\Orm\Filter\AbstractFilter;
 use Symfony\Component\HttpFoundation\Request;
-use Dunglas\ApiBundle\Doctrine\Orm\Filter\DateFilter as BaseDateFilter;
+use iter;
+
 /**
- * Filters the collection by date intervals.
+ * Filters the collection by intervals.
  *
  * @author Kévin Dunglas <dunglas@gmail.com>
  * @author Théo FIDRY <theo.fidry@gmail.com>
  * @author Philippe Vesin <pvesin@eliberty.fr>
  */
-class DateFilter extends AbstractFilter
+class RangeFilter extends AbstractFilter
 {
-    const PARAMETER_EQUAL = 'e';
-    const PARAMETER_LESS = 'lt';
-    const PARAMETER_LESS_EQUAL = 'lte';
-    const PARAMETER_GREATER = 'gt';
+    const PARAMETER_EQUAL         = 'e';
+    const PARAMETER_LESS          = 'lt';
+    const PARAMETER_LESS_EQUAL    = 'lte';
+    const PARAMETER_GREATER       = 'gt';
     const PARAMETER_GREATER_EQUAL = 'gte';
-    const EXCLUDE_NULL = 0;
-    const INCLUDE_NULL_BEFORE = 1;
-    const INCLUDE_NULL_AFTER = 2;
+    const EXCLUDE_NULL            = 0;
+    const INCLUDE_NULL_BEFORE     = 1;
+    const INCLUDE_NULL_AFTER      = 2;
 
     /**
      * @var array
      */
     private static $doctrineDateTypes = [
-        'date' => true,
-        'datetime' => true,
+        'date'       => true,
+        'datetime'   => true,
         'datetimetz' => true,
-        'time' => true,
+        'time'       => true,
+    ];
+
+    /**
+     * @var array
+     */
+    private static $doctrineNumberTypes = [
+        'integer' => true,
     ];
 
     /**
@@ -49,11 +57,12 @@ class DateFilter extends AbstractFilter
      */
     public function apply(ResourceInterface $resource, QueryBuilder $queryBuilder, Request $request)
     {
-        $fieldNames = $this->getDateFieldNames($resource);
+        $dateFieldNames   = $this->getDateFieldNames($resource);
+        $numberFieldNames = $this->getNumberFieldNames($resource);
 
         foreach ($this->extractProperties($request) as $property => $values) {
             // Expect $values to be an array having the period as keys and the date value as values
-            if (!isset($fieldNames[$property]) || !is_array($values) || !$this->isPropertyEnabled($property)) {
+            if (!(isset($numberFieldNames[$property]) || isset($dateFieldNames[$property])) || !is_array($values) || !$this->isPropertyEnabled($property)) {
                 continue;
             }
 
@@ -63,52 +72,60 @@ class DateFilter extends AbstractFilter
                 $queryBuilder->andWhere($queryBuilder->expr()->isNotNull(sprintf('o.%s', $property)));
             }
 
-            if (isset($values[self::PARAMETER_EQUAL])) {
+            $formattedValues = iterator_to_array(iter\map(function ($value) use ($dateFieldNames, $property) {
+                if (isset($dateFieldNames[$property])) {
+                    return new \DateTime($value);
+                }
+
+                return $value;
+            }, $values));
+
+            if (isset($formattedValues[self::PARAMETER_EQUAL])) {
                 $this->addWhere(
                     $queryBuilder,
                     $property,
                     self::PARAMETER_EQUAL,
-                    $values[self::PARAMETER_EQUAL],
+                    $formattedValues[self::PARAMETER_EQUAL],
                     $nullManagement
                 );
             }
 
-            if (isset($values[self::PARAMETER_LESS])) {
+            if (isset($formattedValues[self::PARAMETER_LESS])) {
                 $this->addWhere(
                     $queryBuilder,
                     $property,
                     self::PARAMETER_LESS,
-                    $values[self::PARAMETER_LESS],
+                    $formattedValues[self::PARAMETER_LESS],
                     $nullManagement
                 );
             }
 
-            if (isset($values[self::PARAMETER_LESS_EQUAL])) {
+            if (isset($formattedValues[self::PARAMETER_LESS_EQUAL])) {
                 $this->addWhere(
                     $queryBuilder,
                     $property,
                     self::PARAMETER_LESS_EQUAL,
-                    $values[self::PARAMETER_LESS_EQUAL],
+                    $formattedValues[self::PARAMETER_LESS_EQUAL],
                     $nullManagement
                 );
             }
 
-            if (isset($values[self::PARAMETER_GREATER])) {
+            if (isset($formattedValues[self::PARAMETER_GREATER])) {
                 $this->addWhere(
                     $queryBuilder,
                     $property,
                     self::PARAMETER_GREATER,
-                    $values[self::PARAMETER_GREATER],
+                    $formattedValues[self::PARAMETER_GREATER],
                     $nullManagement
                 );
             }
 
-            if (isset($values[self::PARAMETER_GREATER_EQUAL])) {
+            if (isset($formattedValues[self::PARAMETER_GREATER_EQUAL])) {
                 $this->addWhere(
                     $queryBuilder,
                     $property,
                     self::PARAMETER_GREATER_EQUAL,
-                    $values[self::PARAMETER_GREATER_EQUAL],
+                    $formattedValues[self::PARAMETER_GREATER_EQUAL],
                     $nullManagement
                 );
             }
@@ -126,11 +143,11 @@ class DateFilter extends AbstractFilter
      */
     private function addWhere(QueryBuilder $queryBuilder, $property, $parameter, $value, $nullManagement)
     {
-        $queryParameter = sprintf('date_%s_%s', $parameter, $property);
-        $symbole = $this->getCompareSymbole($parameter);
-        $where = sprintf('o.%s %s :%s', $property, $symbole, $queryParameter);
+        $queryParameter = sprintf('range_%s_%s', $parameter, $property);
+        $symbole        = $this->getCompareSymbole($parameter);
+        $where          = sprintf('o.%s %s :%s', $property, $symbole, $queryParameter);
 
-        $queryBuilder->setParameter($queryParameter, new \DateTime($value));
+        $queryBuilder->setParameter($queryParameter, $value);
 
         if (null === $nullManagement || self::EXCLUDE_NULL === $nullManagement) {
             $queryBuilder->andWhere($where);
@@ -158,12 +175,14 @@ class DateFilter extends AbstractFilter
 
     /**
      * @param $parameter
+     *
      * @return null|string
      */
-    public function getCompareSymbole($parameter) {
+    public function getCompareSymbole($parameter)
+    {
         $value = null;
 
-        switch($parameter) {
+        switch ($parameter) {
             case self::PARAMETER_EQUAL:
                     $value = '=';
                 break;
@@ -183,6 +202,7 @@ class DateFilter extends AbstractFilter
 
         return $value;
     }
+
     /**
      * {@inheritdoc}
      */
@@ -213,23 +233,25 @@ class DateFilter extends AbstractFilter
     {
         return [
             sprintf('%s[%s]', $fieldName, $period) => [
-                'property' => $fieldName,
-                'type' => '\DateTime',
-                'required' => false,
+                'property'    => $fieldName,
+                'type'        => '\DateTime',
+                'required'    => false,
                 'description' => $this->getDescriptionFilter($period, $fieldName),
-                'requirement' => 'Y-m-d\TH:i:sO'
+                'requirement' => 'Y-m-d\TH:i:sO',
             ],
         ];
     }
 
     /**
      * @param $period
+     *
      * @return null|string
      */
-    private function getDescriptionFilter($period, $fieldName) {
+    private function getDescriptionFilter($period, $fieldName)
+    {
         $trans = null;
 
-        switch($period) {
+        switch ($period) {
             case self::PARAMETER_LESS:
                 $trans = 'Less than date filter';
                 break;
@@ -256,7 +278,7 @@ class DateFilter extends AbstractFilter
      */
     private function getDateFieldNames(ResourceInterface $resource)
     {
-        $classMetadata = $this->getClassMetadata($resource);
+        $classMetadata  = $this->getClassMetadata($resource);
         $dateFieldNames = [];
 
         foreach ($classMetadata->getFieldNames() as $fieldName) {
@@ -269,7 +291,29 @@ class DateFilter extends AbstractFilter
     }
 
     /**
+     * Gets names of fields with a number type.
+     *
+     * @param ResourceInterface $resource
+     *
+     * @return array
+     */
+    private function getNumberFieldNames(ResourceInterface $resource)
+    {
+        $classMetadata    = $this->getClassMetadata($resource);
+        $numberFieldNames = [];
+
+        foreach ($classMetadata->getFieldNames() as $fieldName) {
+            if (isset(self::$doctrineNumberTypes[$classMetadata->getTypeOfField($fieldName)])) {
+                $numberFieldNames[$fieldName] = true;
+            }
+        }
+
+        return $numberFieldNames;
+    }
+
+    /**
      * @param Request $request
+     *
      * @return array|mixed
      */
     public function getRequestProperties(Request $request)
