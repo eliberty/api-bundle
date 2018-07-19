@@ -207,10 +207,12 @@ class Scope extends BaseFractalScope
             throw new \RuntimeException('unable to guess resource collection ' . $this->getEntityName());
         }
 
-        return $collection->getResourceForShortName(
+        $resource = $collection->getResourceForShortName(
             $this->getEntityName(),
             $this->getApiVersion()
         );
+
+        return $resource === null ? new Resource(null, null) : $resource;
     }
 
     /**

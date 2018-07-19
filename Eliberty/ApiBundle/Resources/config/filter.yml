@@ -13,11 +13,11 @@ services:
             - '@doctrine'
             - '@property_accessor'
 
-#    api.doctrine.orm.date_filter:
-#        class: Eliberty\ApiBundle\Doctrine\Orm\Filter\DateFilter
-#        abstract: true
-#        arguments:
-#            - '@doctrine'
+    eliberty.api.doctrine.orm.range_filter:
+        class: Eliberty\ApiBundle\Doctrine\Orm\Filter\RangeFilter
+        abstract: true
+        arguments:
+            - '@doctrine'
 
     api.doctrine.orm.order_filter:
         class: Eliberty\ApiBundle\Doctrine\Orm\Filter\OrderFilter
