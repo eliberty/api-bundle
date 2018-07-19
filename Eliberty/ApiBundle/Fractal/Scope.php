@@ -13,9 +13,9 @@ namespace Eliberty\ApiBundle\Fractal;
 
 use Doctrine\Common\Inflector\Inflector;
 use Doctrine\ORM\EntityNotFoundException;
+use Eliberty\ApiBundle\Api\Resource;
 use Eliberty\ApiBundle\Context\GroupsContextChainer;
 use Eliberty\ApiBundle\Fractal\Serializer\DataHydraSerializer;
-use Eliberty\RedpillBundle\Model\OrderInterface;
 use League\Fractal\Resource\Item;
 use League\Fractal\Resource\ResourceInterface;
 use League\Fractal\Scope as BaseFractalScope;
@@ -84,9 +84,6 @@ class Scope extends BaseFractalScope
         return $this->itemNormalizer();
     }
 
-    /**
-     *
-     */
     protected function collectionNormalizer()
     {
         $serializer = $this->manager->getSerializer();
@@ -109,7 +106,7 @@ class Scope extends BaseFractalScope
                 $pagination = $serializer->paginator($this->resource->getPaginator());
             }
 
-            if (! empty($pagination)) {
+            if (!empty($pagination)) {
                 $this->resource->setMetaValue(key($pagination), current($pagination));
             }
         }
@@ -121,11 +118,11 @@ class Scope extends BaseFractalScope
     }
 
     /**
-     * check if scope has parent
+     * check if scope has parent.
      */
     public function hasParent()
     {
-        return ($this->parent instanceof Scope);
+        return $this->parent instanceof self;
     }
 
     /**
@@ -177,7 +174,7 @@ class Scope extends BaseFractalScope
     {
         $data = $this->resource->getData();
 
-        if (null ===  $data || is_array($data)) {
+        if (null === $data || is_array($data)) {
             return [$data, []];
         }
 
@@ -209,10 +206,13 @@ class Scope extends BaseFractalScope
         if (null === $collection) {
             throw new \RuntimeException('unable to guess resource collection ' . $this->getEntityName());
         }
-        return $collection->getResourceForShortName(
+
+        $resource = $collection->getResourceForShortName(
             $this->getEntityName(),
             $this->getApiVersion()
         );
+
+        return $resource === null ? new Resource(null, null) : $resource;
     }
 
     /**
@@ -221,13 +221,12 @@ class Scope extends BaseFractalScope
     protected function getApiVersion()
     {
         $version = 'v2';
-        if ($this->parent instanceof Scope && $this->parent->getDunglasResource() instanceof DunglasResource) {
+        if ($this->parent instanceof self && $this->parent->getDunglasResource() instanceof DunglasResource) {
             $version = $this->parent->getDunglasResource()->getVersion();
         }
 
         return $version;
     }
-
 
     /**
      * Fire the main transformer.
@@ -238,6 +237,7 @@ class Scope extends BaseFractalScope
      * @param mixed                        $data
      *
      * @return array
+     *
      * @throws EntityNotFoundException
      */
     protected function fireTransformer($transformer, $data)
@@ -258,14 +258,14 @@ class Scope extends BaseFractalScope
         try {
             $dataTransformer = is_callable($transformer) ? call_user_func($transformer, $data) : $transformer->transform($data);
         } catch (EntityNotFoundException $e) {
-            if ($this->resource instanceof Item && !$this->parent instanceof Scope) {
+            if ($this->resource instanceof Item && !$this->parent instanceof self) {
                 throw new EntityNotFoundException();
             }
         }
 
         $transformedData = array_merge($transformedData, $dataTransformer);
 
-        if ($this->getManager()->getGroupsContextChainer() instanceof GroupsContextChainer) {
+        if ($this->getManager()->getGroupsContextChainer() instanceof GroupsContextChainer && $this->getDunglasResource() instanceof DunglasResource) {
             $transformedData = $this->getManager()
                 ->getGroupsContextChainer()
                 ->serialize(
@@ -279,10 +279,11 @@ class Scope extends BaseFractalScope
             $includedData = $this->fireIncludedTransformers($transformer, $data);
             // If the serializer does not want the includes to be side-loaded then
             // the included data must be merged with the transformed data.
-            if (! $this->manager->getSerializer()->sideloadIncludes() && is_array($includedData)) {
+            if (!$this->manager->getSerializer()->sideloadIncludes() && is_array($includedData)) {
                 $transformedData = array_merge($transformedData, $includedData);
             }
         }
+
         return array($transformedData, $includedData);
     }
 
@@ -347,7 +348,7 @@ class Scope extends BaseFractalScope
     {
         $parentScope = $this->getParent();
 
-        if (!$parentScope instanceof Scope) {
+        if (!$parentScope instanceof self) {
             return parent::transformerHasIncludes($transformer);
         }
 
@@ -355,7 +356,7 @@ class Scope extends BaseFractalScope
             return true;
         }
 
-        if ($parentScope->getParent() instanceof Scope) {
+        if ($parentScope->getParent() instanceof self) {
             $embedsRequest = array_keys($transformer->getRequestEmbeds());
             $transformer->setDefaultIncludes([]);
 
@@ -382,9 +383,8 @@ class Scope extends BaseFractalScope
      */
     public function getIdentifierWithoutSourceIdentifier()
     {
-        return str_replace($this->getSingleIdentifier('asc') . '.', '', $this->getIdentifier());
+        return str_replace($this->getSingleIdentifier('asc').'.', '', $this->getIdentifier());
     }
-
 
     /**
      * @param DunglasResource $dunglasResource
@@ -417,7 +417,7 @@ class Scope extends BaseFractalScope
     }
 
     /**
-     * Serialize a resource
+     * Serialize a resource.
      *
      * @internal
      *
@@ -436,5 +436,4 @@ class Scope extends BaseFractalScope
 
         return null;
     }
-
 }

@@ -137,11 +137,15 @@ class SearchFilter extends AbstractFilter
             }
 
             if (isset($fieldNames[$property])) {
-                $shouldLower = 'string' === $metadata->getTypeOfField($property) && !$isCanonical;
+                $typeField = $metadata->getTypeOfField($property);
+                $shouldLower = 'string' === $typeField && !$isCanonical;
                 if ($shouldLower){
                     $equalityString = $isPartial ? 'lower(o.%1$s) LIKE :%2$s' : 'lower(o.%1$s) = :%2$s';
                 } else {
                     $equalityString = 'o.%1$s = :%2$s';
+                }
+                if ('integer' === $typeField && $isPartial) {
+                    $equalityString = 'CAST(o.%1$s AS TEXT) LIKE :%2$s';
                 }
                 $queryBuilder
                     ->andWhere(sprintf($equalityString, $fieldToCompare, $property))

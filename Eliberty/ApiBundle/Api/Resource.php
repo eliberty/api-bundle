@@ -89,7 +89,7 @@ class Resource implements ResourceInterface
         $entityClass,
         ResourceConfigInterface $config = null
     ) {
-        if (!class_exists($entityClass)) {
+        if (null !== $entityClass && !class_exists($entityClass)) {
             throw new \InvalidArgumentException(sprintf('The class %s does not exist.', $entityClass));
         }
 
