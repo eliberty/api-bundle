@@ -11,7 +11,6 @@ use Dunglas\ApiBundle\Api\ResourceInterface;
 use Dunglas\ApiBundle\Model\DataProviderChain;
 use Eliberty\ApiBundle\Api\Resource;
 use Eliberty\ApiBundle\Api\ResourceCollection;
-use Eliberty\ApiBundle\Doctrine\Orm\Filter\DateFilter;
 use Eliberty\ApiBundle\Doctrine\Orm\Filter\EmbedFilter;
 use Eliberty\ApiBundle\Doctrine\Orm\Filter\OrderFilter;
 use Eliberty\ApiBundle\Doctrine\Orm\Filter\SearchFilter;
