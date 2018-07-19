@@ -80,7 +80,7 @@ class Normalizer
         }
 
         $resource = new Item($object, $transformer);
-        if ($object instanceof Paginator || $object instanceof PersistentCollection) {
+        if ($object instanceof Paginator || $object instanceof \Doctrine\Common\Collections\Collection) {
             $resource = new Collection($object, $transformer);
             if ($fractalManager->getSerializer() instanceof ArraySerializer && $object instanceof Paginator) {
                 $resource->setPaginator(
@@ -111,7 +111,7 @@ class Normalizer
      */
     private function getEmbedsWithoutOptions(TransformerAbstract $transformer, Request $request)
     {
-        $embeds = $request->get('embed', null);
+        $embeds = $request->query->get('embed', null);
 
         if (null === $embeds) {
             $embeds = implode(',', $transformer->getDefaultIncludes());
