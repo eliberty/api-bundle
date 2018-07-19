@@ -72,6 +72,11 @@ class ErrorViolationListNormalizer implements NormalizerInterface
         foreach ($violationList as $violation) {
             $key          = $violation->getPropertyPath();
             $invalidValue = $violation->getInvalidValue();
+            $extraValues  = isset($violation->getParameters()['extras']) &&
+                is_array($violation->getParameters()['extras']) ?
+                $violation->getParameters()['extras'] :
+                []
+            ;
             if (method_exists($violation->getRoot(), '__toString')) {
                 $invalidValue = $this->propertyAccessor->getValue($violation->getRoot(), $violation->getPropertyPath());
             }
@@ -80,11 +85,11 @@ class ErrorViolationListNormalizer implements NormalizerInterface
                 $reflexion = new \ReflectionClass($class);
                 $key       = strtolower($reflexion->getShortname());
             }
-            $data['violations'][$key][] = [
+            $data['violations'][$key][] = array_merge([
                 'property'     => $violation->getPropertyPath(),
                 'invalidValue' => $invalidValue,
                 'message'      => $violation->getMessage()
-            ];
+            ],$extraValues);
         }
 
         if (isset($trace)) {

@@ -110,8 +110,12 @@ class TransformerHelper
     {
         $class = $this->getEntityClass($shortname);
 
-        $entity = new $class();
+        $reflection = new \ReflectionClass($class);
+        if ($reflection->isAbstract()) {
+            return [];
+        }
 
+        $entity = new $class();
         $transformer = $this->getTransformer($shortname);
 
         return $transformer->transform($entity);

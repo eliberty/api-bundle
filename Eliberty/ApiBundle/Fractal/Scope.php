@@ -202,15 +202,15 @@ class Scope extends BaseFractalScope
             return $this->dunglasResource;
         }
 
-        $resource =  $this->manager->getResourceCollection()->getResourceForShortName(
+        $collection = $this->manager->getResourceCollection();
+        if (null === $collection) {
+            throw new \RuntimeException('unable to guess resource collection ' . $this->getEntityName());
+        }
+
+        return $collection->getResourceForShortName(
             $this->getEntityName(),
             $this->getApiVersion()
         );
-        if (null === $resource) {
-            return new Resource(null, null);
-        }
-
-        return $resource;
     }
 
     /**
@@ -403,9 +403,15 @@ class Scope extends BaseFractalScope
      */
     public function getGenerateRoute($data, $params = [])
     {
-        $this->getManager()->getRouter()->setScope($this);
+        $router = $this->getManager()->getRouter();
+        if (null !== $router) {
+            if (method_exists($router, 'setScope')) {
+                $router->setScope($this);
+            }
+            return $router->generate($data, $params);
+        }
 
-        return $this->getManager()->getRouter()->generate($data, $params);
+        return [];
     }
 
     /**

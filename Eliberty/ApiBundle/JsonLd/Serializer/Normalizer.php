@@ -90,6 +90,7 @@ class Normalizer
         }
 
         $rootScope = $fractalManager->createData($resource, $dunglasResource->getShortName());
+        $rootScope->setDunglasResource($dunglasResource);
 
         if ($defaultIncludes === false) {
             $transformer->setDefaultIncludes([]);

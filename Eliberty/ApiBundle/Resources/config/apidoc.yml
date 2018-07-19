@@ -25,3 +25,4 @@ services:
             - '@doctrine'
             - '@property_accessor'
             - '@api.data_provider'
+            - '@api.router'
