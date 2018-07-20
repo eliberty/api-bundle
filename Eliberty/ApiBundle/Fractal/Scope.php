@@ -93,7 +93,7 @@ class Scope extends BaseFractalScope
 
         list($rawData, $rawIncludedData) = $this->executeResourceTransformers();
 
-        if (count($rawData) === 0) {
+        if (!\is_array($rawData) || \count($rawData) === 0) {
             return [];
         }
 
