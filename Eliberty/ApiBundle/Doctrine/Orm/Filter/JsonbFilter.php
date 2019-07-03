@@ -11,6 +11,16 @@ use iter;
 /**
  * Filters the Jsonb column.
  *
+ * USAGE
+ * ------
+ * Format: property[key] = values
+ *
+ * property: the database field (in jsonb format)
+ * key: the name of an attribute inside the jsonb object (must be an array)
+ * values: comma separated list of string values to filter inside property[key] array
+ *
+ * EMPTY is a special value used to match empty property[key] arrays
+ *
  */
 class JsonbFilter extends AbstractFilter
 {
@@ -23,41 +33,91 @@ class JsonbFilter extends AbstractFilter
 
         foreach ($this->extractProperties($request) as $property => $values) {
             // Expect $property to be a jsonb field
-            if (!isset($jsonbFieldNames[$property]) /* || !$this->isPropertyEnabled($property)  */) {
+            if (!isset($jsonbFieldNames[$property])) {
                 continue;
             }
 
             foreach ($values as $key => $value) {
-                $valueList = \explode(',', $value);
-                $conditions = $queryBuilder->expr()->orX();
-                $filters = $queryBuilder->expr()->andX();
-                $empty = $queryBuilder->expr()->orX();
+                $conditions = $this->parseValues($queryBuilder, $property, $key, $value);
 
-                foreach ($valueList as $value) {
-                    if ($value === 'UNSET') {
-                        $empty->add(sprintf("JSONCHILD(o.%s, '%s') = '[]'", $property, $key));
-                        $empty->add(sprintf("o.%s IS NULL", $property));
-                    } else {
-                        $expression = sprintf('{"%s": ["%s"]}', $key, $value);
-                        $filters->add(sprintf("JSON_CONTAINS(o.%s, '%s') = TRUE", $property, $expression));
-                    }
-                }
-
-                if ($filters->count() > 0) {
-                    $conditions->add($filters);
-                }
-
-                if ($empty->count() > 0) {
-                    $conditions->add($empty);
-                }
-
-                if ($conditions->count() > 0) {
+                if ($conditions !== null) {
                     $queryBuilder->andWhere($conditions);
                 }
             }
         }
     }
-    
+
+    /**
+     * Parses values givent in property[key] attribute.
+     *
+     * @param QueryBuilder $queryBuilder
+     * @param string $property
+     * @param string $key
+     * @param string $values
+     *
+     * @return Expr\Orx|null
+     */
+    private function parseValues(QueryBuilder $queryBuilder, $property, $key, $values)
+    {
+        if ($values === "") {
+            return null;
+        }
+
+        $conditions = $queryBuilder->expr()->orX();
+        $queryFilters = \explode(',', $values);
+
+        foreach ($queryFilters as $filter) {
+            if ($filter === "") {
+                continue;
+            }
+
+            if ($filter === 'EMPTY') {
+                $conditions->add($this->addEmptyFilter($queryBuilder, $property, $key));
+            } else {
+                $conditions->add($this->addValueFilter($queryBuilder, $property, $key, $filter));
+            }
+        }
+
+        return $conditions;
+    }
+
+    /**
+     * Convertes a value to a query condition.
+     *
+     * @param QueryBuilder $queryBuilder
+     * @param string $property
+     * @param string $key
+     * @param string $filter
+     *
+     * @return Expr\Andx
+     */
+    private function addValueFilter(QueryBuilder $queryBuilder, $property, $key, $filter)
+    {
+        $condition = $queryBuilder->expr()->andX();
+        $expression = sprintf('{"%s": ["%s"]}', $key, $filter);
+        $condition->add(sprintf("JSON_CONTAINS(o.%s, '%s') = TRUE", $property, $expression));
+
+        return $condition;
+    }
+
+    /**
+     * Convertes special value 'EMPTY' to a query condition.
+     *
+     * @param QueryBuilder $queryBuilder
+     * @param string $property
+     * @param string $key
+     *
+     * @return Expr\Orx
+     */
+    private function addEmptyFilter(QueryBuilder $queryBuilder, $property, $key)
+    {
+        $condition = $queryBuilder->expr()->orX();
+        $condition->add(sprintf("JSONCHILD(o.%s, '%s') = '[]'", $property, $key));
+        $condition->add(sprintf("o.%s IS NULL", $property));
+
+        return $condition;
+    }
+
     /**
      * Gets names of fields with a jsonb type.
      *
@@ -67,11 +127,11 @@ class JsonbFilter extends AbstractFilter
      */
     private function getJsonbFieldNames(ResourceInterface $resource)
     {
-        $classMetadata    = $this->getClassMetadata($resource);
+        $classMetadata   = $this->getClassMetadata($resource);
         $jsonbFieldNames = [];
 
         foreach ($classMetadata->getFieldNames() as $fieldName) {
-            if ($classMetadata->getTypeOfField($fieldName) === 'json_array_text') {
+            if ($classMetadata->getTypeOfField($fieldName) === 'jsonb') {
                 $jsonbFieldNames[$fieldName] = true;
             }
         }

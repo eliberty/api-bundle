@@ -19,8 +19,7 @@ services:
         arguments:
             - '@doctrine'
 
-    eliberty.api.doctrine.orm.jsonb_filter:
-        class: Eliberty\ApiBundle\Doctrine\Orm\Filter\JsonbFilter
+    Eliberty\ApiBundle\Doctrine\Orm\Filter\JsonbFilter:
         abstract: true
         arguments:
             - '@doctrine'
