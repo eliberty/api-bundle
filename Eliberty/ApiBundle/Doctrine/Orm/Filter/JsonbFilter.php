@@ -131,7 +131,7 @@ class JsonbFilter extends AbstractFilter
         $jsonbFieldNames = [];
 
         foreach ($classMetadata->getFieldNames() as $fieldName) {
-            if ($classMetadata->getTypeOfField($fieldName) === 'jsonb') {
+            if ($classMetadata->getTypeOfField($fieldName) === 'json') {
                 $jsonbFieldNames[$fieldName] = true;
             }
         }
