@@ -6,6 +6,13 @@ services:
             - '@doctrine'
             - '@property_accessor'
 
+    eliberty.api.doctrine.orm.notinlist_filter:
+        class: Eliberty\ApiBundle\Doctrine\Orm\Filter\NotInListFilter
+        abstract: true
+        arguments:
+            - '@doctrine'
+            - '@property_accessor'
+
     eliberty.api.doctrine.orm.isnull_filter:
         class: Eliberty\ApiBundle\Doctrine\Orm\Filter\IsNullFilter
         abstract: true
