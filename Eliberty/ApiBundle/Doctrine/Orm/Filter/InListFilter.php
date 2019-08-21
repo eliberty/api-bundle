@@ -10,9 +10,8 @@ use Doctrine\DBAL\Types\Type;
 use Dunglas\ApiBundle\Doctrine\Orm\Filter\AbstractFilter;
 use Doctrine\ORM\QueryBuilder;
 use Dunglas\ApiBundle\Api\ResourceInterface;
-use Eliberty\ApiBundle\Doctrine\Orm\Filter\SearchFilter;
+use Dunglas\ApiBundle\Doctrine\Orm\Util\QueryNameGenerator;
 use Symfony\Component\HttpFoundation\Request;
-use Dunglas\ApiBundle\Api\IriConverterInterface;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 
 /**
@@ -27,21 +26,44 @@ class InListFilter extends SearchFilter
      */
     public function apply(ResourceInterface $resource, QueryBuilder $queryBuilder, Request $request)
     {
-        $metadata = $this->getClassMetadata($resource);
-        $fieldNames = array_flip($metadata->getFieldNames());
-
         foreach ($this->extractProperties($request) as $property => $value) {
-            if (!is_array($value) || !$this->isPropertyEnabled($property)  || !isset($value['in'])) {
+            if (!$this->isPropertyEnabled($property) || !isset($value['in'])) {
                 continue;
             }
 
-            if (isset($fieldNames[$property])) {
-                $in_datas = explode(',', $value['in']);
-                $listname = 'f_' . $property . '_list';
+            $alias = 'o';
+            $field = $property;
+
+            $metadata = $this->getClassMetadata($resource);
+
+            // Manage filter on embed field (1toN association only)
+
+            if ($this->isPropertyNested($property)) {
+                $propertyParts = $this->splitPropertyParts($property);
+
+                $parentAlias = $alias;
+
+                foreach ($propertyParts['associations'] as $association) {
+                    $alias = QueryNameGenerator::generateJoinAlias($association);
+                    $queryBuilder->join(sprintf('%s.%s', $parentAlias, $association), $alias);
+                    $parentAlias = $alias;
+                }
+
+                $field = $propertyParts['field'];
+
+                $metadata = $this->getNestedMetadata($resource, $propertyParts['associations']);
+            }
+
+            // TODO Add support for NtoN association using conditions :
+            //  if ($metadata->isSingleValuedAssociation($field)) { ... }
+            //  if ($metadata->isCollectionValuedAssociation($field)) { ... }
+
+            if ($metadata->hasField($field)) {
+                $valueParameter = QueryNameGenerator::generateParameterName($field);
+
                 $queryBuilder
-                    ->andWhere(sprintf('o.%s IN (:%s)', $property, $listname))
-                    ->setParameter($listname, $in_datas)
-                ;
+                    ->andWhere(sprintf('%s.%s IN (:%s)', $alias, $field, $valueParameter))
+                    ->setParameter($valueParameter, explode(',', $value['in']));
             }
         }
     }
