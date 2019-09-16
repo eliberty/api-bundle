@@ -16,12 +16,26 @@ use Symfony\Component\Validator\ConstraintViolationList;
 
 abstract class FormResourceController extends ResourceController
 {
-
     /**
      * Entityname
      * @var string
      */
     protected $entityName ;
+
+    /**
+     * @param $exception
+     * @return JsonResponse
+     * @throws \Exception
+     */
+    private function processException($exception) {
+        $message = sprintf(
+            '%s: An error occurred while processing your request (complete stack trace available on log file)',
+            (new \DateTime())->format('Y-m-d H:i:s')
+        );
+        $this->get('logger')->critical($exception->getMessage());
+
+        return new JsonResponse(['error' => $message], '400');
+    }
 
     /**
      * Edit entity.
@@ -43,10 +57,14 @@ abstract class FormResourceController extends ResourceController
             $object = $this->findOrThrowNotFound($resource, $id);
         }
 
-        $form       = $this->processForm($object);
-        $violations = new ConstraintViolationList($this->constraintViolation($form->getErrors(true)));
+        try {
+            $form = $this->processForm($object);
+            $violations = new ConstraintViolationList($this->constraintViolation($form->getErrors(true)));
 
-        return $this->formResponse($object, $violations, $resource, $eventName);
+            return $this->formResponse($object, $violations, $resource, $eventName);
+        } catch (\Exception $e) {
+            return $this->processException($e);
+        }
     }
 
     /**
@@ -67,11 +85,14 @@ abstract class FormResourceController extends ResourceController
             $entity     = new $entityName;
         }
 
-        $form = $this->processForm($entity);
+        try {
+            $form = $this->processForm($entity);
+            $violations = new ConstraintViolationList($this->constraintViolation($form->getErrors(true)));
 
-        $violations = new ConstraintViolationList($this->constraintViolation($form->getErrors(true)));
-
-        return $this->formResponse($entity, $violations, $resource, $eventName);
+            return $this->formResponse($entity, $violations, $resource, $eventName);
+        } catch (\Exception $e) {
+            return $this->processException($e);
+        }
     }
 
     /**
