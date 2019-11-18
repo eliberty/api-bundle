@@ -2,6 +2,7 @@
 
 namespace Eliberty\ApiBundle\Controller;
 
+use Doctrine\DBAL\DBALException;
 use Doctrine\ORM\EntityNotFoundException;
 use Dunglas\ApiBundle\Event\Events;
 use FOS\RestBundle\Controller\FOSRestController;
@@ -28,11 +29,15 @@ abstract class FormResourceController extends ResourceController
      * @throws \Exception
      */
     private function processException($exception) {
-        $message = sprintf(
-            '%s: An error occurred while processing your request (complete stack trace available on log file)',
-            (new \DateTime())->format('Y-m-d H:i:s')
-        );
-        $this->get('logger')->critical($exception->getMessage());
+        if ($exception instanceof DBALException) {
+            $message = sprintf(
+                '%s: A DB exception occurred while processing your request (complete stack trace available on log file)',
+                (new \DateTime())->format('Y-m-d H:i:s')
+            );
+            $this->get('logger')->critical($exception->getMessage());
+        } else {
+            $message = $exception->getMessage();
+        }
 
         return new JsonResponse(['error' => $message], '400');
     }
