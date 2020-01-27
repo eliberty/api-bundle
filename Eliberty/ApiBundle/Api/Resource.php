@@ -571,7 +571,7 @@ class Resource implements ResourceInterface
         $objIdentity = new ObjectIdentity('class', $entityClass);
 
         if (!$this->authorizationChecker->isGranted($mask, $objIdentity)) {
-            throw new AccessDeniedException('Acl permission for this object is not granted.');
+            throw new AccessDeniedException(sprintf('%s: Acl permission for this object is not granted for %s.',$entityClass, \implode($mask, '')));
         }
     }
 
