@@ -23,7 +23,7 @@ class CoalescentOrderFilter extends BaseOrderFilter
     /**
      * @var string Keyword used to retrieve the value.
      */
-    private $coalepseOrderParameter = 'corder';
+    private $coalesceOrderParameter = 'corder';
 
     /**
      * @param ManagerRegistry $managerRegistry
@@ -115,7 +115,7 @@ class CoalescentOrderFilter extends BaseOrderFilter
 
         foreach ($metadata->getFieldNames() as $fieldName) {
             if ($this->isPropertyEnabled($fieldName)) {
-                $description[sprintf('%s[]', $this->coalepseOrderParameter)] = [
+                $description[sprintf('%s[]', $this->coalesceOrderParameter)] = [
                     'property' => $fieldName,
                     'type' => 'string',
                     'required' => false,
@@ -133,6 +133,6 @@ class CoalescentOrderFilter extends BaseOrderFilter
      */
     protected function extractProperties(Request $request)
     {
-        return $request->query->get($this->coalepseOrderParameter, []);
+        return $request->query->get($this->coalesceOrderParameter, []);
     }
 }
