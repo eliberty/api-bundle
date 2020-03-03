@@ -29,10 +29,9 @@ class CoalescentOrderFilter extends BaseOrderFilter
      * @param ManagerRegistry $managerRegistry
      * @param array|null      $properties      List of property names on which the filter will be enabled.
      */
-    public function __construct(ManagerRegistry $managerRegistry, array $properties = null)
+    public function __construct(ManagerRegistry $managerRegistry)
     {
-        parent::__construct($managerRegistry, $properties);
-        $this->properties = $properties;
+        parent::__construct($managerRegistry, null);
     }
 
     /**
@@ -63,7 +62,7 @@ class CoalescentOrderFilter extends BaseOrderFilter
                 continue;
             }
 
-            $order = $fields[\count($fields) - 1];
+            $order = \array_pop($fields);
             $order = strtoupper($order);
             if (!in_array($order, ['ASC', 'DESC'])) {
                 $order = 'ASC';
@@ -71,7 +70,7 @@ class CoalescentOrderFilter extends BaseOrderFilter
 
             $orderByList = [];
             foreach ($fields as $field) {
-                if (!$this->isPropertyEnabled($field) || !$this->isPropertyMapped(
+                if (!$this->isPropertyEnabled($field) && !$this->isPropertyMapped(
                         $field,
                         $resource
                     )) {
