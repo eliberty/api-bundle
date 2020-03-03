@@ -46,6 +46,13 @@ services:
             - '@doctrine'
             - '@property_accessor'
 
+    api.doctrine.orm.coalescent_order_filter:
+        class: Eliberty\ApiBundle\Doctrine\Orm\Filter\CoalescentOrderFilter
+        public: false
+        abstract: true
+        arguments:
+            - '@doctrine'
+
     api.init.filter.embed:
         class: 'Eliberty\ApiBundle\Helper\InitFilterEmbed'
         arguments:
