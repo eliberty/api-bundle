@@ -30,6 +30,6 @@
         }
     },
     "autoload": {
-        "psr-4": { "Eliberty\\Bundle\\ApiBundle\\": "src/" }
+        "psr-4": { "Eliberty\\ApiBundle\\": "src/" }
     }
 }
