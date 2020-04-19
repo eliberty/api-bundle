@@ -1,9 +1,9 @@
 {
     "name": "eliberty/api-bundle",
     "type": "symfony-bundle",
-    "description": "JSON-LD / Hydra REST API with use fractal for Symfony",
+    "description": "JSON-LD / Hydra REST API with fractal for Symfony",
     "keywords": ["api", "jsonld", "eliberty", "rest", "Hydra"],
-    "license": "PROPRIETARY",
+    "license": "proprietary",
     "authors": [
         {
             "name": "philippe vesin",
@@ -30,6 +30,6 @@
         }
     },
     "autoload": {
-        "psr-4": { "Eliberty\\Bundle\\ApiBundle\\": "" }
+        "psr-4": { "Eliberty\\Bundle\\ApiBundle\\": "src/" }
     }
 }
