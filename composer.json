@@ -21,8 +21,8 @@
         "nelmio/api-doc-bundle": "^2.0|^3.0",
         "league/fractal": "0.13.0",
         "dunglas/api-bundle": "v1.1.1",
-        "white-october/pagerfanta-bundle": "^1.0",
-        "eliberty/phplibs": "~3.0"
+        "white-october/pagerfanta-bundle": "~1.0.5",
+        "eliberty/phplibs": "~6.0"
     },
     "extra": {
         "branch-alias": {
