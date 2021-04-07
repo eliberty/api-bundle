@@ -14,13 +14,17 @@
         {
             "type": "git",
             "url": "git@github.com:eliberty/php-utils.git"
+        },
+        {
+            "type": "git",
+            "url": "git@github.com:eliberty/dunglas-api-core.git"
         }
     ],
     "require": {
         "php": ">=7.4",
         "nelmio/api-doc-bundle": "^2.0|^3.0",
         "league/fractal": "0.13.0",
-        "dunglas/api-bundle": "v1.2.1",
+        "eliberty/dunglas-api-core": "v1.2.2",
         "eliberty/php-utils": "0.2.0"
     },
     "extra": {
