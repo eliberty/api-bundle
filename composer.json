@@ -24,7 +24,7 @@
         "php": ">=7.4",
         "nelmio/api-doc-bundle": "^2.0|^3.0",
         "league/fractal": "0.13.0",
-        "eliberty/dunglas-api-core": "v1.2.2",
+        "eliberty/dunglas-api-core": "v1.2.3",
         "eliberty/php-utils": "0.2.0"
     },
     "extra": {
