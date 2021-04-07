@@ -14,10 +14,6 @@
         {
             "type": "git",
             "url": "git@github.com:eliberty/php-utils.git"
-        },
-        {
-            "type": "git",
-            "url": "git@github.com:eliberty/dunglas-api-core.git"
         }
     ],
     "require": {
