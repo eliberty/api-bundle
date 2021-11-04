@@ -28,7 +28,7 @@ abstract class FormResourceController extends ResourceController
      * @return JsonResponse
      * @throws \Exception
      */
-    private function processException($exception) {
+    protected function processException($exception) {
         if ($exception instanceof DBALException) {
             $message = sprintf(
                 '%s: A DB exception occurred while processing your request (complete stack trace available on log file)',
