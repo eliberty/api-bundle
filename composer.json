@@ -11,7 +11,7 @@
         }
     ],
     "require": {
-        "php": ">=7.4",
+        "php": "^7.4 || 8.0",
         "nelmio/api-doc-bundle": "^2.0|^3.0",
         "league/fractal": "^0.13",
         "dunglas/api-bundle": "^1.2",
