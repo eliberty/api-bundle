@@ -1,15 +1,10 @@
 <?php
-/**
- *
- */
+
 namespace Eliberty\ApiBundle\Context;
 
-use Doctrine\Common\Cache\Cache;
-use Symfony\Bundle\FrameworkBundle\Routing\Router;
-use Eliberty\ApiBundle\Versioning\Router\ApiRouter;
+use Psr\SimpleCache\CacheInterface;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\Yaml\Yaml;
-use Symfony\Component\Config\FileLocator;
 
 /**
  * Class GroupsContextLoader
@@ -18,53 +13,36 @@ use Symfony\Component\Config\FileLocator;
  */
 class GroupsContextLoader
 {
+    protected array $bundles;
 
-    /**
-     * @var string
-     */
-    protected $bundles;
+    protected CacheInterface $cache;
 
-    /**
-     * @var Cache
-     */
-    protected $cache;
-
-    /**
-     * GroupsContextLoader constructor.
-     *
-     * @param              $bundles
-     * @param Cache        $cache
-     */
-    public function __construct($bundles, Cache $cache)
+    public function __construct(array $bundles, CacheInterface $cache)
     {
         $this->cache   = $cache;
         $this->bundles = $bundles;
     }
 
     /**
-     * @param $entityName
-     * @param $version
-     *
-     * @return null
+     * @throws \ReflectionException
      */
-    public function getContexts($entityName, $version) {
+    public function getContexts(string $entityName, string $version): ?array
+    {
         $cache = $this->getCacheContext($version);
 
-        return isset($cache[$entityName]) ? $cache[$entityName] : null;
+        return $cache[$entityName] ?? null;
     }
 
     /**
      * get config webhook for current webinstance
      *
-     * @param $version
-     *
-     * @return mixed
+     * @throws \ReflectionException
      */
-    public function getCacheContext($version)
+    public function getCacheContext(string $version): array
     {
-        if (!$config = $this->cache->fetch($this->getCacheKey())) {
+        if (!$config = $this->cache->get($this->getCacheKey())) {
             $config = $this->createConfig($version);
-            $this->cache->save($this->getCacheKey(), $config, 86400);
+            $this->cache->set($this->getCacheKey(), $config, 86400);
         }
 
         return $config;
@@ -73,11 +51,10 @@ class GroupsContextLoader
     /**
      * created the config for cache
      *
-     * @param $version
-     *
-     * @return array
+     * @throws \ReflectionException
      */
-    protected function createConfig($version) {
+    protected function createConfig(string $version): array
+    {
         $cacheData = [];
         $basedir = '/Resources/config/api/' . $version . '/context';
         foreach ($this->bundles as $bundle) {
@@ -100,7 +77,7 @@ class GroupsContextLoader
     /**
      * get key parameter for cache redis
      */
-    protected function getCacheKey()
+    protected function getCacheKey(): string
     {
         return 'group_context_api';
     }
