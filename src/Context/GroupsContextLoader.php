@@ -26,7 +26,7 @@ class GroupsContextLoader
     /**
      * @throws \ReflectionException
      */
-    public function getContexts(string $entityName, string $version): ?array
+    public function getContexts(string $entityName, ?string $version): ?array
     {
         $cache = $this->getCacheContext($version);
 
@@ -38,7 +38,7 @@ class GroupsContextLoader
      *
      * @throws \ReflectionException
      */
-    public function getCacheContext(string $version): array
+    public function getCacheContext(?string $version): array
     {
         if (!$config = $this->cache->get($this->getCacheKey())) {
             $config = $this->createConfig($version);
@@ -53,7 +53,7 @@ class GroupsContextLoader
      *
      * @throws \ReflectionException
      */
-    protected function createConfig(string $version): array
+    protected function createConfig(?string $version): array
     {
         $cacheData = [];
         $basedir = '/Resources/config/api/' . $version . '/context';
