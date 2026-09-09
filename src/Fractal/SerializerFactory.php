@@ -51,6 +51,7 @@ class SerializerFactory
                 break;
             default:
                 $serializer = new DataHydraSerializer();
+                $serializer->setQueryParameters($request->query->all());
                 break;
         }
         return $serializer;
