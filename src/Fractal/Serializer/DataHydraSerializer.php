@@ -3,6 +3,7 @@
 namespace Eliberty\ApiBundle\Fractal\Serializer;
 
 use Doctrine\ORM\PersistentCollection;
+use Eliberty\ApiBundle\Fractal\Pagination\PaginationUrlBuilder;
 use Eliberty\ApiBundle\Fractal\Scope;
 use League\Fractal\Manager;
 use Dunglas\ApiBundle\Model\PaginatorInterface;
@@ -37,6 +38,13 @@ class DataHydraSerializer extends BaseDataArraySerializer implements SerializerI
     protected $scope;
 
     /**
+     * Query parameters of the current request, kept on the pagination urls.
+     *
+     * @var array
+     */
+    protected $queryParameters = [];
+
+    /**
      * @param Scope $scope
      *
      * @return $this
@@ -44,6 +52,18 @@ class DataHydraSerializer extends BaseDataArraySerializer implements SerializerI
     public function setScope(Scope $scope)
     {
         $this->scope = $scope;
+
+        return $this;
+    }
+
+    /**
+     * @param array $queryParameters
+     *
+     * @return $this
+     */
+    public function setQueryParameters(array $queryParameters)
+    {
+        $this->queryParameters = $queryParameters;
 
         return $this;
     }
@@ -109,8 +129,14 @@ class DataHydraSerializer extends BaseDataArraySerializer implements SerializerI
             $currentPage = (int) $object->getCurrentPage();
             $lastPage    = (int) $object->getLastPage();
 
-            $baseUrl = $hydra['@id'];
-            $paginatedUrl = $baseUrl.'?perpage='.$object->getItemsPerPage().'&page=';
+            $urlBuilder = new PaginationUrlBuilder(
+                isset($hydra['@id']) ? $hydra['@id'] : null,
+                $this->queryParameters,
+                $object->getItemsPerPage()
+            );
+
+            $baseUrl = $urlBuilder->getFirstPageUrl();
+            $paginatedUrl = $urlBuilder->getPageUrlPrefix();
 
             $this->getPreviewPage($hydra, $currentPage, $paginatedUrl, $baseUrl);
             $this->getNextPage($hydra, $currentPage, $lastPage, $paginatedUrl);
